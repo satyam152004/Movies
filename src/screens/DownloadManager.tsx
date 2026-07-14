@@ -103,19 +103,31 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
     }
   };
 
-  const activeCount = downloads.filter(d => d.status === 'downloading' || d.status === 'pending').length;
+  const activeCount = downloads.filter(
+    d => d.status === 'downloading' || d.status === 'pending',
+  ).length;
   const completedCount = downloads.filter(d => d.status === 'completed').length;
-  const failedCount = downloads.filter(d => d.status === 'failed' || d.status === 'cancelled').length;
+  const failedCount = downloads.filter(
+    d => d.status === 'failed' || d.status === 'cancelled',
+  ).length;
 
   const getLogRowColor = (log: string) => {
     const lower = log.toLowerCase();
     if (lower.includes('error') || lower.includes('failed')) {
       return '#EF4444';
     }
-    if (lower.includes('success') || lower.includes('completed') || lower.includes('enqueued')) {
+    if (
+      lower.includes('success') ||
+      lower.includes('completed') ||
+      lower.includes('enqueued')
+    ) {
       return '#10B981';
     }
-    if (lower.includes('warn') || lower.includes('paused') || lower.includes('cancel')) {
+    if (
+      lower.includes('warn') ||
+      lower.includes('paused') ||
+      lower.includes('cancel')
+    ) {
       return '#F59E0B';
     }
     if (lower.includes('resuming') || lower.includes('retrying')) {
@@ -128,7 +140,10 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeBtn} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.closeBtn}
+          onPress={onBack}
+          activeOpacity={0.7}>
           <Text style={styles.closeBtnText}>◀ BACK</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Download Pipeline</Text>
@@ -139,22 +154,27 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
         style={styles.body}
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}>
-        
         {/* Storage / Summary Cards */}
         {downloads.length > 0 && (
           <View style={styles.summaryCard}>
             <View style={styles.summaryItem}>
-              <Text style={[styles.summaryValue, {color: '#8B5CF6'}]}>{activeCount}</Text>
+              <Text style={[styles.summaryValue, {color: '#8B5CF6'}]}>
+                {activeCount}
+              </Text>
               <Text style={styles.summaryLabel}>ACTIVE</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={[styles.summaryValue, {color: '#10B981'}]}>{completedCount}</Text>
+              <Text style={[styles.summaryValue, {color: '#10B981'}]}>
+                {completedCount}
+              </Text>
               <Text style={styles.summaryLabel}>COMPLETED</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={[styles.summaryValue, {color: '#94A3B8'}]}>{failedCount}</Text>
+              <Text style={[styles.summaryValue, {color: '#94A3B8'}]}>
+                {failedCount}
+              </Text>
               <Text style={styles.summaryLabel}>FAILED</Text>
             </View>
           </View>
@@ -163,7 +183,9 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
         {downloads.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>📥</Text>
-            <Text style={styles.emptyText}>No active or completed downloads</Text>
+            <Text style={styles.emptyText}>
+              No active or completed downloads
+            </Text>
             <Text style={styles.emptySubtext}>
               Resolved movie links you download will appear in this pipeline.
             </Text>
@@ -198,8 +220,16 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
                 {/* Progress Header */}
                 <View style={styles.progressHeader}>
                   <Text style={styles.percentText}>{progressPercent}%</Text>
-                  <View style={[styles.statusBadge, getStatusBadgeStyle(item.status)]}>
-                    <Text style={[styles.statusBadgeText, {color: getStatusBadgeStyle(item.status).color}]}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      getStatusBadgeStyle(item.status),
+                    ]}>
+                    <Text
+                      style={[
+                        styles.statusBadgeText,
+                        {color: getStatusBadgeStyle(item.status).color},
+                      ]}>
                       {item.status.toUpperCase()}
                     </Text>
                   </View>
@@ -217,12 +247,16 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
                   <View style={styles.metricsRow}>
                     <View style={styles.metricItem}>
                       <Text style={styles.metricLabel}>SPEED</Text>
-                      <Text style={styles.metricValue}>{item.downloadSpeed}</Text>
+                      <Text style={styles.metricValue}>
+                        {item.downloadSpeed}
+                      </Text>
                     </View>
                     <View style={styles.metricDivider} />
                     <View style={styles.metricItem}>
                       <Text style={styles.metricLabel}>DOWNLOADED</Text>
-                      <Text style={styles.metricValue}>{item.downloadedSize}</Text>
+                      <Text style={styles.metricValue}>
+                        {item.downloadedSize}
+                      </Text>
                     </View>
                     <View style={styles.metricDivider} />
                     <View style={styles.metricItem}>
@@ -282,7 +316,7 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
                       </View>
                     )}
                   </View>
-                  
+
                   <TouchableOpacity
                     style={styles.toggleLogBtn}
                     onPress={() => toggleLogs(item.id)}

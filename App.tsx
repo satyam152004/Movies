@@ -129,7 +129,9 @@ function App(): React.JSX.Element {
 
       {/* Top Banner */}
       <View style={styles.topNav}>
-        <Text style={styles.navTitle}>🎬 <Text style={{color: '#8B5CF6'}}>Cine</Text>App</Text>
+        <Text style={styles.navTitle}>
+          🎬 <Text style={{color: '#8B5CF6'}}>Cine</Text>App
+        </Text>
         <View style={styles.navButtons}>
           <TouchableOpacity
             style={[
@@ -225,7 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#8B5CF6',
     borderColor: '#7C3AED',
     shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 2,

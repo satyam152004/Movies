@@ -221,13 +221,14 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}>
-      
       {/* Domain Discovery Card */}
       <View style={styles.radarCard}>
         <View style={styles.radarHeader}>
           <View style={styles.radarInfo}>
             <Text style={styles.radarTitle}>Domain Discovery</Text>
-            <Text style={styles.radarSub}>Automatic HDHub4U Domain Resolver</Text>
+            <Text style={styles.radarSub}>
+              Automatic HDHub4U Domain Resolver
+            </Text>
           </View>
           <Animated.View style={[styles.pulseDot, {opacity: pulseAnim}]} />
         </View>
@@ -244,13 +245,17 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
           />
           <View style={styles.domainIndicator}>
             <Text style={styles.domainLabel}>ACTIVE DOMAIN</Text>
-            <Text style={styles.domainValue} numberOfLines={1}>{discoveredDomain}</Text>
+            <Text style={styles.domainValue} numberOfLines={1}>
+              {discoveredDomain}
+            </Text>
           </View>
         </View>
 
         <View style={styles.radarFooter}>
           <View style={styles.statusChip}>
-            <Text style={styles.statusChipText}>{isDiscovering ? 'SCANNING' : 'RESOLVED'}</Text>
+            <Text style={styles.statusChipText}>
+              {isDiscovering ? 'SCANNING' : 'RESOLVED'}
+            </Text>
           </View>
           {!isRunning && (
             <TouchableOpacity
@@ -284,12 +289,18 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
           />
           <View style={styles.inputActions}>
             {url.length > 0 && (
-              <TouchableOpacity onPress={() => setUrl('')} style={styles.inputActionBtn}>
+              <TouchableOpacity
+                onPress={() => setUrl('')}
+                style={styles.inputActionBtn}>
                 <Text style={styles.inputActionText}>✕</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={handlePaste} style={styles.inputActionBtn}>
-              <Text style={[styles.inputActionText, {color: '#06B6D4'}]}>PASTE</Text>
+            <TouchableOpacity
+              onPress={handlePaste}
+              style={styles.inputActionBtn}>
+              <Text style={[styles.inputActionText, {color: '#06B6D4'}]}>
+                PASTE
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -343,7 +354,9 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
             <View style={styles.configRow}>
               <View style={styles.configInfo}>
                 <Text style={styles.configLabel}>Page Depth Limit</Text>
-                <Text style={styles.configDesc}>Number of list pages to scrape</Text>
+                <Text style={styles.configDesc}>
+                  Number of list pages to scrape
+                </Text>
               </View>
               <TextInput
                 style={styles.numericInput}
@@ -361,7 +374,8 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
           <View style={styles.configInfo}>
             <Text style={styles.configLabel}>Force Dynamic (WebView)</Text>
             <Text style={styles.configDesc}>
-              Executes full headless browser scripting instead of fast static requests
+              Executes full headless browser scripting instead of fast static
+              requests
             </Text>
           </View>
           <Switch
@@ -455,7 +469,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#10B981',
     shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 0 },
+    shadowOffset: {width: 0, height: 0},
     shadowOpacity: 0.8,
     shadowRadius: 6,
     elevation: 3,
@@ -708,7 +722,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#7C3AED',
     shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: {width: 0, height: 6},
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 4,

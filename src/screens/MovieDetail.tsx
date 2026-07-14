@@ -58,7 +58,8 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
   const [isBrowserLoading, setIsBrowserLoading] = useState<boolean>(false);
 
   const [preservedSize, setPreservedSize] = useState<string>('Unknown Size');
-  const [preservedQualityLabel, setPreservedQualityLabel] = useState<string>('Unknown Quality');
+  const [preservedQualityLabel, setPreservedQualityLabel] =
+    useState<string>('Unknown Quality');
 
   const [fullImageUrl, setFullImageUrl] = useState<string | null>(null);
 
@@ -87,15 +88,32 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
 
     interactiveDownloadTriggeredRef.current = true;
 
-    console.log('[InteractiveBrowser] User interaction completed through normal page flow');
+    console.log(
+      '[InteractiveBrowser] User interaction completed through normal page flow',
+    );
     console.log('[InteractiveBrowser] Download candidate observed');
-    console.log(`[InteractiveBrowser] Direct download candidate confirmed: ${url.split('?')[0]}`);
-    console.log('[InteractiveBrowser] Handing URL to existing download pipeline');
+    console.log(
+      `[InteractiveBrowser] Direct download candidate confirmed: ${
+        url.split('?')[0]
+      }`,
+    );
+    console.log(
+      '[InteractiveBrowser] Handing URL to existing download pipeline',
+    );
 
-    scraper.log('[InteractiveBrowser] User interaction completed through normal page flow', 'success');
+    scraper.log(
+      '[InteractiveBrowser] User interaction completed through normal page flow',
+      'success',
+    );
     scraper.log('[InteractiveBrowser] Download candidate observed', 'info');
-    scraper.log('[InteractiveBrowser] Direct download candidate confirmed', 'success');
-    scraper.log('[InteractiveBrowser] Handing URL to existing download pipeline', 'info');
+    scraper.log(
+      '[InteractiveBrowser] Direct download candidate confirmed',
+      'success',
+    );
+    scraper.log(
+      '[InteractiveBrowser] Handing URL to existing download pipeline',
+      'info',
+    );
 
     onStartDownload(movie.title, preservedSize || 'Unknown Size', url);
 
@@ -105,26 +123,38 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     handleClose();
   };
 
-  const openInteractiveBrowser = (url: string, size?: string, label?: string) => {
+  const openInteractiveBrowser = (
+    url: string,
+    size?: string,
+    label?: string,
+  ) => {
     if (interactiveBrowserTriggered.current) {
       console.log('[InteractiveBrowser] Interactive browser already active');
       return;
     }
     interactiveBrowserTriggered.current = true;
-    
+
     setPreservedSize(size || 'Unknown Size');
     setPreservedQualityLabel(label || 'Unknown Quality');
-    
+
     const scraper = ScraperService.getInstance();
     console.log('[InteractiveBrowser] Opening original portal URL');
     console.log('[InteractiveBrowser] User interaction flow active');
-    console.log(`[InteractiveBrowser] [DEBUG] Modal visible state set to: true`);
-    console.log(`[InteractiveBrowser] [DEBUG] interactiveBrowserTriggered value: ${interactiveBrowserTriggered.current}`);
-    console.log(`[InteractiveBrowser] [DEBUG] original URL preserved: ${url ? 'yes' : 'no'}`);
-    
+    console.log(
+      `[InteractiveBrowser] [DEBUG] Modal visible state set to: true`,
+    );
+    console.log(
+      `[InteractiveBrowser] [DEBUG] interactiveBrowserTriggered value: ${interactiveBrowserTriggered.current}`,
+    );
+    console.log(
+      `[InteractiveBrowser] [DEBUG] original URL preserved: ${
+        url ? 'yes' : 'no'
+      }`,
+    );
+
     scraper.log('[InteractiveBrowser] Opening original portal URL', 'info');
     scraper.log('[InteractiveBrowser] User interaction flow active', 'warn');
-    
+
     setInteractiveUrl(url);
     setCurrentUrl(url);
     setCanGoBack(false);
@@ -173,7 +203,9 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     const scraper = ScraperService.getInstance();
     const safeUrl = navState.url.split('?')[0];
     scraper.log(`[InteractiveBrowser] URL changed to: ${safeUrl}`, 'info');
-    console.log(`[InteractiveBrowser] [DEBUG] WebView canGoBack state: ${navState.canGoBack}`);
+    console.log(
+      `[InteractiveBrowser] [DEBUG] WebView canGoBack state: ${navState.canGoBack}`,
+    );
 
     handleInteractiveDownloadCandidate(navState.url);
 
@@ -186,53 +218,81 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     setIsBrowserLoading(true);
     const scraper = ScraperService.getInstance();
     const safeUrl = event.nativeEvent.url.split('?')[0];
-    scraper.log(`[InteractiveBrowser] Navigation started for: ${safeUrl}`, 'info');
+    scraper.log(
+      `[InteractiveBrowser] Navigation started for: ${safeUrl}`,
+      'info',
+    );
   };
 
   const handleShouldStartLoadWithRequest = (request: any) => {
-    const { url } = request;
+    const {url} = request;
 
     handleInteractiveDownloadCandidate(url);
 
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return true;
     }
-    
+
     const scraper = ScraperService.getInstance();
-    scraper.log(`[InteractiveBrowser] Detected custom/unsupported URL scheme: ${url.split('?')[0]}`, 'warn');
+    scraper.log(
+      `[InteractiveBrowser] Detected custom/unsupported URL scheme: ${
+        url.split('?')[0]
+      }`,
+      'warn',
+    );
 
     if (url.startsWith('intent://')) {
       try {
         const parts = url.split('#Intent;');
         const mainPart = parts[0].replace('intent://', '');
-        
+
         let scheme = 'https';
         if (parts.length > 1) {
           const params = parts[1].split(';');
-          const schemeParam = params.find((p: string) => p.startsWith('scheme='));
+          const schemeParam = params.find((p: string) =>
+            p.startsWith('scheme='),
+          );
           if (schemeParam) {
             scheme = schemeParam.split('=')[1];
           }
         }
-        
+
         const reconstructedUrl = `${scheme}://${mainPart}`;
-        scraper.log(`[InteractiveBrowser] Converted intent URI to URL: ${reconstructedUrl.split('?')[0]}`, 'info');
+        scraper.log(
+          `[InteractiveBrowser] Converted intent URI to URL: ${
+            reconstructedUrl.split('?')[0]
+          }`,
+          'info',
+        );
         openExternalBrowserOnce(reconstructedUrl);
       } catch (e: any) {
-        scraper.log(`[InteractiveBrowser] Failed to convert intent URI: ${e.message}`, 'error');
+        scraper.log(
+          `[InteractiveBrowser] Failed to convert intent URI: ${e.message}`,
+          'error',
+        );
       }
     } else {
-      Linking.canOpenURL(url).then(supported => {
-        if (supported) {
-          openExternalBrowserOnce(url);
-        } else {
-          scraper.log(`[InteractiveBrowser] Scheme not supported by device: ${url.split(':')[0]}`, 'error');
-        }
-      }).catch(err => {
-        scraper.log(`[InteractiveBrowser] Error checking scheme: ${err.message}`, 'error');
-      });
+      Linking.canOpenURL(url)
+        .then(supported => {
+          if (supported) {
+            openExternalBrowserOnce(url);
+          } else {
+            scraper.log(
+              `[InteractiveBrowser] Scheme not supported by device: ${
+                url.split(':')[0]
+              }`,
+              'error',
+            );
+          }
+        })
+        .catch(err => {
+          scraper.log(
+            `[InteractiveBrowser] Error checking scheme: ${err.message}`,
+            'error',
+          );
+        });
     }
-    
+
     return false;
   };
 
@@ -283,7 +343,9 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     scraper.log(`Resolving download portal: "${link.label}"`, 'info');
 
     try {
-      const scrapedMirrors = await scraper.scrapeDownloadPage(originalPortalUrl);
+      const scrapedMirrors = await scraper.scrapeDownloadPage(
+        originalPortalUrl,
+      );
       if (sessionId !== resolutionSessionIdRef.current) {
         console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
@@ -300,7 +362,11 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           'warn',
         );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
-          onStartDownload(movie.title, link.size || 'Unknown Size', originalPortalUrl);
+          onStartDownload(
+            movie.title,
+            link.size || 'Unknown Size',
+            originalPortalUrl,
+          );
         } else {
           Linking.openURL(originalPortalUrl);
         }
@@ -310,15 +376,29 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
-      if (err && (err.type === 'INTERACTIVE_BROWSER_REQUIRED' || err.type === 'EXTERNAL_BROWSER_REQUIRED')) {
-        openInteractiveBrowser(originalPortalUrl, link.size || 'Unknown Size', link.label || 'Unknown Quality');
+      if (
+        err &&
+        (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
+          err.type === 'EXTERNAL_BROWSER_REQUIRED')
+      ) {
+        openInteractiveBrowser(
+          originalPortalUrl,
+          link.size || 'Unknown Size',
+          link.label || 'Unknown Quality',
+        );
       } else {
         scraper.log(
-          `Failed to bypass portal: ${err.message || JSON.stringify(err)}. Opening page in browser.`,
+          `Failed to bypass portal: ${
+            err.message || JSON.stringify(err)
+          }. Opening page in browser.`,
           'error',
         );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
-          onStartDownload(movie.title, link.size || 'Unknown Size', originalPortalUrl);
+          onStartDownload(
+            movie.title,
+            link.size || 'Unknown Size',
+            originalPortalUrl,
+          );
         } else {
           openExternalBrowserOnce(originalPortalUrl);
         }
@@ -377,7 +457,9 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     scraper.log(`Resolving download mirrors for: "${mirror.label}"`, 'info');
 
     try {
-      const scrapedDirect = await scraper.scrapeDirectDownloadPage(originalPortalUrl);
+      const scrapedDirect = await scraper.scrapeDirectDownloadPage(
+        originalPortalUrl,
+      );
       if (sessionId !== resolutionSessionIdRef.current) {
         console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
@@ -404,11 +486,21 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
-      if (err && (err.type === 'INTERACTIVE_BROWSER_REQUIRED' || err.type === 'EXTERNAL_BROWSER_REQUIRED')) {
-        openInteractiveBrowser(originalPortalUrl, 'Unknown Size', mirror.label || 'Unknown Quality');
+      if (
+        err &&
+        (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
+          err.type === 'EXTERNAL_BROWSER_REQUIRED')
+      ) {
+        openInteractiveBrowser(
+          originalPortalUrl,
+          'Unknown Size',
+          mirror.label || 'Unknown Quality',
+        );
       } else {
         scraper.log(
-          `Failed to bypass landing page: ${err.message || JSON.stringify(err)}. Opening mirror page in browser.`,
+          `Failed to bypass landing page: ${
+            err.message || JSON.stringify(err)
+          }. Opening mirror page in browser.`,
           'error',
         );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
@@ -460,13 +552,18 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     scraper.log(`Bypassing download generator: "${item.label}"`, 'info');
 
     try {
-      const scrapedFinal = await scraper.scrapeDirectDownloadPage(originalPortalUrl);
+      const scrapedFinal = await scraper.scrapeDirectDownloadPage(
+        originalPortalUrl,
+      );
       if (sessionId !== resolutionSessionIdRef.current) {
         console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
       if (scrapedFinal && scrapedFinal.length > 0) {
-        setFinalDirectLinks(prev => ({...prev, [originalPortalUrl]: scrapedFinal}));
+        setFinalDirectLinks(prev => ({
+          ...prev,
+          [originalPortalUrl]: scrapedFinal,
+        }));
         scraper.log(
           `Successfully parsed final direct download servers: Found ${scrapedFinal.length} mirrors.`,
           'success',
@@ -487,11 +584,21 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
-      if (err && (err.type === 'INTERACTIVE_BROWSER_REQUIRED' || err.type === 'EXTERNAL_BROWSER_REQUIRED')) {
-        openInteractiveBrowser(originalPortalUrl, size || 'Unknown Size', item.label || 'Unknown Quality');
+      if (
+        err &&
+        (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
+          err.type === 'EXTERNAL_BROWSER_REQUIRED')
+      ) {
+        openInteractiveBrowser(
+          originalPortalUrl,
+          size || 'Unknown Size',
+          item.label || 'Unknown Quality',
+        );
       } else {
         scraper.log(
-          `Failed to bypass generator: ${err.message || JSON.stringify(err)}. Opening page in browser.`,
+          `Failed to bypass generator: ${
+            err.message || JSON.stringify(err)
+          }. Opening page in browser.`,
           'error',
         );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
@@ -536,11 +643,21 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
-      if (err && (err.type === 'INTERACTIVE_BROWSER_REQUIRED' || err.type === 'EXTERNAL_BROWSER_REQUIRED')) {
-        openInteractiveBrowser(originalPortalUrl, size || 'Unknown Size', item.label || 'Unknown Quality');
+      if (
+        err &&
+        (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
+          err.type === 'EXTERNAL_BROWSER_REQUIRED')
+      ) {
+        openInteractiveBrowser(
+          originalPortalUrl,
+          size || 'Unknown Size',
+          item.label || 'Unknown Quality',
+        );
       } else {
         scraper.log(
-          `Failed to parse file host: ${err.message || JSON.stringify(err)}. Redirecting to browser...`,
+          `Failed to parse file host: ${
+            err.message || JSON.stringify(err)
+          }. Redirecting to browser...`,
           'error',
         );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
@@ -600,24 +717,21 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         visible={fullImageUrl !== null}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setFullImageUrl(null)}
-      >
+        onRequestClose={() => setFullImageUrl(null)}>
         <TouchableOpacity
           style={styles.imageModalContainer}
           activeOpacity={1}
-          onPress={() => setFullImageUrl(null)}
-        >
+          onPress={() => setFullImageUrl(null)}>
           {fullImageUrl ? (
             <Image
-              source={{ uri: fullImageUrl }}
+              source={{uri: fullImageUrl}}
               style={styles.fullImage}
               resizeMode="contain"
             />
           ) : null}
           <TouchableOpacity
             style={styles.imageCloseBtn}
-            onPress={() => setFullImageUrl(null)}
-          >
+            onPress={() => setFullImageUrl(null)}>
             <Text style={styles.imageCloseBtnText}>✕ Close</Text>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -628,35 +742,48 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         visible={interactiveUrl !== null}
         animationType="slide"
         transparent={false}
-        onRequestClose={handleClose}
-      >
+        onRequestClose={handleClose}>
         <SafeAreaView style={styles.modalContainer}>
           {/* Browser Controls */}
           <View style={styles.browserHeader}>
-            <TouchableOpacity style={styles.browserHeaderBtn} onPress={handleClose}>
+            <TouchableOpacity
+              style={styles.browserHeaderBtn}
+              onPress={handleClose}>
               <Text style={styles.browserHeaderBtnText}>✕ Close</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.browserHeaderNav}>
               <TouchableOpacity
-                style={[styles.browserHeaderBtn, !canGoBack && styles.browserHeaderBtnDisabled]}
+                style={[
+                  styles.browserHeaderBtn,
+                  !canGoBack && styles.browserHeaderBtnDisabled,
+                ]}
                 disabled={!canGoBack}
-                onPress={handleBack}
-              >
+                onPress={handleBack}>
                 <Text style={styles.browserHeaderBtnText}>◀ Back</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.browserHeaderBtn} onPress={handleReload}>
+
+              <TouchableOpacity
+                style={styles.browserHeaderBtn}
+                onPress={handleReload}>
                 <Text style={styles.browserHeaderBtnText}>🔄 Reload</Text>
               </TouchableOpacity>
 
               {isBrowserLoading && (
-                <ActivityIndicator size="small" color="#8b5cf6" style={{ marginLeft: 8 }} />
+                <ActivityIndicator
+                  size="small"
+                  color="#8b5cf6"
+                  style={{marginLeft: 8}}
+                />
               )}
             </View>
 
-            <TouchableOpacity style={styles.browserHeaderBtn} onPress={handleOpenExternal}>
-              <Text style={styles.browserHeaderBtnText}>🌐 Open in Browser</Text>
+            <TouchableOpacity
+              style={styles.browserHeaderBtn}
+              onPress={handleOpenExternal}>
+              <Text style={styles.browserHeaderBtnText}>
+                🌐 Open in Browser
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -665,8 +792,8 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
             <View style={styles.webViewWrapper}>
               <WebView
                 ref={interactiveWebViewRef}
-                style={{ flex: 1 }}
-                source={{ uri: interactiveUrl }}
+                style={{flex: 1}}
+                source={{uri: interactiveUrl}}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 startInLoadingState={true}
@@ -676,17 +803,25 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                 onLoadEnd={() => setIsBrowserLoading(false)}
                 onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
                 onHttpError={() => setIsBrowserLoading(false)}
-                onFileDownload={(syntheticEvent) => {
-                  const { nativeEvent } = syntheticEvent;
+                onFileDownload={syntheticEvent => {
+                  const {nativeEvent} = syntheticEvent;
                   const scraper = ScraperService.getInstance();
-                  scraper.log(`[InteractiveBrowser] File download event fired: ${nativeEvent.downloadUrl.split('?')[0]}`, 'info');
+                  scraper.log(
+                    `[InteractiveBrowser] File download event fired: ${
+                      nativeEvent.downloadUrl.split('?')[0]
+                    }`,
+                    'info',
+                  );
                   handleInteractiveDownloadCandidate(nativeEvent.downloadUrl);
                 }}
-                onError={(syntheticEvent) => {
+                onError={syntheticEvent => {
                   setIsBrowserLoading(false);
-                  const { nativeEvent } = syntheticEvent;
+                  const {nativeEvent} = syntheticEvent;
                   const scraper = ScraperService.getInstance();
-                  scraper.log(`[InteractiveBrowser] Error loading page: ${nativeEvent.description}`, 'error');
+                  scraper.log(
+                    `[InteractiveBrowser] Error loading page: ${nativeEvent.description}`,
+                    'error',
+                  );
                   openExternalBrowserOnce(nativeEvent.url || interactiveUrl);
                 }}
               />
@@ -697,7 +832,10 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={onBack}
+          activeOpacity={0.7}>
           <Text style={styles.backBtnText}>◀ CATALOG</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
@@ -710,7 +848,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         style={styles.body}
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}>
-        
         {/* Netflix-style Hero backdrop */}
         <View style={styles.heroSection}>
           {movie.imageUrl ? (
@@ -745,7 +882,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
               <Text style={styles.movieTitle} numberOfLines={2}>
                 {movie.title}
               </Text>
-              
+
               <View style={styles.metaBadgeRow}>
                 {movie.date && (
                   <View style={styles.metaBadge}>
@@ -754,7 +891,9 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                 )}
                 {movie.imdbRating && (
                   <View style={[styles.metaBadge, styles.metaBadgeRating]}>
-                    <Text style={styles.metaBadgeText}>⭐ {movie.imdbRating}</Text>
+                    <Text style={styles.metaBadgeText}>
+                      ⭐ {movie.imdbRating}
+                    </Text>
                   </View>
                 )}
                 {movie.quality && (
@@ -850,47 +989,100 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         {/* Active Scraper Stepper Progress */}
         {isAnyResolving && (
           <View style={styles.stepperCard}>
-            <Text style={styles.stepperTitle}>🔎 RESOLVING MIRRORS PATHWAY</Text>
+            <Text style={styles.stepperTitle}>
+              🔎 RESOLVING MIRRORS PATHWAY
+            </Text>
             <View style={styles.stepperSteps}>
               <View style={styles.stepItem}>
                 <View style={[styles.stepDot, styles.stepDotCompleted]} />
                 <Text style={styles.stepTextCompleted}>Connected</Text>
               </View>
               <View style={styles.stepLineCompleted} />
-              
+
               <View style={styles.stepItem}>
-                <View style={[
-                  styles.stepDot,
-                  (resolvingMirrorUrl || resolvingFinalUrl || resolvingServerUrl) ? styles.stepDotCompleted : styles.stepDotActive
-                ]} />
-                <Text style={(resolvingMirrorUrl || resolvingFinalUrl || resolvingServerUrl) ? styles.stepTextCompleted : styles.stepTextActive}>
+                <View
+                  style={[
+                    styles.stepDot,
+                    resolvingMirrorUrl ||
+                    resolvingFinalUrl ||
+                    resolvingServerUrl
+                      ? styles.stepDotCompleted
+                      : styles.stepDotActive,
+                  ]}
+                />
+                <Text
+                  style={
+                    resolvingMirrorUrl ||
+                    resolvingFinalUrl ||
+                    resolvingServerUrl
+                      ? styles.stepTextCompleted
+                      : styles.stepTextActive
+                  }>
                   Bypass Mirror
                 </Text>
               </View>
-              <View style={(resolvingFinalUrl || resolvingServerUrl) ? styles.stepLineCompleted : styles.stepLinePending} />
+              <View
+                style={
+                  resolvingFinalUrl || resolvingServerUrl
+                    ? styles.stepLineCompleted
+                    : styles.stepLinePending
+                }
+              />
 
               <View style={styles.stepItem}>
-                <View style={[
-                  styles.stepDot,
-                  (resolvingFinalUrl || resolvingServerUrl) ? styles.stepDotCompleted : resolvingMirrorUrl ? styles.stepDotActive : styles.stepDotPending
-                ]} />
-                <Text style={(resolvingFinalUrl || resolvingServerUrl) ? styles.stepTextCompleted : resolvingMirrorUrl ? styles.stepTextActive : styles.stepTextPending}>
+                <View
+                  style={[
+                    styles.stepDot,
+                    resolvingFinalUrl || resolvingServerUrl
+                      ? styles.stepDotCompleted
+                      : resolvingMirrorUrl
+                      ? styles.stepDotActive
+                      : styles.stepDotPending,
+                  ]}
+                />
+                <Text
+                  style={
+                    resolvingFinalUrl || resolvingServerUrl
+                      ? styles.stepTextCompleted
+                      : resolvingMirrorUrl
+                      ? styles.stepTextActive
+                      : styles.stepTextPending
+                  }>
                   Direct File
                 </Text>
               </View>
-              <View style={resolvingServerUrl ? styles.stepLineCompleted : styles.stepLinePending} />
+              <View
+                style={
+                  resolvingServerUrl
+                    ? styles.stepLineCompleted
+                    : styles.stepLinePending
+                }
+              />
 
               <View style={styles.stepItem}>
-                <View style={[
-                  styles.stepDot,
-                  resolvingServerUrl ? styles.stepDotActive : styles.stepDotPending
-                ]} />
-                <Text style={resolvingServerUrl ? styles.stepTextActive : styles.stepTextPending}>
+                <View
+                  style={[
+                    styles.stepDot,
+                    resolvingServerUrl
+                      ? styles.stepDotActive
+                      : styles.stepDotPending,
+                  ]}
+                />
+                <Text
+                  style={
+                    resolvingServerUrl
+                      ? styles.stepTextActive
+                      : styles.stepTextPending
+                  }>
                   Enqueuing
                 </Text>
               </View>
             </View>
-            <ActivityIndicator size="small" color="#8B5CF6" style={{marginTop: 12}} />
+            <ActivityIndicator
+              size="small"
+              color="#8B5CF6"
+              style={{marginTop: 12}}
+            />
           </View>
         )}
 
@@ -912,7 +1104,9 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                   <TouchableOpacity
                     style={[
                       styles.linkRow,
-                      link.type === 'watch' ? styles.watchLink : styles.downloadLink,
+                      link.type === 'watch'
+                        ? styles.watchLink
+                        : styles.downloadLink,
                       hasMirrors && styles.linkRowActive,
                       isAnyResolving && styles.disabledRow,
                     ]}
@@ -1210,7 +1404,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.12)',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: {width: 0, height: 6},
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,

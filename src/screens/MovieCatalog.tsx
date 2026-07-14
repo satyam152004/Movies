@@ -30,23 +30,32 @@ export const MovieCatalog: React.FC<MovieCatalogProps> = ({
   // Compute catalog stats
   const totalCount = items.length;
   const dualAudioCount = items.filter(
-    i => i.title.toLowerCase().includes('dual') || i.title.toLowerCase().includes('hindi'),
+    i =>
+      i.title.toLowerCase().includes('dual') ||
+      i.title.toLowerCase().includes('hindi'),
   ).length;
   const highDefCount = items.filter(
-    i => i.title.toLowerCase().includes('1080p') || i.title.toLowerCase().includes('2160p') || i.title.toLowerCase().includes('4k'),
+    i =>
+      i.title.toLowerCase().includes('1080p') ||
+      i.title.toLowerCase().includes('2160p') ||
+      i.title.toLowerCase().includes('4k'),
   ).length;
 
   const renderCard = ({item}: {item: CatalogItem}) => {
     const titleLower = item.title.toLowerCase();
     const isDual = titleLower.includes('dual') || titleLower.includes('hindi');
-    const isHEVC = titleLower.includes('hevc') || titleLower.includes('x265') || titleLower.includes('10bit');
+    const isHEVC =
+      titleLower.includes('hevc') ||
+      titleLower.includes('x265') ||
+      titleLower.includes('10bit');
     const is4K = titleLower.includes('2160p') || titleLower.includes('4k');
     const is1080p = titleLower.includes('1080p');
 
     // Extract cleaner title (remove year/quality suffix if possible, or display gracefully)
     let displayTitle = item.title;
     // Clean common release details to keep card titles concise
-    const cleanRegex = /\s(1080p|720p|480p|hevc|webrip|bluray|x264|x265|10bit|dual|audio|hindi|english|full|movie).*/i;
+    const cleanRegex =
+      /\s(1080p|720p|480p|hevc|webrip|bluray|x264|x265|10bit|dual|audio|hindi|english|full|movie).*/i;
     const match = displayTitle.match(cleanRegex);
     if (match && match.index && match.index > 5) {
       displayTitle = displayTitle.substring(0, match.index).trim();
@@ -113,7 +122,10 @@ export const MovieCatalog: React.FC<MovieCatalogProps> = ({
     <View style={styles.container}>
       {/* Sticky Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={onBack}
+          activeOpacity={0.7}>
           <Text style={styles.backBtnText}>◀ DASHBOARD</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Scraped Collection</Text>
@@ -142,11 +154,15 @@ export const MovieCatalog: React.FC<MovieCatalogProps> = ({
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Dual Audio</Text>
-            <Text style={[styles.statValue, {color: '#06B6D4'}]}>{dualAudioCount}</Text>
+            <Text style={[styles.statValue, {color: '#06B6D4'}]}>
+              {dualAudioCount}
+            </Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>High Def</Text>
-            <Text style={[styles.statValue, {color: '#10B981'}]}>{highDefCount}</Text>
+            <Text style={[styles.statValue, {color: '#10B981'}]}>
+              {highDefCount}
+            </Text>
           </View>
         </View>
       </View>
