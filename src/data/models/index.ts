@@ -15,7 +15,7 @@ export interface DownloadLink {
   url: string;
   size?: string;
   resolution?: string;
-  type: 'download' | 'watch';
+  type: 'download' | 'watch' | 'unknown';
 }
 
 export interface MovieDetail {

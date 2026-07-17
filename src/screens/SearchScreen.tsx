@@ -1,4 +1,4 @@
-import React, {useState, useMemo} from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
-import {CatalogItem} from '../data/models';
-import {colors, spacing, radius, typography} from '../theme';
-import {SearchInput} from '../components/inputs/SearchInput';
-import {MovieCard} from '../components/cards/MovieCard';
-import {EmptyState} from '../components/feedback/EmptyState';
+import { CatalogItem } from '../data/models';
+import { colors, spacing, radius, typography } from '../theme';
+import { SearchInput } from '../components/inputs/SearchInput';
+import { MovieCard } from '../components/cards/MovieCard';
+import { EmptyState } from '../components/feedback/EmptyState';
 
 interface SearchScreenProps {
   items: CatalogItem[];
@@ -62,7 +62,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
     return result;
   }, [items, search, filter]);
 
-  const renderGridCard = ({item}: {item: CatalogItem}) => (
+  const renderGridCard = ({ item }: { item: CatalogItem }) => (
     <MovieCard item={item} onPress={() => onSelectItem(item)} />
   );
 
@@ -97,12 +97,12 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
                   {type === 'all'
                     ? 'All'
                     : type === '4k'
-                    ? '4K UHD'
-                    : type === '1080p'
-                    ? '1080p FHD'
-                    : type === 'dual'
-                    ? 'Dual Audio'
-                    : 'HEVC'}
+                      ? '4K UHD'
+                      : type === '1080p'
+                        ? '1080p FHD'
+                        : type === 'dual'
+                          ? 'Dual Audio'
+                          : 'HEVC'}
                 </Text>
               </TouchableOpacity>
             ),

@@ -1,13 +1,19 @@
-import {CatalogItem, MovieDetail} from '../models';
+import { CatalogItem, MovieDetail, MediaCategory } from '../models';
+
+export interface SearchPage {
+  items: CatalogItem[];
+  page: number;
+  hasNextPage: boolean;
+}
 
 export interface MediaRepository {
-  getCatalog(
-    categoryUrl?: string,
-    forceRefresh?: boolean,
-  ): Promise<CatalogItem[]>;
-  getMovieDetails(
-    movieUrl: string,
-    forceDynamic?: boolean,
-  ): Promise<MovieDetail>;
-  searchCatalog(query: string): Promise<CatalogItem[]>;
+  search(
+    query: string,
+    page?: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<SearchPage>;
+  getTrending(): Promise<CatalogItem[]>;
+  getLatest(): Promise<CatalogItem[]>;
+  getMovie(id: string): Promise<MovieDetail>;
+  getCategories(): Promise<MediaCategory[]>;
 }

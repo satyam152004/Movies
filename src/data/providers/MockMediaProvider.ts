@@ -1,5 +1,5 @@
-import {MediaRepository} from '../repositories/MediaRepository';
-import {CatalogItem, MovieDetail} from '../models';
+import { MediaRepository, SearchPage } from '../repositories/MediaRepository';
+import { CatalogItem, MovieDetail, MediaCategory } from '../models';
 
 export class MockMediaProvider implements MediaRepository {
   private mockItems: CatalogItem[] = [
@@ -7,8 +7,7 @@ export class MockMediaProvider implements MediaRepository {
       id: 'm1',
       title: 'Mortal Kombat II (2026) [Dual Audio] [Hindi & English] 1080p FHD',
       url: 'https://mock-domain.com/mortal-kombat-ii-2026/',
-      imageUrl:
-        'https://image.tmdb.org/t/p/w500/zPD511bWp012tFexjTjJ9r3oQ7C.jpg',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/zPD511bWp012tFexjTjJ9r3oQ7C.jpg',
       rating: '7.8',
       year: '2026',
       resolution: '1080p',
@@ -16,11 +15,9 @@ export class MockMediaProvider implements MediaRepository {
     },
     {
       id: 'm2',
-      title:
-        'Avatar: The Way of Water (2022) [Dual Audio] [Hindi & English] 2160p 4K UHD',
+      title: 'Avatar: The Way of Water (2022) [Dual Audio] [Hindi & English] 2160p 4K UHD',
       url: 'https://mock-domain.com/avatar-2-2022/',
-      imageUrl:
-        'https://image.tmdb.org/t/p/w500/t6z8hp702ZwqIvDcJLt5oZs86uB.jpg',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/t6z8hp702ZwqIvDcJLt5oZs86uB.jpg',
       rating: '8.1',
       year: '2022',
       resolution: '2160p',
@@ -29,11 +26,9 @@ export class MockMediaProvider implements MediaRepository {
     },
     {
       id: 'm3',
-      title:
-        'Spider-Man: Beyond the Spider-Verse (2026) [Dual Audio] [Hindi-English] 1080p',
+      title: 'Spider-Man: Beyond the Spider-Verse (2026) [Dual Audio] [Hindi-English] 1080p',
       url: 'https://mock-domain.com/spiderman-beyond-spiderverse-2026/',
-      imageUrl:
-        'https://image.tmdb.org/t/p/w500/8Vt6Geo7o0lOI8724vKe6PY5jfg.jpg',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/8Vt6Geo7o0lOI8724vKe6PY5jfg.jpg',
       rating: '8.9',
       year: '2026',
       resolution: '1080p',
@@ -43,8 +38,7 @@ export class MockMediaProvider implements MediaRepository {
       id: 'm4',
       title: 'Interstellar (2014) [Dual Audio] [English & Hindi] 2160p 4K HEVC',
       url: 'https://mock-domain.com/interstellar-2014/',
-      imageUrl:
-        'https://image.tmdb.org/t/p/w500/gEU2QvH3H670v5dfgZAnjkhu248.jpg',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/gEU2QvH3H670v5dfgZAnjkhu248.jpg',
       rating: '8.6',
       year: '2014',
       resolution: '2160p',
@@ -52,22 +46,46 @@ export class MockMediaProvider implements MediaRepository {
     },
   ];
 
-  async getCatalog(
-    _categoryUrl?: string,
-    _forceRefresh?: boolean,
-  ): Promise<CatalogItem[]> {
-    return new Promise(resolve =>
-      setTimeout(() => resolve(this.mockItems), 600),
-    );
+  async search(
+    query: string,
+    page: number = 1,
+    options?: { signal?: AbortSignal },
+  ): Promise<SearchPage> {
+    return new Promise((resolve, reject) => {
+      const handleAbort = () => reject(new Error('Query aborted'));
+      if (options?.signal?.aborted) {
+        return handleAbort();
+      }
+      if (options?.signal) {
+        options.signal.addEventListener('abort', handleAbort);
+      }
+
+      setTimeout(() => {
+        if (options?.signal) {
+          options.signal.removeEventListener('abort', handleAbort);
+        }
+        const filtered = this.mockItems.filter(item =>
+          item.title.toLowerCase().includes(query.toLowerCase()),
+        );
+        resolve({
+          items: page > 1 ? [] : filtered,
+          page,
+          hasNextPage: false,
+        });
+      }, 500);
+    });
   }
 
-  async getMovieDetails(
-    movieUrl: string,
-    _forceDynamic?: boolean,
-  ): Promise<MovieDetail> {
-    const matched =
-      this.mockItems.find(i => i.url === movieUrl) || this.mockItems[0];
+  async getTrending(): Promise<CatalogItem[]> {
+    return new Promise(resolve => setTimeout(() => resolve(this.mockItems.slice(0, 2)), 300));
+  }
 
+  async getLatest(): Promise<CatalogItem[]> {
+    return new Promise(resolve => setTimeout(() => resolve(this.mockItems), 300));
+  }
+
+  async getMovie(id: string): Promise<MovieDetail> {
+    const matched = this.mockItems.find(i => i.id === id) || this.mockItems[0];
     return new Promise(resolve =>
       setTimeout(
         () =>
@@ -113,19 +131,23 @@ export class MockMediaProvider implements MediaRepository {
               },
             ],
           }),
-        800,
+        500,
       ),
     );
   }
 
-  async searchCatalog(query: string): Promise<CatalogItem[]> {
+  async getCategories(): Promise<MediaCategory[]> {
     return new Promise(resolve =>
-      setTimeout(() => {
-        const filtered = this.mockItems.filter(item =>
-          item.title.toLowerCase().includes(query.toLowerCase()),
-        );
-        resolve(filtered);
-      }, 500),
+      setTimeout(
+        () =>
+          resolve([
+            { id: 'trending', title: 'Trending' },
+            { id: 'latest', title: 'Latest' },
+            { id: 'movies', title: 'Movies' },
+            { id: 'series', title: 'Series' },
+          ]),
+        200,
+      ),
     );
   }
 }
