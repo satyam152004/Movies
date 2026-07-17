@@ -31,7 +31,7 @@ export interface ScraperSessionResult {
   duration: number;
   history: string[];
   diagnostics: Diagnostics;
-  mirrors?: { label: string; url: string }[];
+  mirrors?: {label: string; url: string}[];
 }
 
 export interface ScraperSessionRequest {

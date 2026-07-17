@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 
 // Zod schema for a download link parsed from the detail page
 export const DownloadLinkSchema = z.object({

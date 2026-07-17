@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import {ScraperService, LogType} from '../services/scraper.service';
+import {colors as COLORS, radius as RADIUS} from '../theme';
 
 interface LogItem {
   message: string;
@@ -32,8 +33,10 @@ export const LogConsole: React.FC = () => {
     };
 
     scraper.addLogListener(handleLog);
-    // Add default log
-    scraper.log('Scraper Logging Console Initialized. Ready to crawl.', 'info');
+    scraper.log(
+      'Scraper Engine Terminal Live. Diagnostic tools loaded.',
+      'info',
+    );
 
     return () => {
       scraper.removeLogListener(handleLog);
@@ -59,14 +62,14 @@ export const LogConsole: React.FC = () => {
   const getLogColor = (type: LogType) => {
     switch (type) {
       case 'success':
-        return '#10B981'; // Green
+        return COLORS.success;
       case 'warn':
-        return '#F59E0B'; // Amber
+        return COLORS.warning;
       case 'error':
-        return '#EF4444'; // Red
+        return COLORS.danger;
       case 'info':
       default:
-        return '#94A3B8'; // Muted grey
+        return COLORS.textSecondary;
     }
   };
 
@@ -76,12 +79,12 @@ export const LogConsole: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* VS Code Header */}
+      {/* VS Code styled Header */}
       <View style={styles.header}>
         <View style={styles.dotContainer}>
-          <View style={[styles.dot, {backgroundColor: '#EF4444'}]} />
-          <View style={[styles.dot, {backgroundColor: '#F59E0B'}]} />
-          <View style={[styles.dot, {backgroundColor: '#10B981'}]} />
+          <View style={[styles.dot, {backgroundColor: COLORS.danger}]} />
+          <View style={[styles.dot, {backgroundColor: COLORS.warning}]} />
+          <View style={[styles.dot, {backgroundColor: COLORS.success}]} />
         </View>
         <Text style={styles.headerText}>crawler_terminal.log</Text>
 
@@ -108,8 +111,8 @@ export const LogConsole: React.FC = () => {
           style={styles.filterInput}
           value={filterText}
           onChangeText={setFilterText}
-          placeholder="Filter logs (e.g. error, click, redirect)..."
-          placeholderTextColor="#475569"
+          placeholder="Filter logs (e.g. error, click, bypass)..."
+          placeholderTextColor={COLORS.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -122,7 +125,7 @@ export const LogConsole: React.FC = () => {
         )}
       </View>
 
-      {/* Terminal Output */}
+      {/* Terminal Output Scroll */}
       <ScrollView
         style={styles.terminal}
         ref={scrollViewRef}
@@ -132,7 +135,10 @@ export const LogConsole: React.FC = () => {
         showsVerticalScrollIndicator={true}>
         {filteredLogs.length === 0 ? (
           <Text
-            style={[styles.logText, {color: '#475569', fontStyle: 'italic'}]}>
+            style={[
+              styles.logText,
+              {color: COLORS.textMuted, fontStyle: 'italic'},
+            ]}>
             {filterText
               ? 'No matching logs found.'
               : 'Terminal ready. No log entries...'}
@@ -157,18 +163,18 @@ const styles = StyleSheet.create({
     height: 230,
     backgroundColor: '#050508',
     borderTopWidth: 1.5,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: COLORS.border,
     flexDirection: 'column',
   },
   header: {
     height: 38,
-    backgroundColor: '#0F0F13',
+    backgroundColor: COLORS.surface,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: COLORS.border,
   },
   dotContainer: {
     flexDirection: 'row',
@@ -180,7 +186,7 @@ const styles = StyleSheet.create({
     borderRadius: 4.5,
   },
   headerText: {
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     fontSize: 10,
     fontWeight: '800',
     fontFamily: 'monospace',
@@ -193,23 +199,23 @@ const styles = StyleSheet.create({
   actionBtn: {
     paddingVertical: 3,
     paddingHorizontal: 8,
-    borderRadius: 6,
-    backgroundColor: '#1E1E24',
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.elevated,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: COLORS.border,
   },
   clearBtn: {
     borderColor: 'rgba(239, 68, 68, 0.2)',
   },
   actionBtnText: {
-    color: '#F8FAFC',
+    color: COLORS.textPrimary,
     fontSize: 8,
     fontWeight: '900',
     fontFamily: 'monospace',
   },
   filterBar: {
     height: 32,
-    backgroundColor: '#0A0A0E',
+    backgroundColor: COLORS.background,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.03)',
     flexDirection: 'row',
@@ -218,7 +224,7 @@ const styles = StyleSheet.create({
   },
   filterInput: {
     flex: 1,
-    color: '#E2E8F0',
+    color: COLORS.textPrimary,
     fontSize: 10,
     fontFamily: 'monospace',
     height: '100%',
@@ -228,7 +234,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   clearFilterText: {
-    color: '#475569',
+    color: COLORS.textMuted,
     fontSize: 10,
     fontWeight: 'bold',
   },
@@ -244,7 +250,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   promptSymbol: {
-    color: '#8B5CF6',
+    color: COLORS.primary,
     fontSize: 10,
     fontFamily: 'monospace',
     marginRight: 6,
@@ -257,5 +263,3 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
 });
-
-export default LogConsole;

@@ -13,7 +13,8 @@ import {
   Clipboard,
 } from 'react-native';
 import {ScraperService} from '../services/scraper.service';
-import {CatalogItem, MovieDetail} from '../model/movie.model';
+import {CatalogItem, MovieDetail} from '../data/models';
+import {colors as COLORS, spacing as SPACING, radius as RADIUS} from '../theme';
 
 interface ScraperDashboardProps {
   onCatalogLoaded: (items: CatalogItem[]) => void;
@@ -37,16 +38,14 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
   const [forceDynamic, setForceDynamic] = useState(false);
   const [maxPages, setMaxPages] = useState('1');
   const [isRunning, setIsRunning] = useState(false);
-  const [statusText, setStatusText] = useState('System Idle');
+  const [statusText, setStatusText] = useState('Engine Standby');
   const scraper = ScraperService.getInstance();
   const discoveryService = UrlDiscoveryService.getInstance();
 
-  // Animations
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
   const radarAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Pulse animation for online indicator
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -62,7 +61,6 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
       ]),
     ).start();
 
-    // Radar scan loop animation
     Animated.loop(
       Animated.timing(radarAnim, {
         toValue: 1,
@@ -168,7 +166,6 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
             break;
           }
 
-          // Rate limit delay between pages
           if (page < pagesToScrape) {
             scraper.log(
               'Waiting 2s rate limit delay before next page...',
@@ -205,7 +202,6 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
     } catch (e) {}
   };
 
-  // Interpolated values for animations
   const radarScale = radarAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.9, 1.2],
@@ -227,7 +223,7 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
           <View style={styles.radarInfo}>
             <Text style={styles.radarTitle}>Domain Discovery</Text>
             <Text style={styles.radarSub}>
-              Automatic HDHub4U Domain Resolver
+              Active HDHub4U Domain DNS Resolver
             </Text>
           </View>
           <Animated.View style={[styles.pulseDot, {opacity: pulseAnim}]} />
@@ -254,7 +250,7 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
         <View style={styles.radarFooter}>
           <View style={styles.statusChip}>
             <Text style={styles.statusChipText}>
-              {isDiscovering ? 'SCANNING' : 'RESOLVED'}
+              {isDiscovering ? 'SCANNING' : 'ONLINE'}
             </Text>
           </View>
           {!isRunning && (
@@ -275,7 +271,7 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
       <View style={styles.glassCard}>
         <Text style={styles.sectionHeader}>Target Parameters</Text>
 
-        <Text style={styles.inputLabel}>Seed / URL Address</Text>
+        <Text style={styles.inputLabel}>Seed / Target URL</Text>
         <View style={styles.premiumInputWrapper}>
           <Text style={styles.inputIcon}>🔗</Text>
           <TextInput
@@ -283,7 +279,7 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
             value={url}
             onChangeText={setUrl}
             placeholder="Enter target webpage URL"
-            placeholderTextColor="#64748B"
+            placeholderTextColor={COLORS.textMuted}
             keyboardType="url"
             autoCapitalize="none"
           />
@@ -298,14 +294,14 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
             <TouchableOpacity
               onPress={handlePaste}
               style={styles.inputActionBtn}>
-              <Text style={[styles.inputActionText, {color: '#06B6D4'}]}>
+              <Text style={[styles.inputActionText, {color: COLORS.secondary}]}>
                 PASTE
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={styles.inputLabel}>Scraping Strategy</Text>
+        <Text style={styles.inputLabel}>Scraping Mode Strategy</Text>
         <View style={styles.segmentedControl}>
           <TouchableOpacity
             style={[
@@ -353,9 +349,9 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
           <View style={styles.configContainer}>
             <View style={styles.configRow}>
               <View style={styles.configInfo}>
-                <Text style={styles.configLabel}>Page Depth Limit</Text>
+                <Text style={styles.configLabel}>Page Crawl Limit</Text>
                 <Text style={styles.configDesc}>
-                  Number of list pages to scrape
+                  Number of index pages to traverse
                 </Text>
               </View>
               <TextInput
@@ -364,7 +360,7 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
                 onChangeText={setMaxPages}
                 keyboardType="number-pad"
                 placeholder="1"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={COLORS.textMuted}
               />
             </View>
           </View>
@@ -374,20 +370,19 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
           <View style={styles.configInfo}>
             <Text style={styles.configLabel}>Force Dynamic (WebView)</Text>
             <Text style={styles.configDesc}>
-              Executes full headless browser scripting instead of fast static
-              requests
+              Use headless engine script execution for heavy portals
             </Text>
           </View>
           <Switch
             value={forceDynamic}
             onValueChange={setForceDynamic}
-            trackColor={{false: '#1e1e24', true: '#8B5CF6'}}
-            thumbColor={forceDynamic ? '#06B6D4' : '#94A3B8'}
+            trackColor={{false: '#1e1e24', true: COLORS.primary}}
+            thumbColor={forceDynamic ? COLORS.secondary : '#94A3B8'}
           />
         </View>
       </View>
 
-      {/* Crawler Status Box */}
+      {/* Engine Status Box */}
       <View style={styles.glassCard}>
         <Text style={styles.sectionHeader}>Engine Controller</Text>
         <View style={styles.statusBox}>
@@ -397,7 +392,7 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
                 styles.statusDot,
                 {
                   backgroundColor:
-                    isRunning || isDiscovering ? '#EF4444' : '#10B981',
+                    isRunning || isDiscovering ? COLORS.danger : COLORS.success,
                 },
               ]}
             />
@@ -409,8 +404,10 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
 
         {isRunning ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#8B5CF6" />
-            <Text style={styles.loadingBoxText}>SCRAPING LIVE DOMAIN...</Text>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingBoxText}>
+              SCRAPING TARGET PATHWAY...
+            </Text>
           </View>
         ) : (
           <TouchableOpacity
@@ -428,18 +425,18 @@ export const ScraperDashboard: React.FC<ScraperDashboardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#08080A',
+    backgroundColor: COLORS.background,
   },
   contentContainer: {
-    padding: 16,
+    padding: SPACING.md,
     gap: 16,
     paddingBottom: 40,
   },
   radarCard: {
-    backgroundColor: 'rgba(22, 22, 28, 0.72)',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 16,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.card,
     padding: 18,
     position: 'relative',
     overflow: 'hidden',
@@ -454,25 +451,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   radarTitle: {
-    color: '#F8FAFC',
-    fontSize: 18,
+    color: COLORS.textPrimary,
+    fontSize: 16,
     fontWeight: '800',
   },
   radarSub: {
-    color: '#94A3B8',
-    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontSize: 11,
     marginTop: 2,
   },
   pulseDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#10B981',
-    shadowColor: '#10B981',
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: COLORS.success,
   },
   radarVisualContainer: {
     height: 90,
@@ -487,27 +479,27 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 1.5,
-    borderColor: '#8B5CF6',
+    borderColor: COLORS.primary,
   },
   domainIndicator: {
-    backgroundColor: 'rgba(16, 16, 20, 0.8)',
-    borderRadius: 12,
+    backgroundColor: COLORS.elevated,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: COLORS.border,
     paddingVertical: 10,
     paddingHorizontal: 20,
     alignItems: 'center',
     width: '90%',
   },
   domainLabel: {
-    color: '#8B5CF6',
+    color: COLORS.primary,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1.5,
     marginBottom: 4,
   },
   domainValue: {
-    color: '#F8FAFC',
+    color: COLORS.textPrimary,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -518,18 +510,18 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopColor: COLORS.border,
   },
   statusChip: {
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.2)',
   },
   statusChipText: {
-    color: '#10B981',
+    color: COLORS.success,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1,
@@ -539,30 +531,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   btnDiscoverText: {
-    color: '#8B5CF6',
+    color: COLORS.primary,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   glassCard: {
-    backgroundColor: 'rgba(22, 22, 28, 0.72)',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 16,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.card,
     padding: 18,
   },
   sectionHeader: {
-    color: '#F8FAFC',
-    fontSize: 16,
+    color: COLORS.textPrimary,
+    fontSize: 14,
     fontWeight: '800',
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: COLORS.border,
     paddingBottom: 8,
     letterSpacing: 0.5,
   },
   inputLabel: {
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
@@ -570,10 +562,10 @@ const styles = StyleSheet.create({
   premiumInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F0F13',
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: '#2D2D34',
-    borderRadius: 12,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.input,
     paddingHorizontal: 12,
     height: 48,
     marginBottom: 16,
@@ -584,10 +576,10 @@ const styles = StyleSheet.create({
   },
   premiumInput: {
     flex: 1,
-    color: '#F8FAFC',
+    color: COLORS.textPrimary,
     fontSize: 13,
     fontWeight: '500',
-    padding: 0, // Reset default padding
+    padding: 0,
   },
   inputActions: {
     flexDirection: 'row',
@@ -599,37 +591,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   inputActionText: {
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     fontSize: 10,
     fontWeight: '800',
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: '#0F0F13',
-    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.input,
     padding: 4,
     borderWidth: 1,
-    borderColor: '#2D2D34',
+    borderColor: COLORS.border,
     marginBottom: 16,
   },
   segmentBtn: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 12,
   },
   segmentBtnActive: {
-    backgroundColor: '#1E1E24',
+    backgroundColor: COLORS.elevated,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: COLORS.border,
   },
   segmentText: {
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '600',
   },
   segmentTextActive: {
-    color: '#8B5CF6',
+    color: COLORS.primary,
   },
   configContainer: {
     marginBottom: 16,
@@ -638,10 +630,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0F0F13',
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: '#2D2D34',
-    borderRadius: 12,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
     padding: 12,
   },
   configInfo: {
@@ -649,24 +641,24 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   configLabel: {
-    color: '#F8FAFC',
+    color: COLORS.textPrimary,
     fontSize: 13,
     fontWeight: '600',
   },
   configDesc: {
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     fontSize: 11,
     marginTop: 2,
   },
   numericInput: {
-    backgroundColor: '#1E1E24',
+    backgroundColor: COLORS.elevated,
     borderWidth: 1,
-    borderColor: '#2D2D34',
-    borderRadius: 8,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.sm,
     width: 60,
     height: 38,
     textAlign: 'center',
-    color: '#F8FAFC',
+    color: COLORS.textPrimary,
     fontSize: 13,
     fontWeight: '700',
     padding: 0,
@@ -676,15 +668,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopColor: COLORS.border,
     paddingTop: 14,
     marginTop: 6,
   },
   statusBox: {
-    backgroundColor: '#0F0F13',
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 12,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
     padding: 12,
     marginBottom: 16,
   },
@@ -699,7 +691,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   statusValueText: {
-    color: '#94A3B8',
+    color: COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -708,31 +700,24 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   loadingBoxText: {
-    color: '#8B5CF6',
+    color: COLORS.primary,
     fontWeight: '800',
     fontSize: 11,
     letterSpacing: 1.5,
     marginTop: 10,
   },
   startBtn: {
-    backgroundColor: '#8B5CF6',
-    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.button,
     paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#7C3AED',
-    shadowColor: '#8B5CF6',
-    shadowOffset: {width: 0, height: 6},
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 4,
+    borderColor: COLORS.primary,
   },
   startBtnText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontWeight: '800',
     fontSize: 13,
     letterSpacing: 1.5,
   },
 });
-
-export default ScraperDashboard;

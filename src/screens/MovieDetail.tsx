@@ -7,25 +7,30 @@ import {
   Image,
   TouchableOpacity,
   Linking,
-  Alert,
   ActivityIndicator,
   Modal,
   SafeAreaView,
+  ImageStyle,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
-import {MovieDetail, DownloadLink} from '../model/movie.model';
+import {MovieDetail, DownloadLink} from '../data/models';
 import {ScraperService} from '../services/scraper.service';
+import {colors, radius, spacing, typography} from '../theme';
 
 interface MovieDetailProps {
   movie: MovieDetail;
   onBack: () => void;
   onStartDownload: (title: string, size: string, url: string) => void;
+  isWatchlisted?: boolean;
+  onToggleWatchlist?: () => void;
 }
 
 export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
   movie,
   onBack,
   onStartDownload,
+  isWatchlisted = false,
+  onToggleWatchlist,
 }) => {
   const [resolvingUrl, setResolvingUrl] = useState<string | null>(null);
   const [mirrors, setMirrors] = useState<{
@@ -58,8 +63,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
   const [isBrowserLoading, setIsBrowserLoading] = useState<boolean>(false);
 
   const [preservedSize, setPreservedSize] = useState<string>('Unknown Size');
-  const [preservedQualityLabel, setPreservedQualityLabel] =
-    useState<string>('Unknown Quality');
+  const [, _setPreservedQualityLabel] = useState<string>('Unknown Quality');
 
   const [fullImageUrl, setFullImageUrl] = useState<string | null>(null);
 
@@ -72,7 +76,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
 
     const sessionId = resolutionSessionIdRef.current;
     if (sessionId !== resolutionSessionIdRef.current) {
-      console.log('[InteractiveBrowser] Ignoring stale download candidate');
       return;
     }
 
@@ -87,39 +90,12 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     }
 
     interactiveDownloadTriggeredRef.current = true;
-
-    console.log(
-      '[InteractiveBrowser] User interaction completed through normal page flow',
-    );
-    console.log('[InteractiveBrowser] Download candidate observed');
-    console.log(
-      `[InteractiveBrowser] Direct download candidate confirmed: ${
-        url.split('?')[0]
-      }`,
-    );
-    console.log(
-      '[InteractiveBrowser] Handing URL to existing download pipeline',
-    );
-
-    scraper.log(
-      '[InteractiveBrowser] User interaction completed through normal page flow',
-      'success',
-    );
-    scraper.log('[InteractiveBrowser] Download candidate observed', 'info');
     scraper.log(
       '[InteractiveBrowser] Direct download candidate confirmed',
       'success',
     );
-    scraper.log(
-      '[InteractiveBrowser] Handing URL to existing download pipeline',
-      'info',
-    );
 
     onStartDownload(movie.title, preservedSize || 'Unknown Size', url);
-
-    console.log('[InteractiveBrowser] Closing interactive browser');
-    scraper.log('[InteractiveBrowser] Closing interactive browser', 'info');
-
     handleClose();
   };
 
@@ -129,30 +105,14 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     label?: string,
   ) => {
     if (interactiveBrowserTriggered.current) {
-      console.log('[InteractiveBrowser] Interactive browser already active');
       return;
     }
     interactiveBrowserTriggered.current = true;
 
     setPreservedSize(size || 'Unknown Size');
-    setPreservedQualityLabel(label || 'Unknown Quality');
+    _setPreservedQualityLabel(label || 'Unknown Quality');
 
     const scraper = ScraperService.getInstance();
-    console.log('[InteractiveBrowser] Opening original portal URL');
-    console.log('[InteractiveBrowser] User interaction flow active');
-    console.log(
-      `[InteractiveBrowser] [DEBUG] Modal visible state set to: true`,
-    );
-    console.log(
-      `[InteractiveBrowser] [DEBUG] interactiveBrowserTriggered value: ${interactiveBrowserTriggered.current}`,
-    );
-    console.log(
-      `[InteractiveBrowser] [DEBUG] original URL preserved: ${
-        url ? 'yes' : 'no'
-      }`,
-    );
-
-    scraper.log('[InteractiveBrowser] Opening original portal URL', 'info');
     scraper.log('[InteractiveBrowser] User interaction flow active', 'warn');
 
     setInteractiveUrl(url);
@@ -201,12 +161,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     setIsBrowserLoading(navState.loading);
 
     const scraper = ScraperService.getInstance();
-    const safeUrl = navState.url.split('?')[0];
-    scraper.log(`[InteractiveBrowser] URL changed to: ${safeUrl}`, 'info');
-    console.log(
-      `[InteractiveBrowser] [DEBUG] WebView canGoBack state: ${navState.canGoBack}`,
-    );
-
     handleInteractiveDownloadCandidate(navState.url);
 
     if (!navState.loading) {
@@ -226,7 +180,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
 
   const handleShouldStartLoadWithRequest = (request: any) => {
     const {url} = request;
-
     handleInteractiveDownloadCandidate(url);
 
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -234,18 +187,10 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     }
 
     const scraper = ScraperService.getInstance();
-    scraper.log(
-      `[InteractiveBrowser] Detected custom/unsupported URL scheme: ${
-        url.split('?')[0]
-      }`,
-      'warn',
-    );
-
     if (url.startsWith('intent://')) {
       try {
         const parts = url.split('#Intent;');
         const mainPart = parts[0].replace('intent://', '');
-
         let scheme = 'https';
         if (parts.length > 1) {
           const params = parts[1].split(';');
@@ -256,14 +201,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
             scheme = schemeParam.split('=')[1];
           }
         }
-
         const reconstructedUrl = `${scheme}://${mainPart}`;
-        scraper.log(
-          `[InteractiveBrowser] Converted intent URI to URL: ${
-            reconstructedUrl.split('?')[0]
-          }`,
-          'info',
-        );
         openExternalBrowserOnce(reconstructedUrl);
       } catch (e: any) {
         scraper.log(
@@ -276,13 +214,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         .then(supported => {
           if (supported) {
             openExternalBrowserOnce(url);
-          } else {
-            scraper.log(
-              `[InteractiveBrowser] Scheme not supported by device: ${
-                url.split(':')[0]
-              }`,
-              'error',
-            );
           }
         })
         .catch(err => {
@@ -292,7 +223,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           );
         });
     }
-
     return false;
   };
 
@@ -308,22 +238,15 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
       return;
     }
 
-    // If it's a watch link, open directly
     if (link.type === 'watch') {
       Linking.canOpenURL(link.url).then(supported => {
         if (supported) {
           Linking.openURL(link.url);
-        } else {
-          Alert.alert(
-            'Cannot Open Link',
-            `Unable to open stream URL: ${link.url}`,
-          );
         }
       });
       return;
     }
 
-    // Toggle collapse if already resolved
     if (mirrors[link.url]) {
       const updated = {...mirrors};
       delete updated[link.url];
@@ -340,27 +263,17 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     const originalPortalUrl = link.url;
     setResolvingUrl(originalPortalUrl);
     const scraper = ScraperService.getInstance();
-    scraper.log(`Resolving download portal: "${link.label}"`, 'info');
 
     try {
       const scrapedMirrors = await scraper.scrapeDownloadPage(
         originalPortalUrl,
       );
       if (sessionId !== resolutionSessionIdRef.current) {
-        console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
       if (scrapedMirrors && scrapedMirrors.length > 0) {
         setMirrors(prev => ({...prev, [originalPortalUrl]: scrapedMirrors}));
-        scraper.log(
-          `Successfully bypassed portal and extracted ${scrapedMirrors.length} mirrors.`,
-          'success',
-        );
       } else {
-        scraper.log(
-          'No mirror links parsed on portal. Opening portal URL directly.',
-          'warn',
-        );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
           onStartDownload(
             movie.title,
@@ -373,7 +286,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
       }
     } catch (err: any) {
       if (sessionId !== resolutionSessionIdRef.current) {
-        console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
       if (
@@ -381,18 +293,8 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
           err.type === 'EXTERNAL_BROWSER_REQUIRED')
       ) {
-        openInteractiveBrowser(
-          originalPortalUrl,
-          link.size || 'Unknown Size',
-          link.label || 'Unknown Quality',
-        );
+        openInteractiveBrowser(originalPortalUrl, link.size, link.label);
       } else {
-        scraper.log(
-          `Failed to bypass portal: ${
-            err.message || JSON.stringify(err)
-          }. Opening page in browser.`,
-          'error',
-        );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
           onStartDownload(
             movie.title,
@@ -427,21 +329,14 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         onStartDownload(movie.title, 'Unknown Size', mirror.url);
         return;
       }
-      // Direct opening for GDrive or unsupported links
       Linking.canOpenURL(mirror.url).then(supported => {
         if (supported) {
           Linking.openURL(mirror.url);
-        } else {
-          Alert.alert(
-            'Cannot Open Link',
-            `Unable to load mirror URL: ${mirror.url}`,
-          );
         }
       });
       return;
     }
 
-    // Toggle collapse if already resolved
     if (directLinks[mirror.url]) {
       const updated = {...directLinks};
       delete updated[mirror.url];
@@ -454,27 +349,17 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
 
     const originalPortalUrl = mirror.url;
     setResolvingMirrorUrl(originalPortalUrl);
-    scraper.log(`Resolving download mirrors for: "${mirror.label}"`, 'info');
 
     try {
       const scrapedDirect = await scraper.scrapeDirectDownloadPage(
         originalPortalUrl,
       );
       if (sessionId !== resolutionSessionIdRef.current) {
-        console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
       if (scrapedDirect && scrapedDirect.length > 0) {
         setDirectLinks(prev => ({...prev, [originalPortalUrl]: scrapedDirect}));
-        scraper.log(
-          `Successfully parsed direct mirrors: Found ${scrapedDirect.length} endpoints.`,
-          'success',
-        );
       } else {
-        scraper.log(
-          'No direct files parsed on landing page. Opening mirror directly.',
-          'warn',
-        );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
           onStartDownload(movie.title, 'Unknown Size', originalPortalUrl);
         } else {
@@ -483,7 +368,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
       }
     } catch (err: any) {
       if (sessionId !== resolutionSessionIdRef.current) {
-        console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
       if (
@@ -491,18 +375,8 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
           err.type === 'EXTERNAL_BROWSER_REQUIRED')
       ) {
-        openInteractiveBrowser(
-          originalPortalUrl,
-          'Unknown Size',
-          mirror.label || 'Unknown Quality',
-        );
+        openInteractiveBrowser(originalPortalUrl, 'Unknown Size', mirror.label);
       } else {
-        scraper.log(
-          `Failed to bypass landing page: ${
-            err.message || JSON.stringify(err)
-          }. Opening mirror page in browser.`,
-          'error',
-        );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
           onStartDownload(movie.title, 'Unknown Size', originalPortalUrl);
         } else {
@@ -525,7 +399,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     }
 
     const scraper = ScraperService.getInstance();
-    // Check if it's a link generator portal
     const isGenerator =
       item.url.includes('gamerxyt') ||
       item.url.includes('hubcloud.php') ||
@@ -536,7 +409,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
       return;
     }
 
-    // Toggle collapse
     if (finalDirectLinks[item.url]) {
       const updated = {...finalDirectLinks};
       delete updated[item.url];
@@ -549,14 +421,12 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
 
     const originalPortalUrl = item.url;
     setResolvingFinalUrl(originalPortalUrl);
-    scraper.log(`Bypassing download generator: "${item.label}"`, 'info');
 
     try {
       const scrapedFinal = await scraper.scrapeDirectDownloadPage(
         originalPortalUrl,
       );
       if (sessionId !== resolutionSessionIdRef.current) {
-        console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
       if (scrapedFinal && scrapedFinal.length > 0) {
@@ -564,15 +434,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           ...prev,
           [originalPortalUrl]: scrapedFinal,
         }));
-        scraper.log(
-          `Successfully parsed final direct download servers: Found ${scrapedFinal.length} mirrors.`,
-          'success',
-        );
       } else {
-        scraper.log(
-          'No direct final download links resolved. Opening URL in browser.',
-          'warn',
-        );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
           onStartDownload(movie.title, size, originalPortalUrl);
         } else {
@@ -581,7 +443,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
       }
     } catch (err: any) {
       if (sessionId !== resolutionSessionIdRef.current) {
-        console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
       if (
@@ -589,18 +450,8 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
           err.type === 'EXTERNAL_BROWSER_REQUIRED')
       ) {
-        openInteractiveBrowser(
-          originalPortalUrl,
-          size || 'Unknown Size',
-          item.label || 'Unknown Quality',
-        );
+        openInteractiveBrowser(originalPortalUrl, size, item.label);
       } else {
-        scraper.log(
-          `Failed to bypass generator: ${
-            err.message || JSON.stringify(err)
-          }. Opening page in browser.`,
-          'error',
-        );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
           onStartDownload(movie.title, size, originalPortalUrl);
         } else {
@@ -628,10 +479,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     const originalPortalUrl = item.url;
     setResolvingServerUrl(originalPortalUrl);
     const scraper = ScraperService.getInstance();
-    scraper.log(
-      `Extracting direct download link from host: "${item.label}"`,
-      'info',
-    );
 
     let resolvedDirect: string | null = null;
     let errorOccurred = false;
@@ -640,7 +487,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
       resolvedDirect = await scraper.scrapeDirectFileHost(originalPortalUrl);
     } catch (err: any) {
       if (sessionId !== resolutionSessionIdRef.current) {
-        console.log('[InteractiveBrowser] Ignoring stale resolution session');
         return;
       }
       if (
@@ -648,18 +494,8 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
           err.type === 'EXTERNAL_BROWSER_REQUIRED')
       ) {
-        openInteractiveBrowser(
-          originalPortalUrl,
-          size || 'Unknown Size',
-          item.label || 'Unknown Quality',
-        );
+        openInteractiveBrowser(originalPortalUrl, size, item.label);
       } else {
-        scraper.log(
-          `Failed to parse file host: ${
-            err.message || JSON.stringify(err)
-          }. Redirecting to browser...`,
-          'error',
-        );
         if (scraper.isDirectFileUrl(originalPortalUrl)) {
           onStartDownload(movie.title, size, originalPortalUrl);
         } else {
@@ -670,7 +506,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     }
 
     if (sessionId !== resolutionSessionIdRef.current) {
-      console.log('[InteractiveBrowser] Ignoring stale resolution session');
       return;
     }
 
@@ -680,17 +515,9 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     }
 
     if (resolvedDirect) {
-      scraper.log(
-        'Direct download link resolved! Starting download via system manager...',
-        'success',
-      );
       setResolvingServerUrl(null);
       onStartDownload(movie.title, size, resolvedDirect);
     } else {
-      scraper.log(
-        'Direct download resolution failed. Redirecting to external page...',
-        'warn',
-      );
       if (scraper.isDirectFileUrl(originalPortalUrl)) {
         onStartDownload(movie.title, size, originalPortalUrl);
       } else {
@@ -700,22 +527,12 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
     }
   };
 
-  const getLinkIcon = (type: string) => {
-    if (type === 'watch') {
-      return '▶️';
-    }
-    if (type === 'download') {
-      return '📥';
-    }
-    return '🔗';
-  };
-
   return (
     <View style={styles.container}>
       {/* Full Image Preview Modal */}
       <Modal
         visible={fullImageUrl !== null}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={() => setFullImageUrl(null)}>
         <TouchableOpacity
@@ -737,14 +554,12 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
         </TouchableOpacity>
       </Modal>
 
-      {/* Interactive Browser Modal */}
+      {/* Interactive WebView Modal */}
       <Modal
         visible={interactiveUrl !== null}
         animationType="slide"
-        transparent={false}
         onRequestClose={handleClose}>
         <SafeAreaView style={styles.modalContainer}>
-          {/* Browser Controls */}
           <View style={styles.browserHeader}>
             <TouchableOpacity
               style={styles.browserHeaderBtn}
@@ -772,8 +587,8 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
               {isBrowserLoading && (
                 <ActivityIndicator
                   size="small"
-                  color="#8b5cf6"
-                  style={{marginLeft: 8}}
+                  color={colors.primary}
+                  style={styles.loaderIcon}
                 />
               )}
             </View>
@@ -781,22 +596,19 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
             <TouchableOpacity
               style={styles.browserHeaderBtn}
               onPress={handleOpenExternal}>
-              <Text style={styles.browserHeaderBtnText}>
-                🌐 Open in Browser
-              </Text>
+              <Text style={styles.browserHeaderBtnText}>🌐 Browser</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Web View */}
           {interactiveUrl ? (
             <View style={styles.webViewWrapper}>
               <WebView
                 ref={interactiveWebViewRef}
-                style={{flex: 1}}
+                style={styles.flexOne}
                 source={{uri: interactiveUrl}}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                startInLoadingState={true}
+                javaScriptEnabled
+                domStorageEnabled
+                startInLoadingState
                 mixContentMode="always"
                 onNavigationStateChange={handleNavigationStateChange}
                 onLoadStart={handleLoadStart}
@@ -805,23 +617,11 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                 onHttpError={() => setIsBrowserLoading(false)}
                 onFileDownload={syntheticEvent => {
                   const {nativeEvent} = syntheticEvent;
-                  const scraper = ScraperService.getInstance();
-                  scraper.log(
-                    `[InteractiveBrowser] File download event fired: ${
-                      nativeEvent.downloadUrl.split('?')[0]
-                    }`,
-                    'info',
-                  );
                   handleInteractiveDownloadCandidate(nativeEvent.downloadUrl);
                 }}
                 onError={syntheticEvent => {
                   setIsBrowserLoading(false);
                   const {nativeEvent} = syntheticEvent;
-                  const scraper = ScraperService.getInstance();
-                  scraper.log(
-                    `[InteractiveBrowser] Error loading page: ${nativeEvent.description}`,
-                    'error',
-                  );
                   openExternalBrowserOnce(nativeEvent.url || interactiveUrl);
                 }}
               />
@@ -836,25 +636,37 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           style={styles.backBtn}
           onPress={onBack}
           activeOpacity={0.7}>
-          <Text style={styles.backBtnText}>◀ CATALOG</Text>
+          <Text style={styles.backBtnText}>◀ BACK</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          Specifications
+          Movie Detail
         </Text>
-        <View style={{width: 60}} />
+        {onToggleWatchlist ? (
+          <TouchableOpacity
+            style={[
+              styles.watchlistHeaderBtn,
+              isWatchlisted && styles.watchlistHeaderBtnActive,
+            ]}
+            onPress={onToggleWatchlist}>
+            <Text style={styles.watchlistHeaderBtnText}>
+              {isWatchlisted ? '❤️ Saved' : '🤍 Save'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.spacerWidth} />
+        )}
       </View>
 
       <ScrollView
         style={styles.body}
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}>
-        {/* Netflix-style Hero backdrop */}
         <View style={styles.heroSection}>
           {movie.imageUrl ? (
             <Image
               source={{uri: movie.imageUrl}}
-              style={styles.heroBackdrop}
-              blurRadius={15}
+              style={styles.heroBackdrop as ImageStyle}
+              blurRadius={10}
               resizeMode="cover"
             />
           ) : null}
@@ -868,7 +680,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                 activeOpacity={0.9}>
                 <Image
                   source={{uri: movie.imageUrl}}
-                  style={styles.poster}
+                  style={styles.poster as ImageStyle}
                   resizeMode="cover"
                 />
               </TouchableOpacity>
@@ -879,7 +691,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
             )}
 
             <View style={styles.heroMeta}>
-              <Text style={styles.movieTitle} numberOfLines={2}>
+              <Text style={styles.movieTitle} numberOfLines={3}>
                 {movie.title}
               </Text>
 
@@ -912,13 +724,12 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           </View>
         </View>
 
-        {/* Categories Badges */}
         {movie.categories.length > 0 && (
           <View style={styles.badgeRowWrapper}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.badgeRow}>
+              contentContainerStyle={styles.categoryBadgeRow}>
               {movie.categories.map((cat, idx) => (
                 <View key={idx} style={styles.categoryBadge}>
                   <Text style={styles.categoryBadgeText}>{cat}</Text>
@@ -928,10 +739,15 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           </View>
         )}
 
-        {/* Technical Details Sheet */}
-        <View style={styles.glassCard}>
-          <Text style={styles.sectionTitle}>Technical Details</Text>
+        {movie.storyline && (
+          <View style={[styles.glassCard, styles.storylineCard]}>
+            <Text style={styles.sectionTitle}>Storyline</Text>
+            <Text style={styles.storyText}>{movie.storyline}</Text>
+          </View>
+        )}
 
+        <View style={styles.glassCard}>
+          <Text style={styles.sectionTitle}>Technical Specifications</Text>
           {movie.director && (
             <View style={styles.specRow}>
               <Text style={styles.specName}>Director</Text>
@@ -947,22 +763,13 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           )}
 
           {movie.genres.length > 0 && (
-            <View style={[styles.specRow, {borderBottomWidth: 0}]}>
+            <View style={[styles.specRow, styles.borderBottomNone]}>
               <Text style={styles.specName}>Genres</Text>
               <Text style={styles.specVal}>{movie.genres.join(', ')}</Text>
             </View>
           )}
         </View>
 
-        {/* Storyline */}
-        {movie.storyline && (
-          <View style={[styles.glassCard, styles.storylineCard]}>
-            <Text style={styles.sectionTitle}>Storyline</Text>
-            <Text style={styles.storyText}>{movie.storyline}</Text>
-          </View>
-        )}
-
-        {/* Screenshots */}
         {movie.screenshots.length > 0 && (
           <View style={styles.glassCard}>
             <Text style={styles.sectionTitle}>Screenshots</Text>
@@ -977,7 +784,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                   activeOpacity={0.8}>
                   <Image
                     source={{uri: src}}
-                    style={styles.screenshot}
+                    style={styles.screenshot as ImageStyle}
                     resizeMode="cover"
                   />
                 </TouchableOpacity>
@@ -986,16 +793,16 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           </View>
         )}
 
-        {/* Active Scraper Stepper Progress */}
+        {/* Stepper Progress Loader */}
         {isAnyResolving && (
           <View style={styles.stepperCard}>
             <Text style={styles.stepperTitle}>
-              🔎 RESOLVING MIRRORS PATHWAY
+              ⚡ BYPASSING DOMAIN VERIFICATION
             </Text>
             <View style={styles.stepperSteps}>
               <View style={styles.stepItem}>
                 <View style={[styles.stepDot, styles.stepDotCompleted]} />
-                <Text style={styles.stepTextCompleted}>Connected</Text>
+                <Text style={styles.stepTextCompleted}>Portal Connect</Text>
               </View>
               <View style={styles.stepLineCompleted} />
 
@@ -1048,7 +855,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                       ? styles.stepTextActive
                       : styles.stepTextPending
                   }>
-                  Direct File
+                  Parse File
                 </Text>
               </View>
               <View
@@ -1080,18 +887,18 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
             </View>
             <ActivityIndicator
               size="small"
-              color="#8B5CF6"
-              style={{marginTop: 12}}
+              color={colors.primary}
+              style={styles.loaderSpacing}
             />
           </View>
         )}
 
-        {/* Download links */}
+        {/* Accordions */}
         <View style={styles.glassCard}>
-          <Text style={styles.sectionTitle}>Download & Watch Links</Text>
+          <Text style={styles.sectionTitle}>Bypass Download Qualities</Text>
           {movie.downloadLinks.length === 0 ? (
             <Text style={styles.emptyLinksText}>
-              No active download or player links found on page.
+              No accessible stream or download pathways resolved.
             </Text>
           ) : (
             movie.downloadLinks.map((link, idx) => {
@@ -1114,7 +921,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                     disabled={isAnyResolving}
                     activeOpacity={0.85}>
                     <Text style={styles.linkIcon}>
-                      {getLinkIcon(link.type)}
+                      {link.type === 'watch' ? '▶️' : '📥'}
                     </Text>
                     <View style={styles.linkTextWrapper}>
                       <Text style={styles.linkLabel} numberOfLines={2}>
@@ -1138,7 +945,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                       </View>
                     </View>
                     {isResolving ? (
-                      <ActivityIndicator size="small" color="#8B5CF6" />
+                      <ActivityIndicator size="small" color={colors.primary} />
                     ) : (
                       <Text
                         style={[
@@ -1150,7 +957,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                     )}
                   </TouchableOpacity>
 
-                  {/* Collapsible Scraped Mirrors List */}
                   {hasMirrors && (
                     <View style={styles.mirrorsBox}>
                       <Text style={styles.mirrorsHeader}>
@@ -1181,7 +987,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                               {isResolvingMirror ? (
                                 <ActivityIndicator
                                   size="small"
-                                  color="#06B6D4"
+                                  color={colors.secondary}
                                 />
                               ) : (
                                 <Text
@@ -1194,7 +1000,6 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                               )}
                             </TouchableOpacity>
 
-                            {/* Render Direct Final Download Links */}
                             {hasDirectLinks && (
                               <View style={styles.directLinksBox}>
                                 <Text style={styles.directLinksHeader}>
@@ -1238,7 +1043,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                                         {isResolvingFinal ? (
                                           <ActivityIndicator
                                             size="small"
-                                            color="#10B981"
+                                            color={colors.success}
                                           />
                                         ) : (
                                           <Text
@@ -1252,16 +1057,14 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                                         )}
                                       </TouchableOpacity>
 
-                                      {/* Render Level 4 Final Download Servers */}
                                       {hasFinalLinks && (
                                         <View style={styles.finalLinksBox}>
                                           <Text style={styles.finalLinksHeader}>
-                                            🚀 CLOUD PROVIDER SELECTION
+                                            🚀 SELECT CLOUD SERVER
                                           </Text>
                                           {finalList.map((f, fIdx) => {
                                             const isResolvingServer =
                                               resolvingServerUrl === f.url;
-
                                             return (
                                               <View
                                                 key={fIdx}
@@ -1295,7 +1098,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                                                   {isResolvingServer ? (
                                                     <ActivityIndicator
                                                       size="small"
-                                                      color="#8B5CF6"
+                                                      color={colors.primary}
                                                     />
                                                   ) : (
                                                     <Text
@@ -1332,82 +1135,97 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#08080A',
+    backgroundColor: colors.background,
   },
   header: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    backgroundColor: '#101014',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
   backBtn: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: colors.border,
   },
   backBtnText: {
-    color: '#94A3B8',
+    color: colors.textSecondary,
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontWeight: typography.weights.heavy,
   },
   headerTitle: {
-    color: '#F8FAFC',
+    color: colors.textPrimary,
     fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontWeight: typography.weights.heavy,
+    flex: 1,
+    textAlign: 'center',
+  },
+  watchlistHeaderBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: radius.sm,
+    backgroundColor: 'rgba(144, 97, 249, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(144, 97, 249, 0.2)',
+  },
+  watchlistHeaderBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  watchlistHeaderBtnText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: typography.weights.heavy,
+  },
+  spacerWidth: {
+    width: 60,
   },
   body: {
     flex: 1,
   },
   bodyContent: {
-    padding: 16,
+    padding: spacing.md,
     gap: 16,
     paddingBottom: 40,
   },
   heroSection: {
-    height: 250,
-    borderRadius: 16,
+    height: 240,
+    borderRadius: radius.card,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#101014',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: colors.border,
   },
   heroBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.15,
+    opacity: 0.18,
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8, 8, 10, 0.4)',
+    backgroundColor: 'rgba(9, 9, 11, 0.5)',
   },
   heroContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.md,
     gap: 16,
   },
   posterWrapper: {
     width: 110,
     height: 160,
-    borderRadius: 12,
+    borderRadius: radius.md,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    shadowColor: '#000000',
-    shadowOffset: {width: 0, height: 6},
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   poster: {
     width: '100%',
@@ -1416,8 +1234,8 @@ const styles = StyleSheet.create({
   posterFallback: {
     width: 110,
     height: 160,
-    borderRadius: 12,
-    backgroundColor: '#1E1E24',
+    borderRadius: radius.md,
+    backgroundColor: colors.elevated,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1430,10 +1248,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   movieTitle: {
-    color: '#F8FAFC',
-    fontSize: 18,
-    fontWeight: '800',
-    lineHeight: 24,
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: typography.weights.heavy,
+    lineHeight: 22,
   },
   metaBadgeRow: {
     flexDirection: 'row',
@@ -1448,53 +1266,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   metaBadgeRating: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
   },
   metaBadgeQuality: {
-    backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    backgroundColor: 'rgba(6, 182, 212, 0.15)',
   },
   metaBadgeText: {
-    color: '#F8FAFC',
+    color: colors.textPrimary,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: typography.weights.heavy,
   },
   metaLanguage: {
-    color: '#94A3B8',
+    color: colors.textSecondary,
     fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
+    fontWeight: typography.weights.semibold,
   },
   badgeRowWrapper: {
     marginHorizontal: -16,
   },
-  badgeRow: {
+  categoryBadgeRow: {
     paddingHorizontal: 16,
     gap: 6,
   },
   categoryBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: 'rgba(144, 97, 249, 0.08)',
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderColor: 'rgba(144, 97, 249, 0.15)',
   },
   categoryBadgeText: {
-    color: '#8B5CF6',
+    color: colors.primary,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: typography.weights.bold,
   },
   glassCard: {
-    backgroundColor: 'rgba(22, 22, 28, 0.72)',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 16,
-    padding: 16,
+    borderColor: colors.border,
+    borderRadius: radius.card,
+    padding: spacing.md,
   },
   sectionTitle: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '800',
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: typography.weights.heavy,
     letterSpacing: 0.5,
     marginBottom: 12,
   },
@@ -1502,30 +1319,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: colors.border,
     alignItems: 'flex-start',
   },
   specName: {
-    color: '#94A3B8',
+    color: colors.textSecondary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
     width: 80,
   },
   specVal: {
-    color: '#F8FAFC',
+    color: colors.textPrimary,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: typography.weights.medium,
     flex: 1,
+  },
+  borderBottomNone: {
+    borderBottomWidth: 0,
   },
   storylineCard: {
     borderLeftWidth: 3,
-    borderLeftColor: '#06B6D4',
+    borderLeftColor: colors.secondary,
   },
   storyText: {
-    color: '#cbd5e1',
+    color: colors.textSecondary,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '500',
+    fontWeight: typography.weights.medium,
   },
   screenshotRow: {
     gap: 8,
@@ -1533,21 +1353,21 @@ const styles = StyleSheet.create({
   screenshot: {
     width: 140,
     height: 80,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: colors.border,
   },
   stepperCard: {
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    backgroundColor: 'rgba(144, 97, 249, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
-    borderRadius: 16,
+    borderColor: 'rgba(144, 97, 249, 0.2)',
+    borderRadius: radius.card,
     padding: 14,
   },
   stepperTitle: {
-    color: '#8B5CF6',
+    color: colors.primary,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: typography.weights.heavy,
     letterSpacing: 1,
     textAlign: 'center',
     marginBottom: 12,
@@ -1572,83 +1392,84 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   stepDotActive: {
-    backgroundColor: '#8B5CF6',
-    shadowColor: '#8B5CF6',
-    shadowOpacity: 0.6,
-    shadowRadius: 4,
+    backgroundColor: colors.primary,
   },
   stepDotCompleted: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
   },
   stepTextPending: {
-    color: '#64748B',
+    color: colors.textMuted,
     fontSize: 8,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
   },
   stepTextActive: {
-    color: '#8B5CF6',
+    color: colors.primary,
     fontSize: 8,
-    fontWeight: '800',
+    fontWeight: typography.weights.heavy,
   },
   stepTextCompleted: {
-    color: '#10B981',
+    color: colors.success,
     fontSize: 8,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
   },
   stepLinePending: {
     flex: 1,
     height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginHorizontal: 4,
+    marginTop: -16,
   },
   stepLineCompleted: {
     flex: 1,
     height: 2,
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
+    marginHorizontal: 4,
+    marginTop: -16,
   },
   emptyLinksText: {
-    color: '#64748B',
+    color: colors.textMuted,
     fontSize: 12,
     textAlign: 'center',
     paddingVertical: 12,
   },
   linkContainer: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#101014',
+    backgroundColor: colors.elevated,
     borderWidth: 1,
-    borderColor: '#22222b',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     padding: 12,
-  },
-  downloadLink: {
-    borderLeftWidth: 3.5,
-    borderLeftColor: '#8B5CF6',
-  },
-  watchLink: {
-    borderLeftWidth: 3.5,
-    borderLeftColor: '#06B6D4',
+    gap: 12,
   },
   linkRowActive: {
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    borderBottomWidth: 0,
+    borderColor: colors.primary,
+  },
+  disabledRow: {
+    opacity: 0.6,
+  },
+  watchLink: {
+    borderColor: 'rgba(6, 182, 212, 0.2)',
+  },
+  downloadLink: {
+    borderColor: colors.border,
   },
   linkIcon: {
-    fontSize: 16,
-    marginRight: 10,
+    fontSize: 18,
   },
   linkTextWrapper: {
     flex: 1,
     gap: 4,
   },
   linkLabel: {
-    color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 18,
+    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: typography.weights.bold,
   },
   linkBadges: {
     flexDirection: 'row',
@@ -1656,264 +1477,247 @@ const styles = StyleSheet.create({
   },
   resBadge: {
     backgroundColor: 'rgba(6, 182, 212, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(6, 182, 212, 0.2)',
-    paddingVertical: 1.5,
-    paddingHorizontal: 6,
-    borderRadius: 6,
+    borderRadius: 4,
+    paddingVertical: 1,
+    paddingHorizontal: 4,
   },
   resBadgeText: {
-    color: '#06B6D4',
+    color: colors.secondary,
     fontSize: 8,
-    fontWeight: '800',
+    fontWeight: typography.weights.heavy,
   },
   sizeBadge: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
-    paddingVertical: 1.5,
-    paddingHorizontal: 6,
-    borderRadius: 6,
+    backgroundColor: 'rgba(144, 97, 249, 0.1)',
+    borderRadius: 4,
+    paddingVertical: 1,
+    paddingHorizontal: 4,
   },
   sizeBadgeText: {
-    color: '#8B5CF6',
+    color: colors.primary,
     fontSize: 8,
-    fontWeight: '800',
+    fontWeight: typography.weights.heavy,
   },
   linkArrow: {
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '700',
-    marginLeft: 8,
+    color: colors.textSecondary,
+    fontSize: 12,
   },
   linkArrowActive: {
-    transform: [{rotate: '90deg'}],
-    color: '#8B5CF6',
+    color: colors.primary,
   },
   mirrorsBox: {
-    backgroundColor: '#0A0A0C',
+    backgroundColor: '#0F0F13',
     borderWidth: 1,
-    borderColor: '#22222b',
     borderTopWidth: 0,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    padding: 12,
+    borderColor: colors.primary,
+    borderBottomLeftRadius: radius.md,
+    borderBottomRightRadius: radius.md,
+    padding: 10,
     gap: 8,
   },
   mirrorsHeader: {
-    color: '#8B5CF6',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 4,
+    color: colors.secondary,
+    fontSize: 8,
+    fontWeight: typography.weights.heavy,
+    letterSpacing: 1,
+    marginBottom: 2,
   },
   mirrorContainer: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   mirrorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#101014',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#22222b',
-    borderRadius: 10,
-    padding: 10,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    padding: 8,
+    gap: 8,
   },
   mirrorRowActive: {
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    borderBottomWidth: 0,
+    borderColor: colors.secondary,
   },
   mirrorIcon: {
-    fontSize: 14,
-    marginRight: 8,
+    fontSize: 12,
   },
   mirrorLabel: {
+    color: colors.textPrimary,
+    fontSize: 11,
+    fontWeight: typography.weights.semibold,
     flex: 1,
-    color: '#E2E8F0',
-    fontSize: 12,
-    fontWeight: '600',
   },
   mirrorArrow: {
-    color: '#64748B',
-    fontSize: 9,
-    fontWeight: '700',
-    marginLeft: 6,
+    color: colors.textSecondary,
+    fontSize: 10,
   },
   mirrorArrowActive: {
-    transform: [{rotate: '90deg'}],
-    color: '#06B6D4',
+    color: colors.secondary,
   },
   directLinksBox: {
-    backgroundColor: '#0F0F13',
+    backgroundColor: colors.elevated,
     borderWidth: 1,
-    borderColor: '#22222b',
     borderTopWidth: 0,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    padding: 10,
+    borderColor: colors.secondary,
+    borderBottomLeftRadius: radius.sm,
+    borderBottomRightRadius: radius.sm,
+    padding: 8,
     gap: 6,
   },
   directLinksHeader: {
-    color: '#06B6D4',
+    color: colors.success,
     fontSize: 8,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontWeight: typography.weights.heavy,
+    letterSpacing: 0.8,
     marginBottom: 2,
   },
   directContainer: {
-    marginBottom: 6,
+    marginBottom: 4,
   },
   directRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16161B',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#22222b',
-    borderRadius: 8,
-    padding: 8,
+    borderColor: colors.border,
+    borderRadius: 6,
+    padding: 6,
+    gap: 6,
   },
   directRowActive: {
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    borderBottomWidth: 0,
+    borderColor: colors.success,
   },
   directIcon: {
     fontSize: 12,
-    marginRight: 8,
   },
   directLabel: {
+    color: colors.textPrimary,
+    fontSize: 10,
+    fontWeight: typography.weights.semibold,
     flex: 1,
-    color: '#E2E8F0',
-    fontSize: 11,
-    fontWeight: '600',
   },
   directArrow: {
-    color: '#10B981',
+    color: colors.success,
     fontSize: 10,
-    marginLeft: 6,
   },
   directArrowActive: {
-    transform: [{rotate: '90deg'}],
-    color: '#10B981',
+    color: colors.success,
   },
   finalLinksBox: {
-    backgroundColor: '#0A0A0C',
+    backgroundColor: '#0F0F13',
     borderWidth: 1,
-    borderColor: '#22222b',
     borderTopWidth: 0,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    padding: 8,
-    gap: 6,
+    borderColor: colors.success,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+    padding: 6,
+    gap: 4,
   },
   finalLinksHeader: {
-    color: '#10B981',
-    fontSize: 8,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 2,
+    color: colors.primary,
+    fontSize: 7,
+    fontWeight: typography.weights.heavy,
+    letterSpacing: 0.5,
   },
   serverContainer: {
-    marginBottom: 5,
+    marginBottom: 2,
   },
   finalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#101014',
-    borderWidth: 1,
-    borderColor: '#22222b',
-    borderRadius: 6,
-    padding: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 4,
+    padding: 6,
+    gap: 6,
   },
   finalRowActive: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderBottomWidth: 0,
+    backgroundColor: colors.elevated,
   },
   finalIcon: {
     fontSize: 10,
-    marginRight: 6,
   },
   finalLabel: {
+    color: colors.textPrimary,
+    fontSize: 9,
+    fontWeight: '500',
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 11,
-    fontWeight: '600',
   },
   finalArrow: {
-    color: '#8B5CF6',
-    fontSize: 10,
-    marginLeft: 4,
+    color: colors.primary,
+    fontSize: 9,
   },
-  disabledRow: {
-    opacity: 0.45,
+  imageModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '95%',
+    height: '80%',
+  },
+  imageCloseBtn: {
+    position: 'absolute',
+    bottom: 40,
+    backgroundColor: colors.elevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: radius.button,
+  },
+  imageCloseBtnText: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: typography.weights.heavy,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#08080A',
+    backgroundColor: colors.background,
   },
   browserHeader: {
-    height: 52,
-    backgroundColor: '#101014',
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  browserHeaderNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    borderBottomColor: colors.border,
   },
   browserHeaderBtn: {
     paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#1E1E24',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: radius.sm,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   browserHeaderBtnDisabled: {
     opacity: 0.3,
   },
   browserHeaderBtnText: {
-    color: '#F8FAFC',
+    color: colors.textSecondary,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '700',
+  },
+  browserHeaderNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  loaderIcon: {
+    marginLeft: 8,
   },
   webViewWrapper: {
     flex: 1,
-    backgroundColor: '#08080A',
   },
-  imageModalContainer: {
+  flexOne: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  fullImage: {
-    width: '90%',
-    height: '80%',
-  },
-  imageCloseBtn: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  imageCloseBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-    fontFamily: 'monospace',
+  loaderSpacing: {
+    marginTop: 12,
   },
 });
 export default MovieDetailScreen;
