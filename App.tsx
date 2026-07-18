@@ -23,6 +23,7 @@ import {HiddenWebView} from './src/components/HiddenWebView';
 import {CatalogItem, MovieDetail} from './src/data/models';
 import {ScraperService} from './src/services/scraper.service';
 import {DownloadService} from './src/services/download.service';
+import {UrlDiscoveryService} from './src/services/urlDiscovery.service';
 import {colors, radius, spacing, zIndex} from './src/theme';
 import {MovieCard} from './src/components/cards/MovieCard';
 import {EmptyState} from './src/components/feedback/EmptyState';
@@ -37,6 +38,7 @@ function App(): React.JSX.Element {
   const [selectedMovie, setSelectedMovie] = useState<MovieDetail | null>(null);
   const [isConsoleVisible, setIsConsoleVisible] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(false);
   const [devMode, setDevMode] = useState(false);
   const [watchlist, setWatchlist] = useState<CatalogItem[]>([]);
 
@@ -61,6 +63,25 @@ function App(): React.JSX.Element {
       }
     };
     loadSettings();
+  }, []);
+
+  useEffect(() => {
+    const autoLoadCatalog = async () => {
+      setIsCatalogLoading(true);
+      try {
+        scraper.log('Auto-loading movie catalog on startup...', 'info');
+        const activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
+        scraper.log(`Auto-resolved domain: ${activeUrl}. Scraping catalog...`, 'info');
+        const result = await scraper.scrapeCatalogPage(activeUrl);
+        setCatalogItems(result.items);
+        scraper.log(`Auto-loaded ${result.items.length} items successfully.`, 'success');
+      } catch (err: any) {
+        scraper.log(`Auto-loading failed: ${err.message}`, 'error');
+      } finally {
+        setIsCatalogLoading(false);
+      }
+    };
+    autoLoadCatalog();
   }, []);
 
   const handleSelectItem = async (item: CatalogItem) => {
@@ -412,11 +433,13 @@ function App(): React.JSX.Element {
       {/* Headless WebView crawler engine */}
       <HiddenWebView />
 
-      {isDetailLoading && (
+      {(isDetailLoading || isCatalogLoading) && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>
-            SECURELY BYPASSING PORTAL METADATA...
+            {isDetailLoading
+              ? 'SECURELY BYPASSING PORTAL METADATA...'
+              : 'RESOLVING ACTIVE DOMAIN & SCRAPING CATALOG...'}
           </Text>
         </View>
       )}

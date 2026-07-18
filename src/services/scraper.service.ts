@@ -1,4 +1,5 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {parseCatalog} from './catalog.parser';
 import {
   parseMovieDetail,
@@ -904,5 +905,81 @@ export class ScraperService {
     }
 
     return directLink;
+  }
+
+  /**
+   * Performs a live query to the Typesense movie search engine
+   */
+  public async searchMovies(query: string, page = 1): Promise<CatalogItem[]> {
+    if (!query || !query.trim()) {
+      return [];
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const proxyUrl = 'https://search.pingora.fyi/collections/post/documents/search';
+
+    let activeDomain = 'https://new3.hdhub4u.cl';
+    try {
+      const cached = await AsyncStorage.getItem('@hdhub4u_discovered_url');
+      if (cached) {
+        activeDomain = cached;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Clean up active domain to get Origin and Referer
+    const origin = activeDomain.replace(/\/$/, '');
+    const referer = `${origin}/`;
+
+    this.log(`Searching movies for: "${query}" (page ${page}) using domain: ${origin}...`, 'info');
+
+    try {
+      const response = await axios.get(proxyUrl, {
+        params: {
+          q: query,
+          query_by: 'post_title,category,stars,director,imdb_id',
+          query_by_weights: '4,2,2,2,4',
+          sort_by: 'sort_by_date:desc',
+          limit: 15,
+          highlight_fields: 'none',
+          use_cache: 'true',
+          page: page,
+          analytics_tag: today,
+        },
+        headers: {
+          'Host': 'search.pingora.fyi',
+          'Origin': origin,
+          'Referer': referer,
+          'User-Agent': USER_AGENTS[0],
+          'Accept': '*/*',
+        },
+        timeout: 8000,
+      });
+
+      if (response.status === 200 && response.data) {
+        const hits = response.data.hits || [];
+        const items: CatalogItem[] = hits
+          .map((hit: any) => {
+            const doc = hit.document || {};
+            const thumb =
+              doc.post_thumbnail ||
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/315px-No-Image-Placeholder.svg.png?20200912122019';
+            return {
+              title: doc.post_title || 'Unknown Title',
+              url: doc.permalink || '',
+              imageUrl: thumb,
+            };
+          })
+          .filter((item: CatalogItem) => !!item.url);
+
+        this.log(`Search returned ${items.length} items.`, 'success');
+        return items;
+      }
+      return [];
+    } catch (err: any) {
+      this.log(`Search request failed: ${err.message}`, 'error');
+      throw err;
+    }
   }
 }

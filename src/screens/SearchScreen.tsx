@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,12 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   Text,
+  ActivityIndicator,
 } from 'react-native';
 import { CatalogItem } from '../data/models';
 import { colors, spacing, radius, typography } from '../theme';
 import { SearchInput } from '../components/inputs/SearchInput';
 import { MovieCard } from '../components/cards/MovieCard';
 import { EmptyState } from '../components/feedback/EmptyState';
+import { ScraperService } from '../services/scraper.service';
 
 interface SearchScreenProps {
   items: CatalogItem[];
@@ -26,14 +28,36 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
+  const [searchResults, setSearchResults] = useState<CatalogItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Debounced live search
+  useEffect(() => {
+    if (!search.trim()) {
+      setSearchResults([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const results = await ScraperService.getInstance().searchMovies(search);
+        setSearchResults(results);
+      } catch (err) {
+        console.error('Live search error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [search]);
+
+  const displayItems = search ? searchResults : items;
 
   const filteredItems = useMemo(() => {
-    let result = items;
-    if (search) {
-      result = result.filter(item =>
-        item.title.toLowerCase().includes(search.toLowerCase()),
-      );
-    }
+    let result = displayItems;
 
     if (filter === '4k') {
       result = result.filter(item => {
@@ -60,7 +84,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
       });
     }
     return result;
-  }, [items, search, filter]);
+  }, [displayItems, filter]);
 
   const renderGridCard = ({ item }: { item: CatalogItem }) => (
     <MovieCard item={item} onPress={() => onSelectItem(item)} />
@@ -110,7 +134,12 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
         </ScrollView>
       </View>
 
-      {filteredItems.length === 0 ? (
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Searching live database...</Text>
+        </View>
+      ) : filteredItems.length === 0 ? (
         <EmptyState
           icon="🔍"
           title="No Matching Movies"
@@ -181,6 +210,17 @@ const styles = StyleSheet.create({
   gridRowWrapper: {
     justifyContent: 'space-between',
     marginBottom: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
   },
 });
 export default SearchScreen;

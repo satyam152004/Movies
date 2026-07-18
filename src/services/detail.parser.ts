@@ -51,7 +51,19 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
   const extractSpec = (regex: RegExp): string => {
     const match = bodyText.match(regex);
     if (match && match[1]) {
-      return match[1].trim();
+      let val = match[1];
+      const stopWords = [
+        'iMDB Rating:', 'iMDB:', 'Genre:', 'Genres:', 'Stars:', 'Cast:',
+        'Director:', 'Language:', 'Languages:', 'Quality:', 'Screen-Shots:',
+        'Screen-Shot:', 'Storyline:', 'Synopsis:', 'Screen-S'
+      ];
+      for (const word of stopWords) {
+        const index = val.toLowerCase().indexOf(word.toLowerCase());
+        if (index !== -1) {
+          val = val.substring(0, index);
+        }
+      }
+      return val.replace(/[:|]\s*$/, '').trim();
     }
     return '';
   };
@@ -59,12 +71,12 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
   // 5. Spec Row Extractions
   // Match "iMDB Rating: 8.0/10" or "iMDB: 8.0"
   let imdbRating =
-    extractSpec(/iMDB\s*Rating\s*:\s*([^\n|]+)/i) ||
-    extractSpec(/iMDB\s*:\s*([^\n|]+)/i) ||
+    extractSpec(/iMDB\s*Rating\s*:\s*([^\n]+)/i) ||
+    extractSpec(/iMDB\s*:\s*([^\n]+)/i) ||
     '';
 
   // Genres
-  const genresStr = extractSpec(/Genre\s*s?\s*:\s*([^\n|]+)/i);
+  const genresStr = extractSpec(/Genre\s*s?\s*:\s*([^\n]+)/i);
   const genres = genresStr
     ? genresStr
         .split(/[|,/]/)
@@ -74,8 +86,8 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
 
   // Stars
   const starsStr =
-    extractSpec(/Stars\s*:\s*([^\n|]+)/i) ||
-    extractSpec(/Cast\s*:\s*([^\n|]+)/i);
+    extractSpec(/Stars\s*:\s*([^\n]+)/i) ||
+    extractSpec(/Cast\s*:\s*([^\n]+)/i);
   const stars = starsStr
     ? starsStr
         .split(/[,|]/)
@@ -84,9 +96,9 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
     : [];
 
   // Technical properties
-  const director = extractSpec(/Director\s*s?\s*:\s*([^\n|]+)/i);
-  const language = extractSpec(/Language\s*s?\s*:\s*([^\n|]+)/i);
-  const quality = extractSpec(/Quality\s*:\s*([^\n|]+)/i);
+  const director = extractSpec(/Director\s*s?\s*:\s*([^\n]+)/i);
+  const language = extractSpec(/Language\s*s?\s*:\s*([^\n]+)/i);
+  const quality = extractSpec(/Quality\s*:\s*([^\n]+)/i);
 
   // 6. Storyline
   let storyline = '';
