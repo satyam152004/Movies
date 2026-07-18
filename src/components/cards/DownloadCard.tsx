@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {DownloadTask, DownloadStatus} from '../../data/models';
 import {colors, radius, spacing, typography} from '../../theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface DownloadCardProps {
   task: DownloadTask;
@@ -66,7 +67,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
     <View style={styles.card}>
       {/* File Details */}
       <View style={styles.fileRow}>
-        <Text style={styles.fileIcon}>🎬</Text>
+        <Icon name="film-outline" size={24} color={colors.primary} style={{marginRight: 6}} />
         <View style={styles.fileInfo}>
           <Text style={styles.fileName} numberOfLines={2}>
             {task.movieTitle}
@@ -79,7 +80,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
           style={styles.deleteRecordBtn}
           onPress={onRemove}
           activeOpacity={0.7}>
-          <Text style={styles.deleteRecordIcon}>🗑️</Text>
+          <Icon name="trash-outline" size={18} color={colors.danger} />
         </TouchableOpacity>
       </View>
 
@@ -140,13 +141,19 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
                 style={[styles.actionBtn, styles.pauseBtn]}
                 onPress={onPause}
                 activeOpacity={0.8}>
-                <Text style={styles.actionBtnText}>⏸ Pause</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                  <Icon name="pause" size={14} color={colors.warning} />
+                  <Text style={styles.actionBtnText}>Pause</Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.cancelBtn]}
                 onPress={onCancel}
                 activeOpacity={0.8}>
-                <Text style={styles.actionBtnText}>🛑 Cancel</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                  <Icon name="close" size={14} color={colors.danger} />
+                  <Text style={styles.actionBtnText}>Cancel</Text>
+                </View>
               </TouchableOpacity>
             </>
           ) : task.status === 'paused' ? (
@@ -155,13 +162,19 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
                 style={[styles.actionBtn, styles.resumeBtn]}
                 onPress={onResume}
                 activeOpacity={0.8}>
-                <Text style={styles.actionBtnText}>▶ Resume</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                  <Icon name="play" size={14} color={colors.success} />
+                  <Text style={styles.actionBtnText}>Resume</Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.cancelBtn]}
                 onPress={onCancel}
                 activeOpacity={0.8}>
-                <Text style={styles.actionBtnText}>🛑 Cancel</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                  <Icon name="close" size={14} color={colors.danger} />
+                  <Text style={styles.actionBtnText}>Cancel</Text>
+                </View>
               </TouchableOpacity>
             </>
           ) : task.status === 'failed' || task.status === 'cancelled' ? (
@@ -169,11 +182,17 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               style={[styles.actionBtn, styles.retryBtn]}
               onPress={onResume}
               activeOpacity={0.8}>
-              <Text style={styles.actionBtnText}>🔄 Retry Task</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                <Icon name="refresh" size={14} color={colors.primary} />
+                <Text style={styles.actionBtnText}>Retry Task</Text>
+              </View>
             </TouchableOpacity>
           ) : (
             <View style={styles.completedPlaceholder}>
-              <Text style={styles.completedText}>✨ Saved Successfully</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                <Icon name="checkmark-done" size={14} color={colors.success} />
+                <Text style={styles.completedText}>Saved Successfully</Text>
+              </View>
             </View>
           )}
         </View>
@@ -182,9 +201,10 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
           style={styles.toggleLogBtn}
           onPress={onToggleLogs}
           activeOpacity={0.7}>
-          <Text style={styles.toggleLogBtnText}>
-            {isLogsExpanded ? '▼ LOGS' : '▲ LOGS'}
-          </Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+            <Icon name={isLogsExpanded ? 'chevron-down' : 'chevron-up'} size={12} color={colors.textSecondary} />
+            <Text style={styles.toggleLogBtnText}>LOGS</Text>
+          </View>
         </TouchableOpacity>
       </View>
 

@@ -16,6 +16,7 @@ import {WebView} from 'react-native-webview';
 import {MovieDetail, DownloadLink} from '../data/models';
 import {ScraperService} from '../services/scraper.service';
 import {colors, radius, spacing, typography} from '../theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface MovieDetailProps {
   movie: MovieDetail;
@@ -23,6 +24,7 @@ interface MovieDetailProps {
   onStartDownload: (title: string, size: string, url: string) => void;
   isWatchlisted?: boolean;
   onToggleWatchlist?: () => void;
+  isLoading?: boolean;
 }
 
 export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
@@ -31,6 +33,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
   onStartDownload,
   isWatchlisted = false,
   onToggleWatchlist,
+  isLoading = false,
 }) => {
   const [resolvingUrl, setResolvingUrl] = useState<string | null>(null);
   const [mirrors, setMirrors] = useState<{
@@ -68,6 +71,97 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
   const [fullImageUrl, setFullImageUrl] = useState<string | null>(null);
 
   const interactiveWebViewRef = useRef<any>(null);
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={onBack}
+            activeOpacity={0.7}>
+            <Text style={styles.backBtnText}>◀ BACK</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Movie Detail
+          </Text>
+          <View style={styles.spacerWidth} />
+        </View>
+
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={styles.bodyContent}
+          showsVerticalScrollIndicator={false}>
+          
+          <View style={styles.heroSection}>
+            {movie.imageUrl ? (
+              <Image
+                source={{uri: movie.imageUrl}}
+                style={styles.heroBackdrop as ImageStyle}
+                blurRadius={10}
+                resizeMode="cover"
+              />
+            ) : <View style={styles.skeletonBackdrop} />}
+            <View style={styles.heroOverlay} />
+            <View style={styles.heroContent}>
+              {movie.imageUrl ? (
+                <View style={styles.posterWrapper}>
+                  <Image
+                    source={{uri: movie.imageUrl}}
+                    style={styles.poster as ImageStyle}
+                    resizeMode="cover"
+                  />
+                </View>
+              ) : <View style={styles.skeletonPoster} />}
+              <View style={styles.heroMeta}>
+                <Text style={styles.movieTitle} numberOfLines={2}>
+                  {movie.title}
+                </Text>
+                <View style={[styles.skeletonTextLine, { width: '50%', marginTop: 12 }]} />
+              </View>
+            </View>
+          </View>
+
+          {/* Storyline Skeleton */}
+          <View style={[styles.glassCard, styles.storylineCard]}>
+            <View style={[styles.skeletonTitleText, { width: 100 }]} />
+            <View style={[styles.skeletonTextLine, { width: '95%' }]} />
+            <View style={[styles.skeletonTextLine, { width: '90%' }]} />
+            <View style={[styles.skeletonTextLine, { width: '40%' }]} />
+          </View>
+
+          {/* Specs Skeleton */}
+          <View style={styles.glassCard}>
+            <View style={[styles.skeletonTitleText, { width: 150 }]} />
+            <View style={styles.skeletonSpecRow}>
+              <View style={[styles.skeletonTextLine, { width: 80 }]} />
+              <View style={[styles.skeletonTextLine, { width: 180 }]} />
+            </View>
+            <View style={styles.skeletonSpecRow}>
+              <View style={[styles.skeletonTextLine, { width: 80 }]} />
+              <View style={[styles.skeletonTextLine, { width: 220 }]} />
+            </View>
+          </View>
+
+          {/* Downloads Skeleton */}
+          <View style={styles.glassCard}>
+            <View style={[styles.skeletonTitleText, { width: 180 }]} />
+            <View style={styles.skeletonDownloadTabRow}>
+              <View style={styles.skeletonDownloadTab} />
+              <View style={styles.skeletonDownloadTab} />
+              <View style={styles.skeletonDownloadTab} />
+            </View>
+            <View style={styles.skeletonDownloadList}>
+              {[1, 2, 3].map(idx => (
+                <View key={idx} style={styles.skeletonDownloadItem} />
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   const handleInteractiveDownloadCandidate = (url: string) => {
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -575,13 +669,19 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                 ]}
                 disabled={!canGoBack}
                 onPress={handleBack}>
-                <Text style={styles.browserHeaderBtnText}>◀ Back</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                  <Icon name="chevron-back" size={14} color={colors.textSecondary} />
+                  <Text style={styles.browserHeaderBtnText}>Back</Text>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.browserHeaderBtn}
                 onPress={handleReload}>
-                <Text style={styles.browserHeaderBtnText}>🔄 Reload</Text>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                  <Icon name="reload" size={12} color={colors.textSecondary} />
+                  <Text style={styles.browserHeaderBtnText}>Reload</Text>
+                </View>
               </TouchableOpacity>
 
               {isBrowserLoading && (
@@ -596,7 +696,10 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
             <TouchableOpacity
               style={styles.browserHeaderBtn}
               onPress={handleOpenExternal}>
-              <Text style={styles.browserHeaderBtnText}>🌐 Browser</Text>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                <Icon name="globe-outline" size={12} color={colors.textSecondary} />
+                <Text style={styles.browserHeaderBtnText}>Browser</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -636,7 +739,10 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
           style={styles.backBtn}
           onPress={onBack}
           activeOpacity={0.7}>
-          <Text style={styles.backBtnText}>◀ BACK</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+            <Icon name="chevron-back" size={16} color={colors.textSecondary} />
+            <Text style={styles.backBtnText}>BACK</Text>
+          </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           Movie Detail
@@ -648,9 +754,16 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
               isWatchlisted && styles.watchlistHeaderBtnActive,
             ]}
             onPress={onToggleWatchlist}>
-            <Text style={styles.watchlistHeaderBtnText}>
-              {isWatchlisted ? '❤️ Saved' : '🤍 Save'}
-            </Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+              <Icon
+                name={isWatchlisted ? 'heart' : 'heart-outline'}
+                size={16}
+                color={isWatchlisted ? colors.danger : colors.textSecondary}
+              />
+              <Text style={styles.watchlistHeaderBtnText}>
+                {isWatchlisted ? 'Saved' : 'Save'}
+              </Text>
+            </View>
           </TouchableOpacity>
         ) : (
           <View style={styles.spacerWidth} />
@@ -686,7 +799,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
               </TouchableOpacity>
             ) : (
               <View style={styles.posterFallback}>
-                <Text style={styles.fallbackIcon}>🎬</Text>
+                <Icon name="film-outline" size={48} color={colors.textSecondary} />
               </View>
             )}
 
@@ -704,7 +817,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
                 {movie.imdbRating && (
                   <View style={[styles.metaBadge, styles.metaBadgeRating]}>
                     <Text style={styles.metaBadgeText}>
-                      ⭐ {movie.imdbRating}
+                      <Icon name="star" size={12} color={colors.warning} /> {movie.imdbRating}
                     </Text>
                   </View>
                 )}
@@ -717,7 +830,7 @@ export const MovieDetailScreen: React.FC<MovieDetailProps> = ({
 
               {movie.language ? (
                 <Text style={styles.metaLanguage} numberOfLines={2}>
-                  🌐 {movie.language}
+                  <Icon name="globe-outline" size={14} color={colors.textSecondary} /> {movie.language}
                 </Text>
               ) : null}
             </View>
@@ -1718,6 +1831,58 @@ const styles = StyleSheet.create({
   },
   loaderSpacing: {
     marginTop: 12,
+  },
+  skeletonBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#1E1E24',
+  },
+  skeletonPoster: {
+    width: 110,
+    height: 160,
+    backgroundColor: '#2A2A35',
+    borderRadius: 8,
+  },
+  skeletonTextLine: {
+    height: 14,
+    backgroundColor: '#2A2A35',
+    borderRadius: 4,
+    width: '100%',
+    marginVertical: 4,
+  },
+  skeletonTitleText: {
+    height: 18,
+    backgroundColor: '#2A2A35',
+    borderRadius: 4,
+    marginBottom: 12,
+  },
+  skeletonSpecRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  skeletonDownloadTabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 12,
+  },
+  skeletonDownloadTab: {
+    width: 70,
+    height: 32,
+    backgroundColor: '#2A2A35',
+    borderRadius: 16,
+  },
+  skeletonDownloadList: {
+    gap: 10,
+    marginTop: 8,
+  },
+  skeletonDownloadItem: {
+    height: 48,
+    backgroundColor: '#2A2A35',
+    borderRadius: 8,
+    width: '100%',
   },
 });
 export default MovieDetailScreen;

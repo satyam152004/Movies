@@ -4,7 +4,7 @@ import {colors, spacing, typography} from '../../theme';
 import {AppButton} from '../buttons/AppButton';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   description: string;
   onAction?: () => void;
@@ -12,7 +12,7 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = '📂',
+  icon,
   title,
   description,
   onAction,
@@ -20,7 +20,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>{icon}</Text>
+      {icon && (
+        <View style={styles.iconWrapper}>
+          {typeof icon === 'string' ? (
+            <Text style={{fontSize: 54}}>{icon}</Text>
+          ) : (
+            icon
+          )}
+        </View>
+      )}
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
       {onAction && (
@@ -43,8 +51,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     backgroundColor: colors.background,
   },
-  icon: {
-    fontSize: 54,
+  iconWrapper: {
     marginBottom: spacing.md,
     opacity: 0.8,
   },

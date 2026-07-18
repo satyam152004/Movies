@@ -56,6 +56,8 @@ export class ScraperService {
       ) => void)
     | null = null;
 
+  private cachedStackDetect: {[key: string]: {stack: string; isStatic: boolean}} = {};
+
   private constructor() {}
 
   public static getInstance(): ScraperService {
@@ -186,12 +188,21 @@ export class ScraperService {
     });
   }
 
-  /**
-   * Automatic Stack Detector
-   */
   public async detectStack(
     url: string,
   ): Promise<{stack: string; isStatic: boolean}> {
+    let domain = url;
+    try {
+      domain = new URL(url).origin;
+    } catch (e) {
+      // ignore
+    }
+
+    if (this.cachedStackDetect[domain]) {
+      this.log(`Using cached stack detection result for: ${domain}`, 'info');
+      return this.cachedStackDetect[domain];
+    }
+
     this.log(`Detecting technology stack for: ${url}...`, 'info');
     try {
       const response = await axios.get(url, {
@@ -214,7 +225,9 @@ export class ScraperService {
           'Detected tech: WordPress (Static / Server-Rendered HTML)',
           'success',
         );
-        return {stack: 'WordPress', isStatic: true};
+        const res = {stack: 'WordPress', isStatic: true};
+        this.cachedStackDetect[domain] = res;
+        return res;
       }
 
       // Check Next.js
@@ -223,13 +236,17 @@ export class ScraperService {
           'Detected tech: Next.js (Server-Rendered & Rehydrated)',
           'success',
         );
-        return {stack: 'Next.js', isStatic: true};
+        const res = {stack: 'Next.js', isStatic: true};
+        this.cachedStackDetect[domain] = res;
+        return res;
       }
 
       // Check Nuxt / Vue
       if (html.includes('__NUXT__') || html.includes('data-v-')) {
         this.log('Detected tech: Nuxt / Vue (Static/Hydrated)', 'success');
-        return {stack: 'Nuxt/Vue', isStatic: true};
+        const res = {stack: 'Nuxt/Vue', isStatic: true};
+        this.cachedStackDetect[domain] = res;
+        return res;
       }
 
       // Check for common Single Page App indicators (React/Angular) with thin body shells
@@ -246,18 +263,24 @@ export class ScraperService {
           'Detected tech: Single Page Application (React/Angular client-rendered)',
           'warn',
         );
-        return {stack: 'React/Angular SPA', isStatic: false};
+        const res = {stack: 'React/Angular SPA', isStatic: false};
+        this.cachedStackDetect[domain] = res;
+        return res;
       }
 
       // Fallback default
       this.log('Detected tech: Standard Static HTML', 'info');
-      return {stack: 'Static HTML', isStatic: true};
+      const fallbackRes = {stack: 'Static HTML', isStatic: true};
+      this.cachedStackDetect[domain] = fallbackRes;
+      return fallbackRes;
     } catch (err: any) {
       this.log(
         `Network check failed during tech detection: ${err.message}. Defaulting to dynamic client.`,
         'warn',
       );
-      return {stack: 'Unknown / Blocked (Using WebView)', isStatic: false};
+      const errRes = {stack: 'Unknown / Blocked (Using WebView)', isStatic: false};
+      this.cachedStackDetect[domain] = errRes;
+      return errRes;
     }
   }
 
@@ -386,26 +409,33 @@ export class ScraperService {
   public async scrapeCatalogPage(
     url: string,
     forceDynamic = false,
+    page?: number,
   ): Promise<{items: CatalogItem[]; nextPageUrl: string | null}> {
+    let targetUrl = url;
+    if (page && page > 1) {
+      const cleanBase = url.replace(/\/$/, '');
+      targetUrl = `${cleanBase}/page/${page}/`;
+    }
+
     let html = '';
 
     if (forceDynamic) {
-      html = await this.fetchHtmlViaWebView(url);
+      html = await this.fetchHtmlViaWebView(targetUrl);
     } else {
-      const detect = await this.detectStack(url);
+      const detect = await this.detectStack(targetUrl);
       if (detect.isStatic) {
-        html = await this.fetchHtmlWithRetry(url);
+        html = await this.fetchHtmlWithRetry(targetUrl);
       } else {
         this.log(
           'Tech stack suggests dynamic loading. Launching WebView engine...',
           'warn',
         );
-        html = await this.fetchHtmlViaWebView(url);
+        html = await this.fetchHtmlViaWebView(targetUrl);
       }
     }
 
-    this.log('Parsing catalog elements...', 'info');
-    const result = parseCatalog(html, url);
+    this.log(`Parsing catalog elements for target URL: ${targetUrl}...`, 'info');
+    const result = parseCatalog(html, targetUrl);
     this.log(
       `Extracted ${result.items.length} items from listing page.`,
       'success',
@@ -910,7 +940,7 @@ export class ScraperService {
   /**
    * Performs a live query to the Typesense movie search engine
    */
-  public async searchMovies(query: string, page = 1): Promise<CatalogItem[]> {
+  public async searchMovies(query: string, page = 1, signal?: AbortSignal): Promise<CatalogItem[]> {
     if (!query || !query.trim()) {
       return [];
     }
@@ -936,6 +966,7 @@ export class ScraperService {
 
     try {
       const response = await axios.get(proxyUrl, {
+        signal,
         params: {
           q: query,
           query_by: 'post_title,category,stars,director,imdb_id',
@@ -965,9 +996,13 @@ export class ScraperService {
             const thumb =
               doc.post_thumbnail ||
               'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/315px-No-Image-Placeholder.svg.png?20200912122019';
+            let permalink = doc.permalink || '';
+            if (permalink && !permalink.startsWith('http')) {
+              permalink = `${origin}${permalink.startsWith('/') ? '' : '/'}${permalink}`;
+            }
             return {
               title: doc.post_title || 'Unknown Title',
-              url: doc.permalink || '',
+              url: permalink,
               imageUrl: thumb,
             };
           })
@@ -978,6 +1013,10 @@ export class ScraperService {
       }
       return [];
     } catch (err: any) {
+      if (axios.isCancel(err)) {
+        this.log('Search request cancelled.', 'info');
+        throw err;
+      }
       this.log(`Search request failed: ${err.message}`, 'error');
       throw err;
     }

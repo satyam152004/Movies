@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import {colors, radius, typography} from '../../theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface SearchInputProps {
   value: string;
@@ -25,7 +26,12 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.searchIcon}>🔍</Text>
+      <Icon
+        name="search-outline"
+        size={18}
+        color={colors.textMuted}
+        style={{marginRight: 8}}
+      />
       <TextInput
         style={styles.input}
         value={value}
@@ -42,7 +48,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           onPress={onClear || (() => onChangeText(''))}
           activeOpacity={0.7}
           style={styles.clearBtn}>
-          <Text style={styles.clearIcon}>✕</Text>
+          <Icon name="close-circle" size={16} color={colors.textMuted} />
         </TouchableOpacity>
       )}
     </View>

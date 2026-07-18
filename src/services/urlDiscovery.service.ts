@@ -56,7 +56,7 @@ export class UrlDiscoveryService {
           'Accept-Language': 'en-US,en;q=0.9',
           Referer: 'https://www.google.com/',
         },
-        timeout: 5000,
+        timeout: 2500,
       });
 
       if (response.status === 200) {
@@ -124,29 +124,40 @@ export class UrlDiscoveryService {
     // Add other known alternative domains
     candidates.push(...ALTERNATIVE_TLDS);
 
-    // 3. Test candidates in parallel batches of 3 to avoid overloading the network
-    const batchSize = 3;
-    for (let i = 0; i < candidates.length; i += batchSize) {
-      const batch = candidates.slice(i, i + batchSize);
-      scraper.log(`Scanning batch: ${batch.join(', ')}`, 'info');
+    // 3. Test all candidates concurrently, resolving immediately on the first success
+    scraper.log(`Scanning all ${candidates.length} candidates concurrently...`, 'info');
+    const activeUrl = await new Promise<string | null>((resolve) => {
+      let resolved = false;
+      let completedCount = 0;
 
-      const results = await Promise.all(
-        batch.map(url => this.validateUrl(url).catch(() => null)),
-      );
-
-      // Find the first valid resolved domain in this batch
-      const activeUrl = results.find(res => res !== null);
-      if (activeUrl) {
+      candidates.forEach(async (url) => {
         try {
-          await AsyncStorage.setItem(STORAGE_KEY, activeUrl);
-        } catch (err: any) {
-          scraper.log(
-            `Error writing discovered URL to AsyncStorage: ${err.message}`,
-            'error',
-          );
+          const result = await this.validateUrl(url);
+          if (result && !resolved) {
+            resolved = true;
+            resolve(result);
+          }
+        } catch (e) {
+          // ignore
+        } finally {
+          completedCount++;
+          if (completedCount === candidates.length && !resolved) {
+            resolve(null);
+          }
         }
-        return activeUrl;
+      });
+    });
+
+    if (activeUrl) {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, activeUrl);
+      } catch (err: any) {
+        scraper.log(
+          `Error writing discovered URL to AsyncStorage: ${err.message}`,
+          'error',
+        );
       }
+      return activeUrl;
     }
 
     // 4. Default fallback if all scans fail

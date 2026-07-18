@@ -292,15 +292,11 @@ export class DownloadService {
   }
 
   public async removeDownloadRecord(id: string) {
-    // Also cancel it if active
     const record = this.downloads.find(d => d.id === id);
-    if (
-      record &&
-      (record.status === 'downloading' ||
-        record.status === 'pending' ||
-        record.status === 'paused')
-    ) {
+    if (record) {
       try {
+        // Always attempt to cancel/remove the task natively from the system DownloadManager database,
+        // which deletes the associated file (even if completed or paused).
         await DownloadModule.cancelDownload(id);
       } catch (e) {}
     }
@@ -331,6 +327,20 @@ export class DownloadService {
 
       try {
         const nativeStatus = await DownloadModule.getDownloadStatus(record.id);
+        
+        // Anti-race condition check: verify if the record was paused, cancelled, completed,
+        // or deleted during the asynchronous native status call.
+        const currentRecord = this.downloads.find(d => d.id === record.id);
+        if (
+          !currentRecord ||
+          currentRecord.status === 'completed' ||
+          currentRecord.status === 'failed' ||
+          currentRecord.status === 'cancelled' ||
+          currentRecord.status === 'paused'
+        ) {
+          continue;
+        }
+
         const now = Date.now();
         const timeDiffSec = (now - record.lastUpdated) / 1000;
 

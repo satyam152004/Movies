@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {DownloadService, DownloadRecord} from '../services/download.service';
 import {colors, radius, spacing, typography} from '../theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {DownloadCard} from '../components/cards/DownloadCard';
 import {Container} from '../components/layout/Container';
 import {EmptyState} from '../components/feedback/EmptyState';
@@ -123,25 +124,25 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
     switch (activeTab) {
       case 'active':
         return {
-          icon: '⚡',
+          icon: <Icon name="flash-outline" size={54} color={colors.primary} />,
           title: 'No Active Downloads',
           desc: 'Trigger new downloads from movie details cards to see active downloads here.',
         };
       case 'queue':
         return {
-          icon: '⏳',
+          icon: <Icon name="time-outline" size={54} color={colors.primary} />,
           title: 'Queue is Empty',
           desc: 'Pending downloads in line for network bandwidth will show here.',
         };
       case 'completed':
         return {
-          icon: '✨',
+          icon: <Icon name="checkmark-circle-outline" size={54} color={colors.success} />,
           title: 'No Completed Files',
           desc: 'Successfully bypassed and compiled movie files are kept here.',
         };
       case 'failed':
         return {
-          icon: '❌',
+          icon: <Icon name="close-circle-outline" size={54} color={colors.danger} />,
           title: 'No Failed Tasks',
           desc: 'Failed downloads requiring re-authentication or resume tokens appear here.',
         };
@@ -168,7 +169,10 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           style={styles.closeBtn}
           onPress={onBack}
           activeOpacity={0.7}>
-          <Text style={styles.closeBtnText}>◀ BACK</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+            <Icon name="chevron-back" size={16} color={colors.textSecondary} />
+            <Text style={styles.closeBtnText}>BACK</Text>
+          </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Download Hub</Text>
         <View style={styles.spacer} />

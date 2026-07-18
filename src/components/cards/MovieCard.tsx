@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   defaultWidth: {
-    width: '48%',
+    width: '100%',
   },
   imageWrapper: {
     width: '100%',

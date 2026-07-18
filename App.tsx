@@ -11,14 +11,14 @@ import {
   ScrollView,
   Switch,
   FlatList,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {ScraperDashboard} from './src/screens/ScraperDashboard';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {HomeScreen} from './src/screens/HomeScreen';
 import {SearchScreen} from './src/screens/SearchScreen';
 import {MovieDetailScreen} from './src/screens/MovieDetail';
 import {DownloadManagerScreen} from './src/screens/DownloadManager';
-import {LogConsole} from './src/components/LogConsole';
 import {HiddenWebView} from './src/components/HiddenWebView';
 import {CatalogItem, MovieDetail} from './src/data/models';
 import {ScraperService} from './src/services/scraper.service';
@@ -29,7 +29,7 @@ import {MovieCard} from './src/components/cards/MovieCard';
 import {EmptyState} from './src/components/feedback/EmptyState';
 
 type ActiveTab = 'home' | 'search' | 'downloads' | 'watchlist' | 'profile';
-type ActiveScreen = 'main' | 'detail' | 'developer_dashboard';
+type ActiveScreen = 'main' | 'detail';
 
 function App(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
@@ -39,7 +39,9 @@ function App(): React.JSX.Element {
   const [isConsoleVisible, setIsConsoleVisible] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isCatalogLoading, setIsCatalogLoading] = useState(false);
-  const [devMode, setDevMode] = useState(false);
+  const [isDomainResolving, setIsDomainResolving] = useState(true);
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [isCatalogLoadingMore, setIsCatalogLoadingMore] = useState(false);
   const [watchlist, setWatchlist] = useState<CatalogItem[]>([]);
 
   // Initialize download service
@@ -50,10 +52,6 @@ function App(): React.JSX.Element {
     // Load Developer Mode settings & Watchlist on startup
     const loadSettings = async () => {
       try {
-        const storedDevMode = await AsyncStorage.getItem('@dev_mode');
-        if (storedDevMode !== null) {
-          setDevMode(JSON.parse(storedDevMode));
-        }
         const storedWatchlist = await AsyncStorage.getItem('@watchlist');
         if (storedWatchlist !== null) {
           setWatchlist(JSON.parse(storedWatchlist));
@@ -67,37 +65,94 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     const autoLoadCatalog = async () => {
-      setIsCatalogLoading(true);
+      setIsDomainResolving(true);
+      let activeUrl = '';
       try {
-        scraper.log('Auto-loading movie catalog on startup...', 'info');
-        const activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
-        scraper.log(`Auto-resolved domain: ${activeUrl}. Scraping catalog...`, 'info');
-        const result = await scraper.scrapeCatalogPage(activeUrl);
-        setCatalogItems(result.items);
-        scraper.log(`Auto-loaded ${result.items.length} items successfully.`, 'success');
+        scraper.log('Auto-resolving active domain...', 'info');
+        activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
+        scraper.log(`Auto-resolved domain: ${activeUrl}. Transitioning to Home Screen...`, 'info');
       } catch (err: any) {
-        scraper.log(`Auto-loading failed: ${err.message}`, 'error');
+        scraper.log(`Domain resolution failed: ${err.message}`, 'error');
       } finally {
-        setIsCatalogLoading(false);
+        setIsDomainResolving(false);
+      }
+
+      if (activeUrl) {
+        setIsCatalogLoading(true);
+        try {
+          scraper.log(`Scraping catalog from: ${activeUrl}...`, 'info');
+          const result = await scraper.scrapeCatalogPage(activeUrl);
+          setCatalogItems(result.items);
+          scraper.log(`Auto-loaded ${result.items.length} items successfully.`, 'success');
+        } catch (err: any) {
+          scraper.log(`Catalog scraping failed: ${err.message}`, 'error');
+        } finally {
+          setIsCatalogLoading(false);
+        }
       }
     };
     autoLoadCatalog();
   }, []);
 
+  const loadMoreCatalog = async () => {
+    if (isCatalogLoading || isCatalogLoadingMore) {
+      return;
+    }
+    setIsCatalogLoadingMore(true);
+    const nextPage = catalogPage + 1;
+    scraper.log(`Loading more catalog items: page ${nextPage}...`, 'info');
+    try {
+      const activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
+      const result = await scraper.scrapeCatalogPage(activeUrl, false, nextPage);
+      if (result.items && result.items.length > 0) {
+        setCatalogItems(prev => [...prev, ...result.items]);
+        setCatalogPage(nextPage);
+        scraper.log(`Successfully loaded ${result.items.length} more items from page ${nextPage}.`, 'success');
+      } else {
+        scraper.log('No more catalog items found.', 'warn');
+      }
+    } catch (err: any) {
+      scraper.log(`Failed to load more catalog items: ${err.message}`, 'error');
+    } finally {
+      setIsCatalogLoadingMore(false);
+    }
+  };
+
   const handleSelectItem = async (item: CatalogItem) => {
-    scraper.log(`Selected item: "${item.title}". Fetching details...`, 'info');
+    scraper.log(`Selected item: "${item.title}". Fetching details in background...`, 'info');
+    
+    // Set a partial representation in state and navigate to details instantly!
+    const partialMovie: MovieDetail = {
+      title: item.title,
+      url: item.url,
+      imageUrl: item.imageUrl,
+      date: '',
+      quality: '',
+      imdbRating: '',
+      language: '',
+      storyline: '',
+      director: '',
+      stars: [],
+      genres: [],
+      screenshots: [],
+      categories: [],
+      downloadLinks: [],
+    };
+    setSelectedMovie(partialMovie);
+    setScreen('detail');
     setIsDetailLoading(true);
 
     try {
       const detail = await scraper.scrapeMovieDetail(item.url);
+      // Keep watchlist/active state representation valid but update details
       setSelectedMovie(detail);
-      setScreen('detail');
     } catch (err: any) {
       scraper.log(
         `Failed to fetch details for: ${item.title}. Error: ${err.message}`,
         'error',
       );
       Alert.alert('Error', `Failed to load details: ${err.message}`);
+      setScreen('main');
     } finally {
       setIsDetailLoading(false);
     }
@@ -130,19 +185,6 @@ function App(): React.JSX.Element {
     }
   };
 
-  const handleToggleDevMode = async (value: boolean) => {
-    try {
-      setDevMode(value);
-      await AsyncStorage.setItem('@dev_mode', JSON.stringify(value));
-      if (!value) {
-        setIsConsoleVisible(false);
-      }
-      scraper.log(`Developer Mode ${value ? 'Enabled' : 'Disabled'}`, 'warn');
-    } catch (e) {
-      scraper.log('Failed to save Dev Mode preference', 'error');
-    }
-  };
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'home':
@@ -151,6 +193,9 @@ function App(): React.JSX.Element {
             items={catalogItems}
             onSelectItem={handleSelectItem}
             onExplorePress={() => setActiveTab('search')}
+            onLoadMore={loadMoreCatalog}
+            isLoadingMore={isCatalogLoadingMore}
+            isLoading={isCatalogLoading}
           />
         );
       case 'search':
@@ -186,7 +231,7 @@ function App(): React.JSX.Element {
 
         {watchlist.length === 0 ? (
           <EmptyState
-            icon="❤️"
+            icon={<Icon name="heart-outline" size={54} color={colors.primary} />}
             title="Your Watchlist is Empty"
             description="Explore movie catalogs and add titles to your personal watchlist to watch later."
           />
@@ -240,31 +285,6 @@ function App(): React.JSX.Element {
         <View style={styles.settingsCard}>
           <Text style={styles.settingsSectionTitle}>Application Settings</Text>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Developer Mode</Text>
-              <Text style={styles.settingDesc}>
-                Enable advanced crawling engines & real-time log tracking
-              </Text>
-            </View>
-            <Switch
-              value={devMode}
-              onValueChange={handleToggleDevMode}
-              trackColor={{false: '#1e1e24', true: colors.primary}}
-              thumbColor={devMode ? colors.secondary : '#94A3B8'}
-            />
-          </View>
-
-          {devMode && (
-            <TouchableOpacity
-              style={styles.devDashboardBtn}
-              onPress={() => setScreen('developer_dashboard')}>
-              <Text style={styles.devDashboardBtnText}>
-                ⚡ OPEN DEVELOPER DASHBOARD
-              </Text>
-            </TouchableOpacity>
-          )}
-
           <View style={styles.settingItemBorder}>
             <Text style={styles.settingLabelStatic}>Appearance</Text>
             <Text style={styles.settingValueStatic}>Dark Theme (Default)</Text>
@@ -316,37 +336,8 @@ function App(): React.JSX.Element {
           onToggleWatchlist={() =>
             handleToggleWatchlist(catalogItemRepresentation)
           }
+          isLoading={isDetailLoading}
         />
-      );
-    }
-
-    if (screen === 'developer_dashboard') {
-      return (
-        <View style={styles.flexOne}>
-          <View style={styles.devHeader}>
-            <TouchableOpacity
-              style={styles.devBackBtn}
-              onPress={() => setScreen('main')}
-              activeOpacity={0.7}>
-              <Text style={styles.devBackBtnText}>◀ BACK TO PROFILE</Text>
-            </TouchableOpacity>
-            <Text style={styles.devHeaderTitle}>Dev Engine</Text>
-            <View style={styles.spacerWidth} />
-          </View>
-          <ScraperDashboard
-            onCatalogLoaded={items => {
-              setCatalogItems(items);
-            }}
-            onSingleMovieLoaded={movie => {
-              setSelectedMovie(movie);
-            }}
-            navigateToCatalog={() => {
-              setScreen('main');
-              setActiveTab('home');
-            }}
-            navigateToDetail={() => setScreen('detail')}
-          />
-        </View>
       );
     }
 
@@ -373,21 +364,22 @@ function App(): React.JSX.Element {
                 activeTab === tab && styles.tabItemActive,
               ]}
               onPress={() => setActiveTab(tab)}>
-              <Text
-                style={[
-                  styles.tabIcon,
-                  activeTab === tab && styles.tabIconActive,
-                ]}>
-                {tab === 'home'
-                  ? '🏠'
-                  : tab === 'search'
-                  ? '🔍'
-                  : tab === 'downloads'
-                  ? '📥'
-                  : tab === 'watchlist'
-                  ? '❤️'
-                  : '👤'}
-              </Text>
+              <Icon
+                name={
+                  tab === 'home'
+                    ? activeTab === tab ? 'home' : 'home-outline'
+                    : tab === 'search'
+                    ? activeTab === tab ? 'search' : 'search-outline'
+                    : tab === 'downloads'
+                    ? activeTab === tab ? 'download' : 'download-outline'
+                    : tab === 'watchlist'
+                    ? activeTab === tab ? 'heart' : 'heart-outline'
+                    : activeTab === tab ? 'person' : 'person-outline'
+                }
+                size={22}
+                color={activeTab === tab ? colors.primary : colors.textSecondary}
+                style={styles.tabIconSpacing}
+              />
               <Text
                 style={[
                   styles.tabLabel,
@@ -402,6 +394,22 @@ function App(): React.JSX.Element {
     );
   };
 
+  if (isDomainResolving) {
+    return (
+      <SafeAreaView style={styles.splashContainer}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <View style={styles.splashContent}>
+          <Image
+            source={require('./src/assets/images/logo.png')}
+            style={styles.splashIcon}
+            resizeMode="contain"
+          />
+        </View>
+        <HiddenWebView />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
@@ -410,39 +418,16 @@ function App(): React.JSX.Element {
       {screen === 'main' && (
         <View style={styles.topNav}>
           <Text style={styles.navTitle}>
-            🎬 <Text style={styles.primaryText}>Cine</Text>App
+             <Text style={styles.primaryText}>Cine</Text>App
           </Text>
-          {devMode && (
-            <TouchableOpacity
-              style={styles.consoleBtn}
-              onPress={() => setIsConsoleVisible(!isConsoleVisible)}>
-              <Text style={styles.consoleBtnText}>
-                {isConsoleVisible ? '✕ CONSOLE' : '⌨ CONSOLE'}
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
       )}
 
       {/* Primary Content Render */}
       <View style={styles.screenWrapper}>{renderContent()}</View>
 
-      {/* Real-time System Console */}
-      {devMode && isConsoleVisible && <LogConsole />}
-
       {/* Headless WebView crawler engine */}
       <HiddenWebView />
-
-      {(isDetailLoading || isCatalogLoading) && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>
-            {isDetailLoading
-              ? 'SECURELY BYPASSING PORTAL METADATA...'
-              : 'RESOLVING ACTIVE DOMAIN & SCRAPING CATALOG...'}
-          </Text>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
@@ -451,6 +436,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  splashContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashContent: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  splashLogo: {
+    color: colors.textPrimary,
+    fontSize: 36,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  splashIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  splashSubtitle: {
+    color: colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 40,
+  },
+  splashLoader: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  splashLoadingText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   topNav: {
     height: 56,
@@ -716,11 +738,8 @@ const styles = StyleSheet.create({
   tabItemActive: {
     opacity: 1,
   },
-  tabIcon: {
-    fontSize: 16,
-  },
-  tabIconActive: {
-    transform: [{scale: 1.1}],
+  tabIconSpacing: {
+    marginBottom: 2,
   },
   tabLabel: {
     color: colors.textSecondary,
