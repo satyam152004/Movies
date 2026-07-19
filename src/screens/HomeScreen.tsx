@@ -1,12 +1,34 @@
 import React, {useMemo} from 'react';
-import {ScrollView, StyleSheet, View, FlatList, ActivityIndicator, Text} from 'react-native';
+import {ScrollView, StyleSheet, View, FlatList, ActivityIndicator, Text, TouchableOpacity} from 'react-native';
 import {CatalogItem} from '../data/models';
-import {colors, spacing} from '../theme';
+import {colors, spacing, typography} from '../theme';
 import {HeroBanner} from '../components/media/HeroBanner';
 import {SectionHeader} from '../components/layout/SectionHeader';
 import {MovieCard} from '../components/cards/MovieCard';
 import {EmptyState} from '../components/feedback/EmptyState';
 import Icon from 'react-native-vector-icons/Ionicons';
+
+export interface CategoryFilter {
+  label: string;
+  path: string | null;
+}
+
+const CATEGORIES: CategoryFilter[] = [
+  { label: 'All', path: null },
+  { label: 'Bollywood', path: 'category/bollywood-movies/' },
+  { label: 'Hollywood', path: 'category/hollywood-movies/' },
+  { label: 'Hindi Dubbed', path: 'category/hindi-dubbed/' },
+  { label: 'South Hindi', path: 'category/south-hindi-movies/' },
+  { label: 'Web Series', path: 'category/web-series/' },
+  { label: '18+', path: 'category/adult/' },
+  { label: 'Action', path: 'category/action-movies/' },
+  { label: 'Adventure', path: 'category/adventure/' },
+  { label: 'Animation', path: 'category/animated-movies/' },
+  { label: 'Comedy', path: 'category/comedy-movies/' },
+  { label: 'Horror', path: 'category/horror-movies/' },
+  { label: 'Sci-Fi', path: 'category/sci-fi/' },
+  { label: 'Thriller', path: 'category/thriller/' },
+];
 
 interface HomeScreenProps {
   items: CatalogItem[];
@@ -15,6 +37,8 @@ interface HomeScreenProps {
   onLoadMore?: () => void;
   isLoadingMore?: boolean;
   isLoading?: boolean;
+  selectedCategory: string | null;
+  onSelectCategory: (categoryPath: string | null) => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -24,6 +48,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onLoadMore,
   isLoadingMore = false,
   isLoading = false,
+  selectedCategory,
+  onSelectCategory,
 }) => {
   const featuredMovie = useMemo(
     () => (items.length > 0 ? items[0] : null),
@@ -65,7 +91,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   }, [trendingList, hdList, dualAudioList]);
 
   // Render Skeleton Loading UI when fetching page 1
-  if (isLoading && items.length === 0) {
+  if (isLoading) {
     return (
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Banner Skeleton */}
@@ -128,7 +154,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      {featuredMovie && (
+      {featuredMovie && !selectedCategory && (
         <HeroBanner
           title={featuredMovie.title}
           imageUrl={featuredMovie.imageUrl}
@@ -138,8 +164,35 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         />
       )}
 
+      {/* Category Horizontal Filter Bar */}
+      <View style={styles.filterBarContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}>
+          {CATEGORIES.map(cat => (
+            <TouchableOpacity
+              key={cat.label}
+              style={[
+                styles.chip,
+                selectedCategory === cat.path && styles.chipActive,
+              ]}
+              onPress={() => onSelectCategory(cat.path)}
+              activeOpacity={0.7}>
+              <Text
+                style={[
+                  styles.chipText,
+                  selectedCategory === cat.path && styles.chipTextActive,
+                ]}>
+                {cat.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       <View style={styles.content}>
-        {sections.map(section => (
+        {!selectedCategory && sections.map(section => (
           <View key={section.id} style={styles.section}>
             <SectionHeader title={section.title} />
             <ScrollView
@@ -159,7 +212,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         ))}
 
         <View style={styles.sectionHeaderSpacing}>
-          <SectionHeader title="Latest Releases" />
+          <SectionHeader
+            title={
+              selectedCategory
+                ? CATEGORIES.find(c => c.path === selectedCategory)?.label + ' Catalog'
+                : 'Latest Releases'
+            }
+          />
         </View>
       </View>
     </View>
@@ -210,12 +269,41 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 20,
     backgroundColor: colors.background,
-    marginTop: -30,
+    marginTop: -20,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
     paddingTop: spacing.md,
     gap: 24,
+  },
+  filterBarContainer: {
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background,
+    marginTop: 10,
+  },
+  filterScroll: {
+    paddingHorizontal: spacing.md,
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    color: colors.textSecondary,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
   },
   section: {
     gap: 8,

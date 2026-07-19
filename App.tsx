@@ -63,59 +63,60 @@ function App(): React.JSX.Element {
     loadSettings();
   }, []);
 
-  useEffect(() => {
-    const autoLoadCatalog = async () => {
-      setIsDomainResolving(true);
-      let activeUrl = '';
-      try {
-        scraper.log('Auto-resolving active domain...', 'info');
-        activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
-        scraper.log(`Auto-resolved domain: ${activeUrl}. Transitioning to Home Screen...`, 'info');
-      } catch (err: any) {
-        scraper.log(`Domain resolution failed: ${err.message}`, 'error');
-      } finally {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const fetchCatalog = async (
+    categoryPath: string | null,
+    pageNum: number,
+    append: boolean,
+  ) => {
+    if (pageNum === 1) {
+      setIsCatalogLoading(true);
+    } else {
+      setIsCatalogLoadingMore(true);
+    }
+    try {
+      const activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
+      if (activeUrl) {
+        const targetUrl = categoryPath
+          ? `${activeUrl.replace(/\/$/, '')}/${categoryPath.replace(/^\//, '')}`
+          : activeUrl;
+        scraper.log(`Scraping catalog from targetUrl: ${targetUrl} (page ${pageNum})...`, 'info');
+        const result = await scraper.scrapeCatalogPage(targetUrl, false, pageNum);
+        if (append) {
+          setCatalogItems(prev => [...prev, ...result.items]);
+        } else {
+          setCatalogItems(result.items);
+        }
+        scraper.log(
+          `Successfully loaded ${result.items.length} items from page ${pageNum}.`,
+          'success',
+        );
+      }
+    } catch (err: any) {
+      scraper.log(`Catalog scraping failed: ${err.message}`, 'error');
+    } finally {
+      setIsCatalogLoading(false);
+      setIsCatalogLoadingMore(false);
+      // Dismiss splash screen after the initial load (page 1) regardless of success/failure
+      if (pageNum === 1 && !append) {
         setIsDomainResolving(false);
       }
+    }
+  };
 
-      if (activeUrl) {
-        setIsCatalogLoading(true);
-        try {
-          scraper.log(`Scraping catalog from: ${activeUrl}...`, 'info');
-          const result = await scraper.scrapeCatalogPage(activeUrl);
-          setCatalogItems(result.items);
-          scraper.log(`Auto-loaded ${result.items.length} items successfully.`, 'success');
-        } catch (err: any) {
-          scraper.log(`Catalog scraping failed: ${err.message}`, 'error');
-        } finally {
-          setIsCatalogLoading(false);
-        }
-      }
-    };
-    autoLoadCatalog();
-  }, []);
+  useEffect(() => {
+    setCatalogPage(1);
+    fetchCatalog(selectedCategory, 1, false);
+  }, [selectedCategory]);
 
   const loadMoreCatalog = async () => {
     if (isCatalogLoading || isCatalogLoadingMore) {
       return;
     }
-    setIsCatalogLoadingMore(true);
     const nextPage = catalogPage + 1;
-    scraper.log(`Loading more catalog items: page ${nextPage}...`, 'info');
-    try {
-      const activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
-      const result = await scraper.scrapeCatalogPage(activeUrl, false, nextPage);
-      if (result.items && result.items.length > 0) {
-        setCatalogItems(prev => [...prev, ...result.items]);
-        setCatalogPage(nextPage);
-        scraper.log(`Successfully loaded ${result.items.length} more items from page ${nextPage}.`, 'success');
-      } else {
-        scraper.log('No more catalog items found.', 'warn');
-      }
-    } catch (err: any) {
-      scraper.log(`Failed to load more catalog items: ${err.message}`, 'error');
-    } finally {
-      setIsCatalogLoadingMore(false);
-    }
+    await fetchCatalog(selectedCategory, nextPage, true);
+    setCatalogPage(nextPage);
   };
 
   const handleSelectItem = async (item: CatalogItem) => {
@@ -196,6 +197,8 @@ function App(): React.JSX.Element {
             onLoadMore={loadMoreCatalog}
             isLoadingMore={isCatalogLoadingMore}
             isLoading={isCatalogLoading}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
           />
         );
       case 'search':
