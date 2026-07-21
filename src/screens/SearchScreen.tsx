@@ -25,6 +25,7 @@ interface SearchScreenProps {
   items: CatalogItem[];
   onSelectItem: (item: CatalogItem) => void;
   onExplorePress?: () => void;
+  onViewAllPress?: (title: string, items: CatalogItem[], type: string) => void;
 }
 
 type FilterType = 'all' | '4k' | '1080p' | 'dual' | 'hevc';
@@ -148,6 +149,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   items,
   onSelectItem,
   onExplorePress,
+  onViewAllPress,
 }) => {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<CatalogItem[]>([]);
@@ -464,8 +466,8 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             <Text style={styles.sectionTitle}>Browse</Text>
             <Text style={styles.sectionSubtitle}>Discover movies by genre</Text>
           </View>
-          {onExplorePress && (
-            <TouchableOpacity onPress={onExplorePress}>
+          {onViewAllPress && (
+            <TouchableOpacity onPress={() => onViewAllPress('All Movie Catalog', items, 'latest')}>
               <Text style={styles.clearAllBtn}>View All →</Text>
             </TouchableOpacity>
           )}

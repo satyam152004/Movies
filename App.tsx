@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {HomeScreen} from './src/screens/HomeScreen';
 import {SearchScreen} from './src/screens/SearchScreen';
 import {MovieDetailScreen} from './src/screens/MovieDetail';
+import {CollectionScreen} from './src/screens/CollectionScreen';
 import {DownloadManagerScreen} from './src/screens/DownloadManager';
 import {HiddenWebView} from './src/components/HiddenWebView';
 import {CatalogItem, MovieDetail} from './src/data/models';
@@ -29,13 +30,18 @@ import {MovieCard} from './src/components/cards/MovieCard';
 import {EmptyState} from './src/components/feedback/EmptyState';
 
 type ActiveTab = 'home' | 'search' | 'downloads' | 'watchlist' | 'profile';
-type ActiveScreen = 'main' | 'detail';
+type ActiveScreen = 'main' | 'detail' | 'collection';
 
 function App(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [screen, setScreen] = useState<ActiveScreen>('main');
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<MovieDetail | null>(null);
+  const [collectionParams, setCollectionParams] = useState<{
+    title: string;
+    items: CatalogItem[];
+    type: string;
+  } | null>(null);
   const [isConsoleVisible, setIsConsoleVisible] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isCatalogLoading, setIsCatalogLoading] = useState(false);
@@ -229,6 +235,10 @@ function App(): React.JSX.Element {
             onProfilePress={() => setActiveTab('profile')}
             watchlist={watchlist}
             onToggleWatchlist={handleToggleWatchlist}
+            onViewAllPress={(title, items, type) => {
+              setCollectionParams({ title, items, type });
+              setScreen('collection');
+            }}
           />
         );
       case 'search':
@@ -236,6 +246,10 @@ function App(): React.JSX.Element {
           <SearchScreen
             items={catalogItemsWithRatings}
             onSelectItem={handleSelectItem}
+            onViewAllPress={(title, items, type) => {
+              setCollectionParams({ title, items, type });
+              setScreen('collection');
+            }}
           />
         );
       case 'downloads':
@@ -373,6 +387,32 @@ function App(): React.JSX.Element {
             handleToggleWatchlist(catalogItemRepresentation)
           }
           isLoading={isDetailLoading}
+        />
+      );
+    }
+
+    if (screen === 'collection' && collectionParams) {
+      const handleLoadMoreCollection = () => {
+        if (collectionParams.type === 'latest') {
+          loadMoreCatalog();
+        }
+      };
+
+      const collectionItems = collectionParams.type === 'latest'
+        ? catalogItemsWithRatings
+        : collectionParams.items;
+
+      return (
+        <CollectionScreen
+          title={collectionParams.title}
+          items={collectionItems}
+          onSelectItem={handleSelectItem}
+          onBack={() => {
+            setScreen('main');
+            setCollectionParams(null);
+          }}
+          onLoadMore={handleLoadMoreCollection}
+          isLoadingMore={isCatalogLoadingMore}
         />
       );
     }

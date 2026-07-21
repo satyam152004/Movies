@@ -54,6 +54,7 @@ interface HomeScreenProps {
   onProfilePress?: () => void;
   watchlist?: CatalogItem[];
   onToggleWatchlist?: (item: CatalogItem) => void;
+  onViewAllPress?: (title: string, items: CatalogItem[], type: string) => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -69,6 +70,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onProfilePress,
   watchlist = [],
   onToggleWatchlist,
+  onViewAllPress,
 }) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -214,7 +216,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <SectionHeader
               title={section.title}
               seeAllText="View All"
-              onPressSeeAll={onExplorePress}
+              onPressSeeAll={() => onViewAllPress?.(section.title, section.data, section.id)}
             />
             <ScrollView
               horizontal
