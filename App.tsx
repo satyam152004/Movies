@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -43,18 +43,23 @@ function App(): React.JSX.Element {
   const [catalogPage, setCatalogPage] = useState(1);
   const [isCatalogLoadingMore, setIsCatalogLoadingMore] = useState(false);
   const [watchlist, setWatchlist] = useState<CatalogItem[]>([]);
+  const [ratingsCache, setRatingsCache] = useState<{[url: string]: string}>({});
 
   // Initialize download service
   DownloadService.getInstance();
   const scraper = ScraperService.getInstance();
 
   useEffect(() => {
-    // Load Developer Mode settings & Watchlist on startup
+    // Load Developer Mode settings, Watchlist & Ratings Cache on startup
     const loadSettings = async () => {
       try {
         const storedWatchlist = await AsyncStorage.getItem('@watchlist');
         if (storedWatchlist !== null) {
           setWatchlist(JSON.parse(storedWatchlist));
+        }
+        const storedRatings = await AsyncStorage.getItem('@ratings_cache');
+        if (storedRatings !== null) {
+          setRatingsCache(JSON.parse(storedRatings));
         }
       } catch (e) {
         console.error('Failed to load initial settings', e);
@@ -147,6 +152,13 @@ function App(): React.JSX.Element {
       const detail = await scraper.scrapeMovieDetail(item.url);
       // Keep watchlist/active state representation valid but update details
       setSelectedMovie(detail);
+      if (detail.imdbRating) {
+        const updatedCache = { ...ratingsCache, [item.url]: detail.imdbRating };
+        setRatingsCache(updatedCache);
+        AsyncStorage.setItem('@ratings_cache', JSON.stringify(updatedCache)).catch(e =>
+          console.error('Failed to save ratings cache', e),
+        );
+      }
     } catch (err: any) {
       scraper.log(
         `Failed to fetch details for: ${item.title}. Error: ${err.message}`,
@@ -186,12 +198,26 @@ function App(): React.JSX.Element {
     }
   };
 
+  const catalogItemsWithRatings = useMemo(() => {
+    return catalogItems.map(item => ({
+      ...item,
+      rating: item.rating || ratingsCache[item.url] || undefined,
+    }));
+  }, [catalogItems, ratingsCache]);
+
+  const watchlistWithRatings = useMemo(() => {
+    return watchlist.map(item => ({
+      ...item,
+      rating: item.rating || ratingsCache[item.url] || undefined,
+    }));
+  }, [watchlist, ratingsCache]);
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'home':
         return (
           <HomeScreen
-            items={catalogItems}
+            items={catalogItemsWithRatings}
             onSelectItem={handleSelectItem}
             onExplorePress={() => setActiveTab('search')}
             onLoadMore={loadMoreCatalog}
@@ -203,7 +229,10 @@ function App(): React.JSX.Element {
         );
       case 'search':
         return (
-          <SearchScreen items={catalogItems} onSelectItem={handleSelectItem} />
+          <SearchScreen
+            items={catalogItemsWithRatings}
+            onSelectItem={handleSelectItem}
+          />
         );
       case 'downloads':
         return (
@@ -240,7 +269,7 @@ function App(): React.JSX.Element {
           />
         ) : (
           <FlatList
-            data={watchlist}
+            data={watchlistWithRatings}
             keyExtractor={item => item.url}
             renderItem={({item}) => (
               <MovieCard item={item} onPress={() => handleSelectItem(item)} />

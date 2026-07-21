@@ -7,6 +7,7 @@ import {SectionHeader} from '../components/layout/SectionHeader';
 import {MovieCard} from '../components/cards/MovieCard';
 import {EmptyState} from '../components/feedback/EmptyState';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 
 export interface CategoryFilter {
   label: string;
@@ -55,6 +56,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     () => (items.length > 0 ? items[0] : null),
     [items],
   );
+
+  const bannerSubtitle = useMemo(() => {
+    if (!featuredMovie) {
+      return '';
+    }
+    const parts: string[] = [];
+    if (featuredMovie.year) {
+      parts.push(featuredMovie.year);
+    }
+    if (featuredMovie.resolution) {
+      parts.push(featuredMovie.resolution);
+    }
+    if (featuredMovie.isDualAudio) {
+      parts.push('Dual Audio');
+    }
+    if (featuredMovie.rating) {
+      parts.push(`⭐ ${featuredMovie.rating}`);
+    }
+    return parts.join(' • ') || 'Featured Movie';
+  }, [featuredMovie]);
 
   // curating list feeds
   const trendingList = useMemo(() => items.slice(0, 8), [items]);
@@ -156,9 +177,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     <View style={styles.headerContainer}>
       {featuredMovie && !selectedCategory && (
         <HeroBanner
-          title={featuredMovie.title}
+          title={formatDisplayTitle(featuredMovie.title)}
           imageUrl={featuredMovie.imageUrl}
-          subtitle="Action • Science Fiction • Premium Release"
+          subtitle={bannerSubtitle}
           onPlayPress={() => onSelectItem(featuredMovie)}
           onInfoPress={() => onSelectItem(featuredMovie)}
         />
@@ -267,19 +288,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingBottom: 20,
+    paddingBottom: spacing.lg,
     backgroundColor: colors.background,
-    marginTop: -20,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-    paddingTop: spacing.md,
-    gap: 24,
+    paddingTop: spacing.lg,
+    gap: spacing.lg,
   },
   filterBarContainer: {
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
     backgroundColor: colors.background,
-    marginTop: 10,
   },
   filterScroll: {
     paddingHorizontal: spacing.md,
@@ -306,7 +323,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   section: {
-    gap: 8,
+    gap: spacing.sm,
   },
   horizontalScroll: {
     paddingHorizontal: spacing.md,
@@ -314,8 +331,8 @@ const styles = StyleSheet.create({
   },
   sectionHeaderSpacing: {
     paddingHorizontal: spacing.md,
-    marginTop: spacing.sm,
-    marginBottom: -10,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
   gridListContent: {
     backgroundColor: colors.background,

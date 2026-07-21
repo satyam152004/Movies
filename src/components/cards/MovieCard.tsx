@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   ImageStyle,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {CatalogItem} from '../../data/models';
 import {colors, radius, spacing, typography} from '../../theme';
+import {formatDisplayTitle} from '../../utils/formatDisplayTitle';
 
 interface MovieCardProps {
   item: CatalogItem;
@@ -17,16 +19,7 @@ interface MovieCardProps {
 }
 
 export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
-  const getCleanTitle = (title: string) => {
-    let displayTitle = title;
-    const cleanRegex =
-      /\s(1080p|720p|480p|hevc|webrip|bluray|x264|x265|10bit|dual|audio|hindi|english|full|movie).*/i;
-    const match = displayTitle.match(cleanRegex);
-    if (match && match.index && match.index > 5) {
-      displayTitle = displayTitle.substring(0, match.index).trim();
-    }
-    return displayTitle;
-  };
+  const displayTitle = formatDisplayTitle(item.title);
 
   return (
     <TouchableOpacity
@@ -47,6 +40,11 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
         )}
 
         <View style={styles.badgeRow}>
+          {item.rating && (
+            <View style={[styles.badgeItem, styles.badgeRating]}>
+              <Text style={styles.badgeText}>⭐ {item.rating}</Text>
+            </View>
+          )}
           {item.resolution === '2160p' && (
             <View style={[styles.badgeItem, styles.badge4K]}>
               <Text style={styles.badgeText}>4K</Text>
@@ -63,16 +61,27 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
             </View>
           )}
         </View>
-      </View>
 
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle} numberOfLines={2}>
-          {getCleanTitle(item.title)}
-        </Text>
-        <Text style={styles.cardSubtitle}>
-          {item.year ? `${item.year} • ` : ''}
-          {item.resolution ? `${item.resolution}` : 'HD'}
-        </Text>
+        <LinearGradient
+          colors={[
+            'rgba(9, 9, 11, 0)',
+            'rgba(9, 9, 11, 0.35)',
+            'rgba(9, 9, 11, 0.92)',
+          ]}
+          locations={[0, 0.45, 1]}
+          style={styles.gradientOverlay}
+        />
+
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {displayTitle}
+          </Text>
+          <Text style={styles.cardSubtitle}>
+            {item.year ? `${item.year} • ` : ''}
+            {item.resolution ? `${item.resolution.toUpperCase()}` : 'HD'}
+            {item.rating ? ` • ⭐ ${item.rating}` : ''}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -80,10 +89,8 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: 'hidden',
   },
   defaultWidth: {
@@ -135,20 +142,41 @@ const styles = StyleSheet.create({
   badgeDual: {
     backgroundColor: colors.success,
   },
+  badgeRating: {
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    borderWidth: 1,
+    borderColor: '#FFC107',
+  },
+  gradientOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '55%',
+  },
   cardInfo: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: spacing.sm,
-    gap: 4,
+    gap: 2,
   },
   cardTitle: {
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
     lineHeight: 16,
-    height: 32,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 4,
   },
   cardSubtitle: {
     fontSize: typography.sizes.xxs,
     color: colors.textSecondary,
     fontWeight: typography.weights.semibold,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 3,
   },
 });

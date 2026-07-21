@@ -13,7 +13,12 @@ export const DownloadLinkSchema = z.object({
 export const CatalogItemSchema = z.object({
   title: z.string(),
   url: z.string().url(),
-  imageUrl: z.string().url(),
+  imageUrl: z.string().url().optional(),
+  rating: z.string().optional(),
+  year: z.string().optional(),
+  resolution: z.string().optional(),
+  isDualAudio: z.boolean().optional(),
+  isHEVC: z.boolean().optional(),
 });
 
 // Zod schema for the complete parsed movie detail info

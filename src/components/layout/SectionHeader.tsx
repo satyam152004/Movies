@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    marginVertical: spacing.sm,
+    marginBottom: spacing.xs,
   },
   title: {
     color: colors.textPrimary,

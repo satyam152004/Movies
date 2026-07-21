@@ -44,10 +44,41 @@ export function parseCatalog(
     }
 
     if (url && title) {
+      // Extract year (4 digit starting with 19 or 20)
+      const yearMatch = title.match(/\b(19\d{2}|20\d{2})\b/);
+      const year = yearMatch ? yearMatch[1] : undefined;
+
+      // Extract resolution
+      const resMatch = title.match(/(480p|720p|1080p|2160p|4K|8K)/i);
+      const resolution = resMatch ? resMatch[1].toLowerCase() : undefined;
+
+      // Extract dual audio status
+      const isDualAudio =
+        /dual[- ]?audio/i.test(title) ||
+        (title.toLowerCase().includes('hindi') &&
+          title.toLowerCase().includes('english'));
+
+      // Extract HEVC codec status
+      const isHEVC = /hevc|x265|10bit/i.test(title);
+
+      // Extract rating from badge/imdb classes if present
+      let rating = $el
+        .find('.imdb, .rating, [class*="rating"], [class*="imdb"]')
+        .text()
+        .trim();
+      if (rating) {
+        rating = rating.replace(/imdb|★|⭐|\/10/gi, '').trim();
+      }
+
       items.push({
         title,
         url,
         imageUrl,
+        year,
+        resolution,
+        isDualAudio,
+        isHEVC,
+        rating: rating || undefined,
       });
     }
   });

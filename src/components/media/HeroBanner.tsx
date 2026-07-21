@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ImageStyle,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {colors, radius, spacing, typography} from '../../theme';
 
 interface HeroBannerProps {
@@ -35,13 +36,22 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       ) : (
         <View style={[styles.image, styles.fallback]} />
       )}
-      <View style={styles.overlay} />
+      <LinearGradient
+        colors={[
+          'rgba(9, 9, 11, 0)',
+          'rgba(9, 9, 11, 0.15)',
+          'rgba(9, 9, 11, 0.65)',
+          colors.background,
+        ]}
+        locations={[0, 0.35, 0.72, 1]}
+        style={styles.gradientOverlay}
+      />
 
       <View style={styles.details}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>🔥 FEATURED</Text>
         </View>
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
@@ -79,14 +89,12 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    opacity: 0.65,
   },
   fallback: {
     backgroundColor: colors.elevated,
   },
-  overlay: {
+  gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(9, 9, 11, 0.4)',
   },
   details: {
     position: 'absolute',
