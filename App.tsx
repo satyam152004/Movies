@@ -451,7 +451,7 @@ function App(): React.JSX.Element {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
 
       {/* Top Premium Header */}
-      {screen === 'main' && activeTab !== 'home' && (
+      {screen === 'main' && activeTab !== 'home' && activeTab !== 'search' && (
         <SafeAreaView style={styles.topNavSafeArea}>
           <View style={styles.topNav}>
             <Text style={styles.navTitle}>
@@ -462,7 +462,7 @@ function App(): React.JSX.Element {
       )}
 
       {/* Primary Content Render */}
-      {activeTab === 'home' || screen === 'detail' ? (
+      {activeTab === 'home' || activeTab === 'search' || screen === 'detail' ? (
         <View style={styles.screenWrapper}>{renderContent()}</View>
       ) : (
         <SafeAreaView style={styles.safeContentWrapper}>

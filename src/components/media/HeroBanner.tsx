@@ -74,7 +74,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           {/* IMDb Rating Badge */}
           <View style={styles.imdbBadge}>
             <Text style={styles.imdbTextBold}>IMDb</Text>
-            <Text style={styles.imdbTextNormal}> {rating ? `${rating}/10` : 'x/10'}</Text>
+            <Text style={styles.imdbTextNormal}>
+              {' '}
+              {rating
+                ? rating.includes('/10')
+                  ? rating
+                  : `${rating}/10`
+                : 'x/10'}
+            </Text>
           </View>
 
           {/* Year */}
