@@ -8,6 +8,7 @@ import {
   ImageStyle,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {CatalogItem} from '../../data/models';
 import {colors, radius, spacing, typography} from '../../theme';
 import {formatDisplayTitle} from '../../utils/formatDisplayTitle';
@@ -40,9 +41,17 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
         )}
 
         <View style={styles.badgeRow}>
-          {item.rating && (
+          {item.rating ? (
             <View style={[styles.badgeItem, styles.badgeRating]}>
-              <Text style={styles.badgeText}>⭐ {item.rating}</Text>
+              <Icon name="star" size={8} color="#FFC107" style={styles.starIcon} />
+              <Text style={styles.badgeText}>
+                {item.rating.includes('/10') ? item.rating : `${item.rating}/10`}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.badgeItem, styles.badgeRating]}>
+              <Icon name="star" size={8} color="#FFC107" style={styles.starIcon} />
+              <Text style={styles.badgeText}>x/10</Text>
             </View>
           )}
           {item.resolution === '2160p' && (
@@ -65,8 +74,8 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
         <LinearGradient
           colors={[
             'rgba(9, 9, 11, 0)',
-            'rgba(9, 9, 11, 0.35)',
-            'rgba(9, 9, 11, 0.92)',
+            'rgba(9, 9, 11, 0.4)',
+            'rgba(9, 9, 11, 0.95)',
           ]}
           locations={[0, 0.45, 1]}
           style={styles.gradientOverlay}
@@ -76,10 +85,18 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
           <Text style={styles.cardTitle} numberOfLines={1}>
             {displayTitle}
           </Text>
-          <Text style={styles.cardSubtitle}>
+          <Text style={styles.cardSubtitle} numberOfLines={1}>
             {item.year ? `${item.year} • ` : ''}
-            {item.resolution ? `${item.resolution.toUpperCase()}` : 'HD'}
-            {item.rating ? ` • ⭐ ${item.rating}` : ''}
+            {item.resolution
+              ? item.resolution.toUpperCase() === '2160P'
+                ? '4K'
+                : item.resolution.toUpperCase() === '1080P'
+                ? '1080P'
+                : item.resolution.toUpperCase()
+              : 'HD'}
+            {item.rating
+              ? ` • ★ ${item.rating.includes('/10') ? item.rating : `${item.rating}/10`}`
+              : ' • ★ x/10'}
           </Text>
         </View>
       </View>
@@ -98,7 +115,7 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     width: '100%',
-    height: 220,
+    aspectRatio: 2 / 3,
     backgroundColor: colors.elevated,
     position: 'relative',
   },
@@ -121,12 +138,20 @@ const styles = StyleSheet.create({
     top: spacing.xs,
     left: spacing.xs,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 4,
+    zIndex: 5,
   },
   badgeItem: {
-    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 3,
     paddingHorizontal: 6,
-    borderRadius: 6,
+    borderRadius: 4,
+    backgroundColor: 'rgba(9, 9, 11, 0.75)',
+  },
+  starIcon: {
+    marginRight: 2,
   },
   badgeText: {
     color: colors.white,
@@ -134,25 +159,24 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.heavy,
   },
   badge4K: {
-    backgroundColor: colors.danger,
+    backgroundColor: '#00D2D3',
   },
   badge1080: {
-    backgroundColor: colors.secondary,
+    backgroundColor: '#00A8FF',
   },
   badgeDual: {
-    backgroundColor: colors.success,
+    backgroundColor: '#2ECC71',
   },
   badgeRating: {
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
-    borderWidth: 1,
-    borderColor: '#FFC107',
+    backgroundColor: 'rgba(9, 9, 11, 0.75)',
   },
   gradientOverlay: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: '55%',
+    height: '50%',
+    zIndex: 2,
   },
   cardInfo: {
     position: 'absolute',
@@ -161,22 +185,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     padding: spacing.sm,
     gap: 2,
+    zIndex: 3,
   },
   cardTitle: {
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
     lineHeight: 16,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: {width: 0, height: 1},
-    textShadowRadius: 4,
   },
   cardSubtitle: {
-    fontSize: typography.sizes.xxs,
+    fontSize: 9,
     color: colors.textSecondary,
     fontWeight: typography.weights.semibold,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: {width: 0, height: 1},
-    textShadowRadius: 3,
   },
 });

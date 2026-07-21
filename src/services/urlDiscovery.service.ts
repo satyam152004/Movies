@@ -92,79 +92,6 @@ export class UrlDiscoveryService {
    * Discovers the current active HDHub4U URL.
    */
   public async discoverActiveUrl(): Promise<string> {
-    const scraper = ScraperService.getInstance();
-    scraper.log('Starting HDHub4U domain discovery process...', 'info');
-
-    // 1. Try reading from storage/cache first
-    try {
-      const storedUrl = await AsyncStorage.getItem(STORAGE_KEY);
-      if (storedUrl) {
-        scraper.log(`Found cached domain: ${storedUrl}. Verifying...`, 'info');
-        const validatedUrl = await this.validateUrl(storedUrl);
-        if (validatedUrl) {
-          return validatedUrl;
-        }
-        scraper.log(
-          'Cached domain is no longer accessible. Scanning for active mirrors...',
-          'warn',
-        );
-      }
-    } catch (err: any) {
-      scraper.log(`Error reading from AsyncStorage: ${err.message}`, 'error');
-    }
-
-    // 2. Generate list of candidate URLs to test
-    const candidates: string[] = [];
-
-    // Scan numerical increments: new2.hdhub4u.cl to new15.hdhub4u.cl
-    for (let n = 2; n <= MAX_SEARCH_RANGE; n++) {
-      candidates.push(`https://new${n}.hdhub4u.cl`);
-    }
-
-    // Add other known alternative domains
-    candidates.push(...ALTERNATIVE_TLDS);
-
-    // 3. Test all candidates concurrently, resolving immediately on the first success
-    scraper.log(`Scanning all ${candidates.length} candidates concurrently...`, 'info');
-    const activeUrl = await new Promise<string | null>((resolve) => {
-      let resolved = false;
-      let completedCount = 0;
-
-      candidates.forEach(async (url) => {
-        try {
-          const result = await this.validateUrl(url);
-          if (result && !resolved) {
-            resolved = true;
-            resolve(result);
-          }
-        } catch (e) {
-          // ignore
-        } finally {
-          completedCount++;
-          if (completedCount === candidates.length && !resolved) {
-            resolve(null);
-          }
-        }
-      });
-    });
-
-    if (activeUrl) {
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY, activeUrl);
-      } catch (err: any) {
-        scraper.log(
-          `Error writing discovered URL to AsyncStorage: ${err.message}`,
-          'error',
-        );
-      }
-      return activeUrl;
-    }
-
-    // 4. Default fallback if all scans fail
-    scraper.log(
-      `Discovery complete. No working domain found. Defaulting to: ${DEFAULT_URL}`,
-      'error',
-    );
     return DEFAULT_URL;
   }
 
@@ -172,15 +99,6 @@ export class UrlDiscoveryService {
    * Gets the active URL (either from cache, discovery, or default)
    */
   public async getActiveUrl(forceRefresh = false): Promise<string> {
-    if (forceRefresh) {
-      const scraper = ScraperService.getInstance();
-      scraper.log('Force-refresh requested. Clearing cache...', 'info');
-      try {
-        await AsyncStorage.removeItem(STORAGE_KEY);
-      } catch (err: any) {
-        scraper.log(`Error clearing AsyncStorage: ${err.message}`, 'error');
-      }
-    }
-    return this.discoverActiveUrl();
+    return DEFAULT_URL;
   }
 }

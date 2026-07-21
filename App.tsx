@@ -225,6 +225,10 @@ function App(): React.JSX.Element {
             isLoading={isCatalogLoading}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
+            onSearchPress={() => setActiveTab('search')}
+            onProfilePress={() => setActiveTab('profile')}
+            watchlist={watchlist}
+            onToggleWatchlist={handleToggleWatchlist}
           />
         );
       case 'search':
@@ -443,24 +447,32 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
 
       {/* Top Premium Header */}
-      {screen === 'main' && (
-        <View style={styles.topNav}>
-          <Text style={styles.navTitle}>
-             <Text style={styles.primaryText}>Cine</Text>App
-          </Text>
-        </View>
+      {screen === 'main' && activeTab !== 'home' && (
+        <SafeAreaView style={styles.topNavSafeArea}>
+          <View style={styles.topNav}>
+            <Text style={styles.navTitle}>
+               <Text style={styles.primaryText}>Cine</Text>App
+            </Text>
+          </View>
+        </SafeAreaView>
       )}
 
       {/* Primary Content Render */}
-      <View style={styles.screenWrapper}>{renderContent()}</View>
+      {activeTab === 'home' || screen === 'detail' ? (
+        <View style={styles.screenWrapper}>{renderContent()}</View>
+      ) : (
+        <SafeAreaView style={styles.safeContentWrapper}>
+          <View style={styles.screenWrapper}>{renderContent()}</View>
+        </SafeAreaView>
+      )}
 
       {/* Headless WebView crawler engine */}
       <HiddenWebView />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -795,6 +807,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1.5,
+  },
+  topNavSafeArea: {
+    backgroundColor: colors.surface,
+  },
+  safeContentWrapper: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
 });
 

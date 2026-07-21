@@ -1,5 +1,15 @@
-import React, {useMemo} from 'react';
-import {ScrollView, StyleSheet, View, FlatList, ActivityIndicator, Text, TouchableOpacity} from 'react-native';
+import React, {useMemo, useState, useRef} from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  Animated,
+  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  Platform,
+  StatusBar,
+} from 'react-native';
 import {CatalogItem} from '../data/models';
 import {colors, spacing, typography} from '../theme';
 import {HeroBanner} from '../components/media/HeroBanner';
@@ -40,6 +50,10 @@ interface HomeScreenProps {
   isLoading?: boolean;
   selectedCategory: string | null;
   onSelectCategory: (categoryPath: string | null) => void;
+  onSearchPress?: () => void;
+  onProfilePress?: () => void;
+  watchlist?: CatalogItem[];
+  onToggleWatchlist?: (item: CatalogItem) => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -51,31 +65,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   isLoading = false,
   selectedCategory,
   onSelectCategory,
+  onSearchPress,
+  onProfilePress,
+  watchlist = [],
+  onToggleWatchlist,
 }) => {
+  const scrollY = useRef(new Animated.Value(0)).current;
+
   const featuredMovie = useMemo(
     () => (items.length > 0 ? items[0] : null),
     [items],
   );
 
-  const bannerSubtitle = useMemo(() => {
+  const isFeaturedWatchlisted = useMemo(() => {
     if (!featuredMovie) {
-      return '';
+      return false;
     }
-    const parts: string[] = [];
-    if (featuredMovie.year) {
-      parts.push(featuredMovie.year);
-    }
-    if (featuredMovie.resolution) {
-      parts.push(featuredMovie.resolution);
-    }
-    if (featuredMovie.isDualAudio) {
-      parts.push('Dual Audio');
-    }
-    if (featuredMovie.rating) {
-      parts.push(`⭐ ${featuredMovie.rating}`);
-    }
-    return parts.join(' • ') || 'Featured Movie';
-  }, [featuredMovie]);
+    return watchlist.some(w => w.url === featuredMovie.url);
+  }, [featuredMovie, watchlist]);
 
   // curating list feeds
   const trendingList = useMemo(() => items.slice(0, 8), [items]);
@@ -173,49 +180,42 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     );
   }
 
+  const headerHeight = Platform.OS === 'ios' ? 100 : (StatusBar.currentHeight || 24) + 56;
+  const bannerHeight = 550;
+
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       {featuredMovie && !selectedCategory && (
-        <HeroBanner
-          title={formatDisplayTitle(featuredMovie.title)}
-          imageUrl={featuredMovie.imageUrl}
-          subtitle={bannerSubtitle}
-          onPlayPress={() => onSelectItem(featuredMovie)}
-          onInfoPress={() => onSelectItem(featuredMovie)}
-        />
+        <View style={styles.bannerWrapper}>
+          <HeroBanner
+            title={formatDisplayTitle(featuredMovie.title)}
+            imageUrl={featuredMovie.imageUrl}
+            rating={featuredMovie.rating}
+            year={featuredMovie.year}
+            resolution={featuredMovie.resolution}
+            isDualAudio={featuredMovie.isDualAudio}
+            onPlayPress={() => onSelectItem(featuredMovie)}
+            onInfoPress={() => onSelectItem(featuredMovie)}
+            isWatchlisted={isFeaturedWatchlisted}
+            onWatchlistPress={onToggleWatchlist ? () => onToggleWatchlist(featuredMovie) : undefined}
+          />
+        </View>
       )}
 
-      {/* Category Horizontal Filter Bar */}
-      <View style={styles.filterBarContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}>
-          {CATEGORIES.map(cat => (
-            <TouchableOpacity
-              key={cat.label}
-              style={[
-                styles.chip,
-                selectedCategory === cat.path && styles.chipActive,
-              ]}
-              onPress={() => onSelectCategory(cat.path)}
-              activeOpacity={0.7}>
-              <Text
-                style={[
-                  styles.chipText,
-                  selectedCategory === cat.path && styles.chipTextActive,
-                ]}>
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Spacer/Placeholder for category chips so they don't cover content when sticky */}
+      <View style={[
+        styles.filterBarPlaceholder,
+        selectedCategory ? { height: headerHeight + 60 } : null
+      ]} />
 
       <View style={styles.content}>
         {!selectedCategory && sections.map(section => (
           <View key={section.id} style={styles.section}>
-            <SectionHeader title={section.title} />
+            <SectionHeader
+              title={section.title}
+              seeAllText="View All"
+              onPressSeeAll={onExplorePress}
+            />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -257,25 +257,124 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     );
   };
 
+  // Animated Transitions
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const headerBorderOpacity = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const stickyTop = selectedCategory ? headerHeight : bannerHeight;
+  const categoryTranslateY = selectedCategory
+    ? 0
+    : scrollY.interpolate({
+        inputRange: [0, bannerHeight - headerHeight],
+        outputRange: [0, -(bannerHeight - headerHeight)],
+        extrapolateRight: 'clamp',
+      });
+
+  const categoryBgOpacity = selectedCategory
+    ? 1
+    : scrollY.interpolate({
+        inputRange: [bannerHeight - headerHeight - 40, bannerHeight - headerHeight],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      });
+
   return (
-    <FlatList
-      style={styles.container}
-      data={items}
-      keyExtractor={(item, index) => `${item.url}-${index}`}
-      renderItem={({item}) => (
-        <View style={styles.gridCardWrapper}>
-          <MovieCard item={item} onPress={() => onSelectItem(item)} />
+    <View style={styles.container}>
+      <Animated.FlatList
+        style={styles.container}
+        data={items}
+        keyExtractor={(item, index) => `${item.url}-${index}`}
+        renderItem={({item}) => (
+          <View style={styles.gridCardWrapper}>
+            <MovieCard item={item} onPress={() => onSelectItem(item)} />
+          </View>
+        )}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRowWrapper}
+        contentContainerStyle={styles.gridListContent}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        onEndReached={onLoadMore}
+        onEndReachedThreshold={3.0}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{nativeEvent: {contentOffset: {y: scrollY}}}],
+          {useNativeDriver: true},
+        )}
+      />
+
+      {/* Sticky Category Filter Bar */}
+      <Animated.View
+        style={[
+          styles.stickyCategoryContainer,
+          {
+            top: stickyTop,
+            transform: [{translateY: categoryTranslateY}],
+          },
+        ]}>
+        <Animated.View style={[styles.categoryBg, {opacity: categoryBgOpacity}]} />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}>
+          {CATEGORIES.map(cat => (
+            <TouchableOpacity
+              key={cat.label}
+              style={[
+                styles.chip,
+                selectedCategory === cat.path && styles.chipActive,
+              ]}
+              onPress={() => onSelectCategory(cat.path)}
+              activeOpacity={0.7}>
+              <Text
+                style={[
+                  styles.chipText,
+                  selectedCategory === cat.path && styles.chipTextActive,
+                ]}>
+                {cat.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </Animated.View>
+
+      {/* Floating Header */}
+      <View style={styles.floatingHeader}>
+        <Animated.View style={[styles.headerBg, {opacity: headerBgOpacity}]} />
+        <Animated.View style={[styles.headerBorder, {opacity: headerBorderOpacity}]} />
+        <View style={styles.headerContent}>
+          <Text style={styles.logoText}>
+            Cine<Text style={styles.logoTextPurple}>App</Text>
+          </Text>
+          <View style={styles.floatingHeaderRight}>
+            <TouchableOpacity
+              onPress={onSearchPress}
+              style={styles.iconButton}
+              activeOpacity={0.7}>
+              <Icon name="search-outline" size={24} color={colors.white} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onProfilePress}
+              style={styles.avatarButton}
+              activeOpacity={0.7}>
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarText}>C</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
-      numColumns={2}
-      columnWrapperStyle={styles.gridRowWrapper}
-      contentContainerStyle={styles.gridListContent}
-      ListHeaderComponent={renderHeader}
-      ListFooterComponent={renderFooter}
-      onEndReached={onLoadMore}
-      onEndReachedThreshold={3.0}
-      showsVerticalScrollIndicator={false}
-    />
+      </View>
+    </View>
   );
 };
 
@@ -287,28 +386,111 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: colors.background,
   },
+  bannerWrapper: {
+    position: 'relative',
+    width: '100%',
+  },
+  floatingHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 100 : (StatusBar.currentHeight || 24) + 56,
+    zIndex: 10,
+  },
+  headerBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#09090B',
+  },
+  headerBorder: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  headerContent: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+  },
+  logoText: {
+    color: colors.white,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  logoTextPurple: {
+    color: colors.primary,
+  },
+  floatingHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '900',
+  },
   content: {
     paddingBottom: spacing.lg,
     backgroundColor: colors.background,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xs,
     gap: spacing.lg,
   },
-  filterBarContainer: {
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.background,
+  stickyCategoryContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 60,
+    zIndex: 9,
+    justifyContent: 'center',
+  },
+  categoryBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#09090B',
+  },
+  filterBarPlaceholder: {
+    height: 60,
+    width: '100%',
   },
   filterScroll: {
     paddingHorizontal: spacing.md,
     gap: 8,
+    alignItems: 'center',
   },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   chipActive: {
     backgroundColor: colors.primary,
@@ -397,4 +579,3 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 });
-export default HomeScreen;
