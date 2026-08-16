@@ -14,7 +14,6 @@ export const CatalogItemSchema = z.object({
   title: z.string(),
   url: z.string().url(),
   imageUrl: z.string().url().optional(),
-  rating: z.string().optional(),
   year: z.string().optional(),
   resolution: z.string().optional(),
   isDualAudio: z.boolean().optional(),
@@ -28,7 +27,6 @@ export const MovieDetailSchema = z.object({
   date: z.string().optional(),
   imageUrl: z.string().url().optional(),
   categories: z.array(z.string()),
-  imdbRating: z.string().optional(),
   genres: z.array(z.string()),
   stars: z.array(z.string()),
   director: z.string().optional(),
@@ -38,6 +36,33 @@ export const MovieDetailSchema = z.object({
   downloadLinks: z.array(DownloadLinkSchema),
   storyline: z.string().optional(),
   rawHtmlMetadata: z.record(z.string(), z.string()).optional(),
+  tmdbId: z.string().optional(),
+  backdropUrl: z.string().optional(),
+  logoUrl: z.string().optional(),
+  runtime: z.number().optional(),
+  certification: z.string().optional(),
+  country: z.string().optional(),
+  budget: z.number().optional(),
+  revenue: z.number().optional(),
+  studios: z.array(z.string()).optional(),
+  homepage: z.string().optional(),
+  enrichedCast: z
+    .array(
+      z.object({
+        name: z.string(),
+        character: z.string(),
+        profileUrl: z.string(),
+      }),
+    )
+    .optional(),
+  enrichedCrew: z
+    .array(
+      z.object({
+        name: z.string(),
+        job: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export type DownloadLink = z.infer<typeof DownloadLinkSchema>;

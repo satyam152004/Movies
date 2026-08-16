@@ -12,6 +12,7 @@ import {
   Switch,
   FlatList,
   Image,
+  BackHandler,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -25,6 +26,7 @@ import {CatalogItem, MovieDetail} from './src/data/models';
 import {ScraperService} from './src/services/scraper.service';
 import {DownloadService} from './src/services/download.service';
 import {UrlDiscoveryService} from './src/services/urlDiscovery.service';
+import {TmdbService} from './src/services/tmdb.service';
 import {colors, radius, spacing, zIndex} from './src/theme';
 import {MovieCard} from './src/components/cards/MovieCard';
 import {EmptyState} from './src/components/feedback/EmptyState';
@@ -49,30 +51,73 @@ function App(): React.JSX.Element {
   const [catalogPage, setCatalogPage] = useState(1);
   const [isCatalogLoadingMore, setIsCatalogLoadingMore] = useState(false);
   const [watchlist, setWatchlist] = useState<CatalogItem[]>([]);
-  const [ratingsCache, setRatingsCache] = useState<{[url: string]: string}>({});
+  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high');
+  const [downloadQuality, setDownloadQuality] = useState<'1080p' | '720p' | '480p'>('1080p');
+  const [wifiOnly, setWifiOnly] = useState<boolean>(true);
 
   // Initialize download service
   DownloadService.getInstance();
   const scraper = ScraperService.getInstance();
 
   useEffect(() => {
-    // Load Developer Mode settings, Watchlist & Ratings Cache on startup
     const loadSettings = async () => {
       try {
         const storedWatchlist = await AsyncStorage.getItem('@watchlist');
         if (storedWatchlist !== null) {
           setWatchlist(JSON.parse(storedWatchlist));
         }
-        const storedRatings = await AsyncStorage.getItem('@ratings_cache');
-        if (storedRatings !== null) {
-          setRatingsCache(JSON.parse(storedRatings));
-        }
+
+        const storedVideo = await AsyncStorage.getItem('@pref_video_quality');
+        if (storedVideo) setVideoQuality(storedVideo as any);
+
+        const storedDownload = await AsyncStorage.getItem('@pref_download_quality');
+        if (storedDownload) setDownloadQuality(storedDownload as any);
+
+        const storedWifi = await AsyncStorage.getItem('@pref_wifi_only');
+        if (storedWifi !== null) setWifiOnly(JSON.parse(storedWifi));
       } catch (e) {
         console.error('Failed to load initial settings', e);
       }
     };
     loadSettings();
   }, []);
+
+  const handleUpdateVideoQuality = async (val: 'high' | 'medium' | 'low') => {
+    setVideoQuality(val);
+    await AsyncStorage.setItem('@pref_video_quality', val);
+  };
+
+  const handleUpdateDownloadQuality = async (val: '1080p' | '720p' | '480p') => {
+    setDownloadQuality(val);
+    await AsyncStorage.setItem('@pref_download_quality', val);
+  };
+
+  const handleToggleWifiOnly = async (val: boolean) => {
+    setWifiOnly(val);
+    await AsyncStorage.setItem('@pref_wifi_only', JSON.stringify(val));
+  };
+
+  useEffect(() => {
+    const handleBackPress = () => {
+      if (screen === 'detail') {
+        setScreen('main');
+        return true;
+      }
+      if (screen === 'collection') {
+        setScreen('main');
+        setCollectionParams(null);
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackPress,
+    );
+
+    return () => backHandler.remove();
+  }, [screen]);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -92,8 +137,15 @@ function App(): React.JSX.Element {
         const targetUrl = categoryPath
           ? `${activeUrl.replace(/\/$/, '')}/${categoryPath.replace(/^\//, '')}`
           : activeUrl;
-        scraper.log(`Scraping catalog from targetUrl: ${targetUrl} (page ${pageNum})...`, 'info');
-        const result = await scraper.scrapeCatalogPage(targetUrl, false, pageNum);
+        scraper.log(
+          `Scraping catalog from targetUrl: ${targetUrl} (page ${pageNum})...`,
+          'info',
+        );
+        const result = await scraper.scrapeCatalogPage(
+          targetUrl,
+          false,
+          pageNum,
+        );
         if (append) {
           setCatalogItems(prev => [...prev, ...result.items]);
         } else {
@@ -131,8 +183,11 @@ function App(): React.JSX.Element {
   };
 
   const handleSelectItem = async (item: CatalogItem) => {
-    scraper.log(`Selected item: "${item.title}". Fetching details in background...`, 'info');
-    
+    scraper.log(
+      `Selected item: "${item.title}". Fetching details in background...`,
+      'info',
+    );
+
     // Set a partial representation in state and navigate to details instantly!
     const partialMovie: MovieDetail = {
       title: item.title,
@@ -140,7 +195,6 @@ function App(): React.JSX.Element {
       imageUrl: item.imageUrl,
       date: '',
       quality: '',
-      imdbRating: '',
       language: '',
       storyline: '',
       director: '',
@@ -153,18 +207,32 @@ function App(): React.JSX.Element {
     setSelectedMovie(partialMovie);
     setScreen('detail');
     setIsDetailLoading(true);
-
     try {
       const detail = await scraper.scrapeMovieDetail(item.url);
       // Keep watchlist/active state representation valid but update details
       setSelectedMovie(detail);
-      if (detail.imdbRating) {
-        const updatedCache = { ...ratingsCache, [item.url]: detail.imdbRating };
-        setRatingsCache(updatedCache);
-        AsyncStorage.setItem('@ratings_cache', JSON.stringify(updatedCache)).catch(e =>
-          console.error('Failed to save ratings cache', e),
-        );
-      }
+
+      // Hydrate with TMDB details progressively in background
+      console.info(`[App Debug] Before enrichment for: "${detail.title}"`);
+      TmdbService.getInstance()
+        .enrichMovie(detail)
+        .then(enrichedDetail => {
+          console.info(`[App Debug] After enrichment. Enriched properties:`, {
+            backdropUrl: enrichedDetail.backdropUrl,
+            castCount: enrichedDetail.enrichedCast?.length,
+            crewCount: enrichedDetail.enrichedCrew?.length,
+          });
+          console.info('[App Debug] Before setMovie() state update');
+          setSelectedMovie(prev => {
+            if (prev && prev.url === item.url) {
+              return enrichedDetail;
+            }
+            return prev;
+          });
+        })
+        .catch(e => {
+          console.warn('TMDb enrichment background error', e);
+        });
     } catch (err: any) {
       scraper.log(
         `Failed to fetch details for: ${item.title}. Error: ${err.message}`,
@@ -204,26 +272,12 @@ function App(): React.JSX.Element {
     }
   };
 
-  const catalogItemsWithRatings = useMemo(() => {
-    return catalogItems.map(item => ({
-      ...item,
-      rating: item.rating || ratingsCache[item.url] || undefined,
-    }));
-  }, [catalogItems, ratingsCache]);
-
-  const watchlistWithRatings = useMemo(() => {
-    return watchlist.map(item => ({
-      ...item,
-      rating: item.rating || ratingsCache[item.url] || undefined,
-    }));
-  }, [watchlist, ratingsCache]);
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'home':
         return (
           <HomeScreen
-            items={catalogItemsWithRatings}
+            items={catalogItems}
             onSelectItem={handleSelectItem}
             onExplorePress={() => setActiveTab('search')}
             onLoadMore={loadMoreCatalog}
@@ -236,7 +290,7 @@ function App(): React.JSX.Element {
             watchlist={watchlist}
             onToggleWatchlist={handleToggleWatchlist}
             onViewAllPress={(title, items, type) => {
-              setCollectionParams({ title, items, type });
+              setCollectionParams({title, items, type});
               setScreen('collection');
             }}
           />
@@ -244,10 +298,10 @@ function App(): React.JSX.Element {
       case 'search':
         return (
           <SearchScreen
-            items={catalogItemsWithRatings}
+            items={catalogItems}
             onSelectItem={handleSelectItem}
             onViewAllPress={(title, items, type) => {
-              setCollectionParams({ title, items, type });
+              setCollectionParams({title, items, type});
               setScreen('collection');
             }}
           />
@@ -258,6 +312,7 @@ function App(): React.JSX.Element {
             onBack={() => {
               setActiveTab('home');
             }}
+            onSelectItem={handleSelectItem}
           />
         );
       case 'watchlist':
@@ -281,13 +336,17 @@ function App(): React.JSX.Element {
 
         {watchlist.length === 0 ? (
           <EmptyState
-            icon={<Icon name="heart-outline" size={54} color={colors.primary} />}
-            title="Your Watchlist is Empty"
-            description="Explore movie catalogs and add titles to your personal watchlist to watch later."
+            icon={
+              <Icon name="heart-outline" size={54} color={colors.primary} />
+            }
+            title="Your watchlist is empty"
+            description="Save movies and shows you want to watch later."
+            onAction={() => setActiveTab('home')}
+            actionTitle="Browse Movies"
           />
         ) : (
           <FlatList
-            data={watchlistWithRatings}
+            data={watchlist}
             keyExtractor={item => item.url}
             renderItem={({item}) => (
               <MovieCard item={item} onPress={() => handleSelectItem(item)} />
@@ -303,35 +362,70 @@ function App(): React.JSX.Element {
   };
 
   const renderProfileScreen = () => {
+    const cycleVideoQuality = () => {
+      const nextMap: Record<typeof videoQuality, typeof videoQuality> = {
+        high: 'medium',
+        medium: 'low',
+        low: 'high',
+      };
+      handleUpdateVideoQuality(nextMap[videoQuality]);
+    };
+
+    const cycleDownloadQuality = () => {
+      const nextMap: Record<typeof downloadQuality, typeof downloadQuality> = {
+        '1080p': '720p',
+        '720p': '480p',
+        '480p': '1080p',
+      };
+      handleUpdateDownloadQuality(nextMap[downloadQuality]);
+    };
+
     return (
       <ScrollView
         style={styles.tabContainer}
         contentContainerStyle={styles.profileScroll}
         showsVerticalScrollIndicator={false}>
-        {/* User Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>C</Text>
-          </View>
-          <View style={styles.profileMeta}>
-            <Text style={styles.profileName}>Cine Enthusiast</Text>
-            <Text style={styles.profileTier}>Premium Member</Text>
-          </View>
-        </View>
-
-        {/* Storage Stats */}
+        
+        {/* App Preferences */}
         <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>Storage Overview</Text>
-          <View style={styles.storageBarContainer}>
-            <View style={styles.storageBarFill} />
-          </View>
-          <View style={styles.storageLabelRow}>
-            <Text style={styles.storageLabel}>Used: 24.5 GB</Text>
-            <Text style={styles.storageLabel}>Free: 38.2 GB</Text>
+          <Text style={styles.settingsSectionTitle}>Playback Preferences</Text>
+
+          <TouchableOpacity style={styles.settingItemBorder} onPress={cycleVideoQuality}>
+            <View style={styles.settingTextGroup}>
+              <Text style={styles.settingLabel}>Streaming Video Quality</Text>
+              <Text style={styles.settingDesc}>Select preferred default streaming resolution</Text>
+            </View>
+            <Text style={styles.settingValueActive}>{videoQuality.toUpperCase()}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItemBorderLast} onPress={cycleDownloadQuality}>
+            <View style={styles.settingTextGroup}>
+              <Text style={styles.settingLabel}>Download Video Quality</Text>
+              <Text style={styles.settingDesc}>Select default resolution for offline downloads</Text>
+            </View>
+            <Text style={styles.settingValueActive}>{downloadQuality}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Download Rules */}
+        <View style={styles.settingsCard}>
+          <Text style={styles.settingsSectionTitle}>Network Settings</Text>
+
+          <View style={styles.settingItemBorderLast}>
+            <View style={styles.settingTextGroup}>
+              <Text style={styles.settingLabel}>Download Over Wi-Fi Only</Text>
+              <Text style={styles.settingDesc}>Restrict data usage and only download on Wi-Fi</Text>
+            </View>
+            <Switch
+              value={wifiOnly}
+              onValueChange={handleToggleWifiOnly}
+              trackColor={{ false: colors.elevated, true: colors.primary }}
+              thumbColor={colors.white}
+            />
           </View>
         </View>
 
-        {/* Settings Links */}
+        {/* App Settings */}
         <View style={styles.settingsCard}>
           <Text style={styles.settingsSectionTitle}>Application Settings</Text>
 
@@ -342,7 +436,7 @@ function App(): React.JSX.Element {
 
           <View style={styles.settingItemBorderLast}>
             <Text style={styles.settingLabelStatic}>App Version</Text>
-            <Text style={styles.settingValueStatic}>v1.1.0-Premium</Text>
+            <Text style={styles.settingValueStatic}>v1.1.0 (Production)</Text>
           </View>
         </View>
       </ScrollView>
@@ -398,9 +492,10 @@ function App(): React.JSX.Element {
         }
       };
 
-      const collectionItems = collectionParams.type === 'latest'
-        ? catalogItemsWithRatings
-        : collectionParams.items;
+      const collectionItems =
+        collectionParams.type === 'latest'
+          ? catalogItems
+          : collectionParams.items;
 
       return (
         <CollectionScreen
@@ -417,63 +512,16 @@ function App(): React.JSX.Element {
       );
     }
 
-    return (
-      <View style={styles.flexOne}>
-        {/* Main Content Area */}
-        <View style={styles.screenWrapper}>{renderTabContent()}</View>
-
-        {/* Bottom Tab Navigation */}
-        <View style={styles.bottomTabBar}>
-          {(
-            [
-              'home',
-              'search',
-              'downloads',
-              'watchlist',
-              'profile',
-            ] as ActiveTab[]
-          ).map(tab => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tabItem,
-                activeTab === tab && styles.tabItemActive,
-              ]}
-              onPress={() => setActiveTab(tab)}>
-              <Icon
-                name={
-                  tab === 'home'
-                    ? activeTab === tab ? 'home' : 'home-outline'
-                    : tab === 'search'
-                    ? activeTab === tab ? 'search' : 'search-outline'
-                    : tab === 'downloads'
-                    ? activeTab === tab ? 'download' : 'download-outline'
-                    : tab === 'watchlist'
-                    ? activeTab === tab ? 'heart' : 'heart-outline'
-                    : activeTab === tab ? 'person' : 'person-outline'
-                }
-                size={22}
-                color={activeTab === tab ? colors.primary : colors.textSecondary}
-                style={styles.tabIconSpacing}
-              />
-              <Text
-                style={[
-                  styles.tabLabel,
-                  activeTab === tab && styles.tabLabelActive,
-                ]}>
-                {tab.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    );
+    return renderTabContent();
   };
 
   if (isDomainResolving) {
     return (
       <SafeAreaView style={styles.splashContainer}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor={colors.background}
+        />
         <View style={styles.splashContent}>
           <Image
             source={require('./src/assets/images/logo.png')}
@@ -488,27 +536,86 @@ function App(): React.JSX.Element {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent={true}
+      />
 
       {/* Top Premium Header */}
-      {screen === 'main' && activeTab !== 'home' && activeTab !== 'search' && (
-        <SafeAreaView style={styles.topNavSafeArea}>
-          <View style={styles.topNav}>
-            <Text style={styles.navTitle}>
-               <Text style={styles.primaryText}>Cine</Text>App
-            </Text>
-          </View>
-        </SafeAreaView>
-      )}
+      {screen === 'main' &&
+        activeTab !== 'home' &&
+        activeTab !== 'search' &&
+        activeTab !== 'downloads' && (
+          <SafeAreaView style={styles.topNavSafeArea}>
+            <View style={styles.topNav}>
+              <Text style={styles.navTitle}>
+                <Text style={styles.primaryText}>Cine</Text>App
+              </Text>
+            </View>
+          </SafeAreaView>
+        )}
 
       {/* Primary Content Render */}
-      {activeTab === 'home' || activeTab === 'search' || screen === 'detail' ? (
+      {activeTab === 'home' ||
+      activeTab === 'search' ||
+      screen === 'detail' ||
+      screen === 'collection' ? (
         <View style={styles.screenWrapper}>{renderContent()}</View>
       ) : (
         <SafeAreaView style={styles.safeContentWrapper}>
           <View style={styles.screenWrapper}>{renderContent()}</View>
         </SafeAreaView>
       )}
+
+      {/* Always Visible Bottom Tab Navigation */}
+      <View style={styles.bottomTabBar}>
+        {(
+          ['home', 'search', 'downloads', 'watchlist', 'profile'] as ActiveTab[]
+        ).map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
+            onPress={() => {
+              setScreen('main');
+              setActiveTab(tab);
+            }}>
+            <Icon
+              name={
+                tab === 'home'
+                  ? activeTab === tab
+                    ? 'home'
+                    : 'home-outline'
+                  : tab === 'search'
+                  ? activeTab === tab
+                    ? 'search'
+                    : 'search-outline'
+                  : tab === 'downloads'
+                  ? activeTab === tab
+                    ? 'download'
+                    : 'download-outline'
+                  : tab === 'watchlist'
+                  ? activeTab === tab
+                    ? 'heart'
+                    : 'heart-outline'
+                  : activeTab === tab
+                  ? 'person'
+                  : 'person-outline'
+              }
+              size={22}
+              color={activeTab === tab ? colors.primary : colors.textSecondary}
+              style={styles.tabIconSpacing}
+            />
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === tab && styles.tabLabelActive,
+              ]}>
+              {tab.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Headless WebView crawler engine */}
       <HiddenWebView />
@@ -774,6 +881,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 11,
     fontWeight: '600',
+  },
+  settingValueActive: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '800',
   },
   devHeader: {
     height: 56,

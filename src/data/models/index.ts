@@ -3,7 +3,6 @@ export interface CatalogItem {
   title: string;
   url: string;
   imageUrl?: string;
-  rating?: string;
   year?: string;
   resolution?: string;
   isDualAudio?: boolean;
@@ -24,7 +23,6 @@ export interface MovieDetail {
   url: string;
   imageUrl?: string;
   date?: string;
-  imdbRating?: string;
   quality?: string;
   language?: string;
   director?: string;
@@ -34,6 +32,18 @@ export interface MovieDetail {
   storyline?: string;
   screenshots: string[];
   downloadLinks: DownloadLink[];
+  tmdbId?: string;
+  backdropUrl?: string;
+  logoUrl?: string;
+  runtime?: number;
+  certification?: string;
+  country?: string;
+  budget?: number;
+  revenue?: number;
+  studios?: string[];
+  homepage?: string;
+  enrichedCast?: {name: string; character: string; profileUrl: string}[];
+  enrichedCrew?: {name: string; job: string}[];
 }
 
 export type DownloadStatus =

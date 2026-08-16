@@ -6,15 +6,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   ImageStyle,
+  Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {colors, radius, spacing, typography} from '../../theme';
 
+const {height: SCREEN_HEIGHT} = Dimensions.get('window');
+const HERO_HEIGHT = Math.min(Math.max(SCREEN_HEIGHT * 0.46, 360), 460);
+
 interface HeroBannerProps {
   title: string;
   imageUrl?: string;
-  rating?: string;
   year?: string;
   resolution?: string;
   isDualAudio?: boolean;
@@ -27,7 +30,6 @@ interface HeroBannerProps {
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   title,
   imageUrl,
-  rating,
   year,
   resolution,
   isDualAudio,
@@ -71,19 +73,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
         {/* Metadata Row */}
         <View style={styles.metadataRow}>
-          {/* IMDb Rating Badge */}
-          <View style={styles.imdbBadge}>
-            <Text style={styles.imdbTextBold}>IMDb</Text>
-            <Text style={styles.imdbTextNormal}>
-              {' '}
-              {rating
-                ? rating.includes('/10')
-                  ? rating
-                  : `${rating}/10`
-                : 'x/10'}
-            </Text>
-          </View>
-
           {/* Year */}
           {year && <Text style={styles.metaText}>{year}</Text>}
 
@@ -91,7 +80,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           {resolution && (
             <View style={styles.resolutionBadge}>
               <Text style={styles.resolutionText}>
-                {resolution.toLowerCase() === '2160p' || resolution.toLowerCase() === '4k'
+                {resolution.toLowerCase() === '2160p' ||
+                resolution.toLowerCase() === '4k'
                   ? '4K'
                   : resolution.toUpperCase()}
               </Text>
@@ -109,7 +99,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               style={styles.playBtn}
               onPress={onPlayPress}
               activeOpacity={0.85}>
-              <Icon name="play" size={18} color={colors.black} style={styles.buttonIcon} />
+              <Icon
+                name="play"
+                size={18}
+                color={colors.black}
+                style={styles.buttonIcon}
+              />
               <Text style={styles.playBtnText}>Play Now</Text>
             </TouchableOpacity>
           )}
@@ -118,7 +113,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               style={styles.infoBtn}
               onPress={onInfoPress}
               activeOpacity={0.85}>
-              <Icon name="information-circle-outline" size={20} color={colors.white} style={styles.buttonIcon} />
+              <Icon
+                name="information-circle-outline"
+                size={18}
+                color={colors.white}
+                style={styles.buttonIcon}
+              />
               <Text style={styles.infoBtnText}>More Info</Text>
             </TouchableOpacity>
           )}
@@ -142,10 +142,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 550,
+    height: HERO_HEIGHT,
     width: '100%',
     position: 'relative',
-    backgroundColor: '#0F0F13',
+    backgroundColor: '#09090B',
   },
   image: {
     width: '100%',
@@ -159,73 +159,57 @@ const styles = StyleSheet.create({
   },
   details: {
     position: 'absolute',
-    bottom: spacing.lg,
-    left: spacing.md,
-    right: spacing.md,
-    gap: 12,
+    bottom: 20,
+    left: 16,
+    right: 16,
+    gap: 8,
   },
   badge: {
-    backgroundColor: colors.primary,
+    backgroundColor: 'rgba(144, 97, 249, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(144, 97, 249, 0.25)',
     alignSelf: 'flex-start',
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
   },
   badgeText: {
-    color: colors.white,
+    color: colors.primary,
     fontSize: 9,
-    fontWeight: typography.weights.heavy,
+    fontWeight: typography.weights.bold,
     letterSpacing: 0.5,
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: typography.weights.heavy,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: {width: 0, height: 2},
-    textShadowRadius: 6,
-    lineHeight: 34,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 4,
+    lineHeight: 30,
   },
   metadataRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 12,
-    marginVertical: 4,
-  },
-  imdbBadge: {
-    flexDirection: 'row',
-    backgroundColor: '#E1B12C',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-    alignItems: 'center',
-  },
-  imdbTextBold: {
-    color: colors.black,
-    fontWeight: typography.weights.heavy,
-    fontSize: 10,
-  },
-  imdbTextNormal: {
-    color: colors.black,
-    fontWeight: typography.weights.bold,
-    fontSize: 10,
+    gap: 8,
+    marginVertical: 2,
   },
   metaText: {
-    color: colors.textPrimary,
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: typography.weights.semibold,
   },
   resolutionBadge: {
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
-    paddingVertical: 1.5,
-    paddingHorizontal: 6,
+    paddingVertical: 1,
+    paddingHorizontal: 4,
   },
   resolutionText: {
-    color: colors.textPrimary,
-    fontSize: 10,
+    color: colors.textSecondary,
+    fontSize: 9,
     fontWeight: typography.weights.bold,
   },
   actions: {

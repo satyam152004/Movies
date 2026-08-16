@@ -10,7 +10,10 @@ export function formatDisplayTitle(rawTitle: string): string {
 
   let title = rawTitle.trim();
 
-  title = title.replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
+  title = title
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   const withYear = title.match(/^(.+?\(\d{4}\))/);
   if (withYear) {

@@ -41,19 +41,6 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
         )}
 
         <View style={styles.badgeRow}>
-          {item.rating ? (
-            <View style={[styles.badgeItem, styles.badgeRating]}>
-              <Icon name="star" size={8} color="#FFC107" style={styles.starIcon} />
-              <Text style={styles.badgeText}>
-                {item.rating.includes('/10') ? item.rating : `${item.rating}/10`}
-              </Text>
-            </View>
-          ) : (
-            <View style={[styles.badgeItem, styles.badgeRating]}>
-              <Icon name="star" size={8} color="#FFC107" style={styles.starIcon} />
-              <Text style={styles.badgeText}>x/10</Text>
-            </View>
-          )}
           {item.resolution === '2160p' && (
             <View style={[styles.badgeItem, styles.badge4K]}>
               <Text style={styles.badgeText}>4K</Text>
@@ -94,9 +81,6 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
                 ? '1080P'
                 : item.resolution.toUpperCase()
               : 'HD'}
-            {item.rating
-              ? ` • ★ ${item.rating.includes('/10') ? item.rating : `${item.rating}/10`}`
-              : ' • ★ x/10'}
           </Text>
         </View>
       </View>
@@ -106,9 +90,11 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.background,
-    borderRadius: radius.card,
+    backgroundColor: '#0F0F13',
+    borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   defaultWidth: {
     width: '100%',
@@ -131,51 +117,43 @@ const styles = StyleSheet.create({
     backgroundColor: colors.elevated,
   },
   fallbackIcon: {
-    fontSize: 32,
+    fontSize: 28,
   },
   badgeRow: {
     position: 'absolute',
-    top: spacing.xs,
-    left: spacing.xs,
+    top: 6,
+    left: 6,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
     zIndex: 5,
   },
   badgeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 3,
-    paddingHorizontal: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 5,
     borderRadius: 4,
-    backgroundColor: 'rgba(9, 9, 11, 0.75)',
-  },
-  starIcon: {
-    marginRight: 2,
+    backgroundColor: 'rgba(9, 9, 11, 0.8)',
   },
   badgeText: {
     color: colors.white,
     fontSize: 8,
-    fontWeight: typography.weights.heavy,
+    fontWeight: typography.weights.bold,
   },
   badge4K: {
-    backgroundColor: '#00D2D3',
+    backgroundColor: '#06B6D4',
   },
   badge1080: {
-    backgroundColor: '#00A8FF',
+    backgroundColor: '#3B82F6',
   },
   badgeDual: {
-    backgroundColor: '#2ECC71',
-  },
-  badgeRating: {
-    backgroundColor: 'rgba(9, 9, 11, 0.75)',
+    backgroundColor: '#10B981',
   },
   gradientOverlay: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: '50%',
+    height: '60%',
     zIndex: 2,
   },
   cardInfo: {
@@ -183,15 +161,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    padding: spacing.sm,
+    padding: 8,
     gap: 2,
     zIndex: 3,
   },
   cardTitle: {
-    fontSize: typography.sizes.xs,
+    fontSize: 12,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
-    lineHeight: 16,
+    lineHeight: 15,
   },
   cardSubtitle: {
     fontSize: 9,

@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio';
 import {ScraperService} from './scraper.service';
 
 const STORAGE_KEY = '@hdhub4u_discovered_url';
-const DEFAULT_URL = 'https://new3.hdhub4u.cl';
+const DEFAULT_URL = 'https://new1.hdhub4u.af/';
 const MAX_SEARCH_RANGE = 15;
 
 const ALTERNATIVE_TLDS = [

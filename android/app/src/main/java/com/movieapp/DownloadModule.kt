@@ -1,14 +1,14 @@
 package com.movieapp
 
-import android.app.DownloadManager
 import android.content.Context
-import android.database.Cursor
-import android.net.Uri
 import android.os.Environment
 import com.facebook.react.bridge.*
-import java.io.File
-import java.io.FileOutputStream
-import java.io.FileInputStream
+import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 class DownloadModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
@@ -18,69 +18,145 @@ class DownloadModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         File(reactApplicationContext.filesDir, "downloads_state.json")
     }
 
+    private val executor = Executors.newFixedThreadPool(4)
+    private val activeTasks = ConcurrentHashMap<String, DownloadTask>()
+
+    class DownloadTask(
+        val id: String,
+        val url: String,
+        val title: String,
+        val filename: String,
+        val destinationFile: File
+    ) {
+        @Volatile var bytesDownloaded: Long = 0L
+        @Volatile var bytesTotal: Long = 0L
+        @Volatile var status: String = "PENDING"
+        @Volatile var reason: Int = 0
+        
+        var future: Future<*>? = null
+        @Volatile var isPaused: Boolean = false
+        @Volatile var isCancelled: Boolean = false
+    }
+
     @ReactMethod
-    fun enqueueDownload(url: String, title: String, filename: String, promise: Promise) {
+    fun enqueueDownload(id: String, url: String, title: String, filename: String, promise: Promise) {
         try {
-            val downloadManager = reactApplicationContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            val request = DownloadManager.Request(Uri.parse(url))
-                .setTitle(title)
-                .setDescription("Downloading movie...")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setAllowedOverMetered(true)
-                .setAllowedOverRoaming(true)
-                .setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "CineApp/$filename")
-            
-            val id = downloadManager.enqueue(request)
-            promise.resolve(id.toString())
+            activeTasks[id]?.let { existingTask ->
+                existingTask.isCancelled = true
+                existingTask.future?.cancel(true)
+                activeTasks.remove(id)
+            }
+
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val cineAppDir = File(downloadsDir, "CineApp")
+            if (!cineAppDir.exists()) {
+                cineAppDir.mkdirs()
+            }
+            val destinationFile = File(cineAppDir, filename)
+
+            val task = DownloadTask(id, url, title, filename, destinationFile)
+            activeTasks[id] = task
+
+            val future = executor.submit {
+                runDownload(task)
+            }
+            task.future = future
+
+            promise.resolve(id)
         } catch (e: Exception) {
             promise.reject("ENQUEUE_ERROR", e.message, e)
         }
     }
 
-    @ReactMethod
-    fun getDownloadStatus(downloadIdStr: String, promise: Promise) {
+    private fun runDownload(task: DownloadTask) {
+        var connection: HttpURLConnection? = null
+        var inputStream: InputStream? = null
+        var outputStream: RandomAccessFile? = null
+        
         try {
-            val downloadId = downloadIdStr.toLongOrNull()
-            if (downloadId == null) {
-                promise.reject("INVALID_ID", "Download ID is invalid")
-                return
+            task.status = "RUNNING"
+            val existingLength = if (task.destinationFile.exists()) task.destinationFile.length() else 0L
+            task.bytesDownloaded = existingLength
+
+            val url = URL(task.url)
+            connection = url.openConnection() as HttpURLConnection
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+
+            var isResume = false
+            if (existingLength > 0) {
+                connection.setRequestProperty("Range", "bytes=$existingLength-")
             }
 
-            val downloadManager = reactApplicationContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            val query = DownloadManager.Query().setFilterById(downloadId)
-            val cursor: Cursor = downloadManager.query(query)
+            connection.connect()
+            val responseCode = connection.responseCode
 
-            if (cursor.moveToFirst()) {
-                val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                val bytesDownloadedIdx = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                val bytesTotalIdx = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                val reasonIdx = cursor.getColumnIndex(DownloadManager.COLUMN_REASON)
+            if (responseCode == HttpURLConnection.HTTP_PARTIAL) {
+                isResume = true
+            }
 
-                val statusVal = if (statusIdx != -1) cursor.getInt(statusIdx) else DownloadManager.STATUS_FAILED
-                val bytesDownloaded = if (bytesDownloadedIdx != -1) cursor.getLong(bytesDownloadedIdx) else 0L
-                val bytesTotal = if (bytesTotalIdx != -1) cursor.getLong(bytesTotalIdx) else 0L
-                val reasonVal = if (reasonIdx != -1) cursor.getInt(reasonIdx) else 0
+            outputStream = RandomAccessFile(task.destinationFile, "rw")
+            if (isResume) {
+                outputStream.seek(existingLength)
+                task.bytesDownloaded = existingLength
+            } else {
+                outputStream.setLength(0)
+                task.bytesDownloaded = 0L
+            }
 
-                val statusStr = when (statusVal) {
-                    DownloadManager.STATUS_PENDING -> "PENDING"
-                    DownloadManager.STATUS_RUNNING -> "RUNNING"
-                    DownloadManager.STATUS_PAUSED -> "PAUSED"
-                    DownloadManager.STATUS_SUCCESSFUL -> "SUCCESSFUL"
-                    DownloadManager.STATUS_FAILED -> "FAILED"
-                    else -> "UNKNOWN"
+            val contentLength = connection.contentLengthLong
+            if (contentLength != -1L) {
+                task.bytesTotal = if (isResume) existingLength + contentLength else contentLength
+            } else {
+                task.bytesTotal = 0L
+            }
+
+            inputStream = BufferedInputStream(connection.inputStream)
+            val buffer = ByteArray(8192)
+            var bytesRead: Int
+
+            while (true) {
+                if (task.isPaused) {
+                    task.status = "PAUSED"
+                    break
                 }
+                if (task.isCancelled) {
+                    task.status = "CANCELLED"
+                    break
+                }
+                bytesRead = inputStream.read(buffer)
+                if (bytesRead == -1) {
+                    task.status = "SUCCESSFUL"
+                    break
+                }
+                outputStream.write(buffer, 0, bytesRead)
+                task.bytesDownloaded += bytesRead
+            }
+        } catch (e: Exception) {
+            if (!task.isPaused && !task.isCancelled) {
+                task.status = "FAILED"
+                task.reason = 1
+            }
+        } finally {
+            try { inputStream?.close() } catch (e: Exception) {}
+            try { outputStream?.close() } catch (e: Exception) {}
+            try { connection?.disconnect() } catch (e: Exception) {}
+        }
+    }
 
+    @ReactMethod
+    fun getDownloadStatus(id: String, promise: Promise) {
+        try {
+            val task = activeTasks[id]
+            if (task != null) {
                 val map = Arguments.createMap().apply {
-                    putString("status", statusStr)
-                    putDouble("bytesDownloaded", bytesDownloaded.toDouble())
-                    putDouble("bytesTotal", bytesTotal.toDouble())
-                    putInt("reason", reasonVal)
+                    putString("status", task.status)
+                    putDouble("bytesDownloaded", task.bytesDownloaded.toDouble())
+                    putDouble("bytesTotal", task.bytesTotal.toDouble())
+                    putInt("reason", task.reason)
                 }
-                cursor.close()
                 promise.resolve(map)
             } else {
-                cursor.close()
                 val map = Arguments.createMap().apply {
                     putString("status", "UNKNOWN")
                     putDouble("bytesDownloaded", 0.0)
@@ -95,16 +171,38 @@ class DownloadModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    fun cancelDownload(downloadIdStr: String, promise: Promise) {
+    fun pauseDownload(id: String, promise: Promise) {
         try {
-            val downloadId = downloadIdStr.toLongOrNull()
-            if (downloadId == null) {
+            val task = activeTasks[id]
+            if (task != null) {
+                task.isPaused = true
+                task.future?.cancel(true)
+                task.status = "PAUSED"
+                promise.resolve(true)
+            } else {
                 promise.resolve(false)
-                return
             }
-            val downloadManager = reactApplicationContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            val removedCount = downloadManager.remove(downloadId)
-            promise.resolve(removedCount > 0)
+        } catch (e: Exception) {
+            promise.reject("PAUSE_ERROR", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun cancelDownload(id: String, promise: Promise) {
+        try {
+            val task = activeTasks[id]
+            if (task != null) {
+                task.isCancelled = true
+                task.future?.cancel(true)
+                task.status = "CANCELLED"
+                activeTasks.remove(id)
+            }
+            task?.destinationFile?.let { file ->
+                if (file.exists()) {
+                    file.delete()
+                }
+            }
+            promise.resolve(true)
         } catch (e: Exception) {
             promise.reject("CANCEL_ERROR", e.message, e)
         }

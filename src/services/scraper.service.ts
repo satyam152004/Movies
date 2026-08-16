@@ -56,7 +56,9 @@ export class ScraperService {
       ) => void)
     | null = null;
 
-  private cachedStackDetect: {[key: string]: {stack: string; isStatic: boolean}} = {};
+  private cachedStackDetect: {
+    [key: string]: {stack: string; isStatic: boolean};
+  } = {};
 
   private constructor() {}
 
@@ -274,11 +276,21 @@ export class ScraperService {
       this.cachedStackDetect[domain] = fallbackRes;
       return fallbackRes;
     } catch (err: any) {
+      if (!err.response) {
+        this.log(
+          `Network connectivity error during tech detection: ${err.message}. Network is unreachable.`,
+          'error',
+        );
+        throw err;
+      }
       this.log(
         `Network check failed during tech detection: ${err.message}. Defaulting to dynamic client.`,
         'warn',
       );
-      const errRes = {stack: 'Unknown / Blocked (Using WebView)', isStatic: false};
+      const errRes = {
+        stack: 'Unknown / Blocked (Using WebView)',
+        isStatic: false,
+      };
       this.cachedStackDetect[domain] = errRes;
       return errRes;
     }
@@ -434,7 +446,10 @@ export class ScraperService {
       }
     }
 
-    this.log(`Parsing catalog elements for target URL: ${targetUrl}...`, 'info');
+    this.log(
+      `Parsing catalog elements for target URL: ${targetUrl}...`,
+      'info',
+    );
     const result = parseCatalog(html, targetUrl);
     this.log(
       `Extracted ${result.items.length} items from listing page.`,
@@ -940,15 +955,20 @@ export class ScraperService {
   /**
    * Performs a live query to the Typesense movie search engine
    */
-  public async searchMovies(query: string, page = 1, signal?: AbortSignal): Promise<CatalogItem[]> {
+  public async searchMovies(
+    query: string,
+    page = 1,
+    signal?: AbortSignal,
+  ): Promise<CatalogItem[]> {
     if (!query || !query.trim()) {
       return [];
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const proxyUrl = 'https://search.pingora.fyi/collections/post/documents/search';
+    const proxyUrl =
+      'https://search.pingora.fyi/collections/post/documents/search';
 
-    let activeDomain = 'https://new3.hdhub4u.cl';
+    let activeDomain = 'https://new1.hdhub4u.af/';
     try {
       const cached = await AsyncStorage.getItem('@hdhub4u_discovered_url');
       if (cached) {
@@ -962,15 +982,18 @@ export class ScraperService {
     const origin = activeDomain.replace(/\/$/, '');
     const referer = `${origin}/`;
 
-    this.log(`Searching movies for: "${query}" (page ${page}) using domain: ${origin}...`, 'info');
+    this.log(
+      `Searching movies for: "${query}" (page ${page}) using domain: ${origin}...`,
+      'info',
+    );
 
     try {
       const response = await axios.get(proxyUrl, {
         signal,
         params: {
           q: query,
-          query_by: 'post_title,category,stars,director,imdb_id',
-          query_by_weights: '4,2,2,2,4',
+          query_by: 'post_title,category,stars,director',
+          query_by_weights: '4,2,2,2',
           sort_by: 'sort_by_date:desc',
           limit: 15,
           highlight_fields: 'none',
@@ -979,11 +1002,11 @@ export class ScraperService {
           analytics_tag: today,
         },
         headers: {
-          'Host': 'search.pingora.fyi',
-          'Origin': origin,
-          'Referer': referer,
+          Host: 'search.pingora.fyi',
+          Origin: origin,
+          Referer: referer,
           'User-Agent': USER_AGENTS[0],
-          'Accept': '*/*',
+          Accept: '*/*',
         },
         timeout: 8000,
       });
@@ -998,7 +1021,9 @@ export class ScraperService {
               'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/315px-No-Image-Placeholder.svg.png?20200912122019';
             let permalink = doc.permalink || '';
             if (permalink && !permalink.startsWith('http')) {
-              permalink = `${origin}${permalink.startsWith('/') ? '' : '/'}${permalink}`;
+              permalink = `${origin}${
+                permalink.startsWith('/') ? '' : '/'
+              }${permalink}`;
             }
             return {
               title: doc.post_title || 'Unknown Title',

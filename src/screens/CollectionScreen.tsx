@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, {useState, useMemo, useRef, useEffect} from 'react';
 import {
   StyleSheet,
   View,
@@ -14,10 +14,10 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { CatalogItem } from '../data/models';
-import { MovieCard } from '../components/cards/MovieCard';
-import { colors as themeColors, spacing as themeSpacing, radius as themeRadius } from '../theme';
-import { formatDisplayTitle } from '../utils/formatDisplayTitle';
+import {CatalogItem} from '../data/models';
+import {MovieCard} from '../components/cards/MovieCard';
+import {formatDisplayTitle} from '../utils/formatDisplayTitle';
+import {BackButton} from '../components/navigation/BackButton';
 
 interface CollectionScreenProps {
   title: string;
@@ -29,7 +29,7 @@ interface CollectionScreenProps {
 }
 
 type FilterType = 'all' | 'movies' | 'tv' | '4k' | 'dual';
-type SortType = 'popular' | 'latest' | 'rating' | 'az';
+type SortType = 'popular' | 'latest' | 'az';
 
 const colors = {
   background: '#050506',
@@ -41,7 +41,7 @@ const colors = {
   border: 'rgba(255, 255, 255, 0.06)',
 };
 
-const Shimmer: React.FC<{ style?: any }> = ({ style }) => {
+const Shimmer: React.FC<{style?: any}> = ({style}) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -57,7 +57,7 @@ const Shimmer: React.FC<{ style?: any }> = ({ style }) => {
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, []);
 
@@ -66,7 +66,9 @@ const Shimmer: React.FC<{ style?: any }> = ({ style }) => {
     outputRange: [0.25, 0.6],
   });
 
-  return <Animated.View style={[style, { opacity, backgroundColor: '#1E1E24' }]} />;
+  return (
+    <Animated.View style={[style, {opacity, backgroundColor: '#1E1E24'}]} />
+  );
 };
 
 export const CollectionScreen: React.FC<CollectionScreenProps> = ({
@@ -153,12 +155,6 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
         const yB = parseInt(b.year || '0', 10);
         return yB - yA;
       });
-    } else if (sortBy === 'rating') {
-      sorted.sort((a, b) => {
-        const rA = parseFloat(a.rating || '0');
-        const rB = parseFloat(b.rating || '0');
-        return rB - rA;
-      });
     } else if (sortBy === 'az') {
       sorted.sort((a, b) => a.title.localeCompare(b.title));
     }
@@ -166,14 +162,19 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
     return sorted;
   }, [items, search, filter, sortBy]);
 
-  const renderCard = ({ item }: { item: CatalogItem }) => (
+  const renderCard = ({item}: {item: CatalogItem}) => (
     <View style={styles.gridCardWrapper}>
       <MovieCard item={item} onPress={() => onSelectItem(item)} />
     </View>
   );
 
   const renderHeader = () => {
-    const safeAreaTop = Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24);
+    const safeAreaTop =
+      Platform.OS === 'ios'
+        ? 44
+        : StatusBar.currentHeight
+        ? StatusBar.currentHeight + 16
+        : 40;
     return (
       <Animated.View
         style={[
@@ -183,18 +184,25 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
           },
         ]}>
         <View style={styles.headerTopRow}>
-          <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.8}>
-            <Icon name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
+          <BackButton onPress={onBack} color={colors.text} />
 
           {!showSearch ? (
             <View style={styles.titleContainer}>
-              <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
-              <Text style={styles.headerSubtitle}>{filteredItems.length} Results</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {title}
+              </Text>
+              <Text style={styles.headerSubtitle}>
+                {filteredItems.length} Results
+              </Text>
             </View>
           ) : (
             <View style={styles.searchBarWrapper}>
-              <Icon name="search-outline" size={18} color={colors.secondaryText} style={styles.searchBarIcon} />
+              <Icon
+                name="search-outline"
+                size={18}
+                color={colors.secondaryText}
+                style={styles.searchBarIcon}
+              />
               <TextInput
                 style={styles.searchInput}
                 value={search}
@@ -220,32 +228,48 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
             }}
             style={styles.iconBtn}
             activeOpacity={0.8}>
-            <Icon name={showSearch ? "close" : "search-outline"} size={22} color={colors.text} />
+            <Icon
+              name={showSearch ? 'close' : 'search-outline'}
+              size={22}
+              color={colors.text}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Sticky Filters row */}
         <View style={styles.filtersWrapper}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            {(['all', 'movies', 'tv', '4k', 'dual'] as FilterType[]).map(type => (
-              <TouchableOpacity
-                key={type}
-                style={[styles.filterChip, filter === type && styles.filterChipActive]}
-                onPress={() => setFilter(type)}
-                activeOpacity={0.85}>
-                <Text style={[styles.filterChipText, filter === type && styles.filterChipTextActive]}>
-                  {type === 'all'
-                    ? 'All'
-                    : type === 'movies'
-                    ? 'Movies'
-                    : type === 'tv'
-                    ? 'TV Shows'
-                    : type === '4k'
-                    ? '4K UHD'
-                    : 'Dual Audio'}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}>
+            {(['all', 'movies', 'tv', '4k', 'dual'] as FilterType[]).map(
+              type => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.filterChip,
+                    filter === type && styles.filterChipActive,
+                  ]}
+                  onPress={() => setFilter(type)}
+                  activeOpacity={0.85}>
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      filter === type && styles.filterChipTextActive,
+                    ]}>
+                    {type === 'all'
+                      ? 'All'
+                      : type === 'movies'
+                      ? 'Movies'
+                      : type === 'tv'
+                      ? 'TV Shows'
+                      : type === '4k'
+                      ? '4K UHD'
+                      : 'Dual Audio'}
+                  </Text>
+                </TouchableOpacity>
+              ),
+            )}
           </ScrollView>
         </View>
 
@@ -256,28 +280,51 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
             style={styles.sortDropdownSelector}
             activeOpacity={0.8}>
             <Text style={styles.sortDropdownLabel}>
-              Sort: {sortBy === 'popular' ? 'Popularity' : sortBy === 'latest' ? 'Latest' : sortBy === 'rating' ? 'Rating' : 'A-Z'}
+              Sort:{' '}
+              {sortBy === 'popular'
+                ? 'Popularity'
+                : sortBy === 'latest'
+                ? 'Latest'
+                : 'A-Z'}
             </Text>
-            <Icon name="chevron-down" size={14} color={colors.secondaryText} style={styles.chevronIcon} />
+            <Icon
+              name="chevron-down"
+              size={14}
+              color={colors.secondaryText}
+              style={styles.chevronIcon}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Sort Dropdown Popup */}
         {showSortDropdown && (
           <View style={styles.sortDropdownMenu}>
-            {(['popular', 'latest', 'rating', 'az'] as SortType[]).map(sortOption => (
+            {(['popular', 'latest', 'az'] as SortType[]).map(sortOption => (
               <TouchableOpacity
                 key={sortOption}
-                style={[styles.sortOptionItem, sortBy === sortOption && styles.sortOptionItemActive]}
+                style={[
+                  styles.sortOptionItem,
+                  sortBy === sortOption && styles.sortOptionItemActive,
+                ]}
                 onPress={() => {
                   setSortBy(sortOption);
                   setShowSortDropdown(false);
                 }}
                 activeOpacity={0.85}>
-                <Text style={[styles.sortOptionText, sortBy === sortOption && styles.sortOptionTextActive]}>
-                  {sortOption === 'popular' ? 'Popularity' : sortOption === 'latest' ? 'Latest Releases' : sortOption === 'rating' ? 'Top Ratings' : 'Alphabetical (A-Z)'}
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    sortBy === sortOption && styles.sortOptionTextActive,
+                  ]}>
+                  {sortOption === 'popular'
+                    ? 'Popularity'
+                    : sortOption === 'latest'
+                    ? 'Latest Releases'
+                    : 'Alphabetical (A-Z)'}
                 </Text>
-                {sortBy === sortOption && <Icon name="checkmark" size={16} color={colors.primary} />}
+                {sortBy === sortOption && (
+                  <Icon name="checkmark" size={16} color={colors.primary} />
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -308,14 +355,20 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent={true}
+      />
       {renderHeader()}
 
       {filteredItems.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Icon name="film-outline" size={54} color={colors.secondaryText} />
           <Text style={styles.emptyTitle}>No matching results</Text>
-          <Text style={styles.emptySubtitle}>Try adjusting your search queries or filter categories.</Text>
+          <Text style={styles.emptySubtitle}>
+            Try adjusting your search queries or filter categories.
+          </Text>
         </View>
       ) : (
         <Animated.FlatList
@@ -326,12 +379,12 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
           columnWrapperStyle={styles.gridRowWrapper}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: Platform.OS === 'ios' ? 240 : 220 }
+            {paddingTop: Platform.OS === 'ios' ? 240 : 236},
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
+            [{nativeEvent: {contentOffset: {y: scrollY}}}],
+            {useNativeDriver: true},
           )}
           onEndReached={onLoadMore}
           onEndReachedThreshold={0.5}
@@ -362,17 +415,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: 'space-between',
   },
-  backBtn: {
-    padding: 6,
-    marginRight: 10,
-  },
+
   titleContainer: {
     flex: 1,
   },
   headerTitle: {
     color: colors.text,
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '700',
   },
   headerSubtitle: {
     color: colors.secondaryText,
@@ -466,7 +516,7 @@ const styles = StyleSheet.create({
     padding: 6,
     elevation: 8,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: {width: 0, height: 6},
     shadowOpacity: 0.35,
     shadowRadius: 12,
   },

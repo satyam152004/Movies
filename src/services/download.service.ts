@@ -162,9 +162,11 @@ export class DownloadService {
       finalUrl = 'https:' + finalUrl;
     }
 
-    // 4. Trigger native enqueue
+    // 4. Trigger native enqueue with persistent ID
+    const id = Date.now().toString() + '_' + Math.floor(Math.random() * 1000).toString();
     try {
-      const id = await DownloadModule.enqueueDownload(
+      await DownloadModule.enqueueDownload(
+        id,
         finalUrl,
         movieTitle,
         fileName,
@@ -206,14 +208,12 @@ export class DownloadService {
 
     this.scraper.log(`Pausing download: "${record.movieTitle}"`, 'info');
     try {
-      // System DownloadManager doesn't pause programmatically, so we cancel the system task
-      // and keep the current progress state in JS to support resuming.
-      await DownloadModule.cancelDownload(id);
+      await DownloadModule.pauseDownload(id);
       record.status = 'paused';
       record.downloadSpeed = '0.0 MB/s';
       record.eta = 'Paused';
       record.logs.unshift(
-        `[${new Date().toLocaleTimeString()}] Download paused (system task removed, tracking progress for resume)`,
+        `[${new Date().toLocaleTimeString()}] Download paused (keeping partial file and task record)`,
       );
 
       await this.persist();
@@ -240,18 +240,17 @@ export class DownloadService {
     const actionText = record.status === 'paused' ? 'Resuming' : 'Retrying';
     this.scraper.log(`${actionText} download: "${record.movieTitle}"`, 'info');
     try {
-      // Re-enqueue the download URL
-      const newId = await DownloadModule.enqueueDownload(
+      await DownloadModule.enqueueDownload(
+        record.id,
         record.downloadUrl,
         record.movieTitle,
         record.fileName,
       );
-      record.id = newId;
       record.status = 'pending';
       record.lastBytesDownloaded = 0;
       record.lastUpdated = Date.now();
       record.logs.unshift(
-        `[${new Date().toLocaleTimeString()}] ${actionText} download. New system task enqueued (ID: ${newId})`,
+        `[${new Date().toLocaleTimeString()}] ${actionText} download. Resumed task (ID: ${record.id})`,
       );
 
       await this.persist();
@@ -327,7 +326,7 @@ export class DownloadService {
 
       try {
         const nativeStatus = await DownloadModule.getDownloadStatus(record.id);
-        
+
         // Anti-race condition check: verify if the record was paused, cancelled, completed,
         // or deleted during the asynchronous native status call.
         const currentRecord = this.downloads.find(d => d.id === record.id);
@@ -355,6 +354,9 @@ export class DownloadService {
 
           // Calculate speed
           if (timeDiffSec > 0.5) {
+            if (record.lastBytesDownloaded === 0 || record.lastBytesDownloaded > currentBytes) {
+              record.lastBytesDownloaded = currentBytes;
+            }
             const bytesDiff = Math.max(
               0,
               currentBytes - record.lastBytesDownloaded,

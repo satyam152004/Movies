@@ -1,4 +1,4 @@
-import { CatalogItem, MovieDetail, MediaCategory } from '../models';
+import {CatalogItem, MovieDetail, MediaCategory} from '../models';
 
 export interface SearchPage {
   items: CatalogItem[];
@@ -10,7 +10,7 @@ export interface MediaRepository {
   search(
     query: string,
     page?: number,
-    options?: { signal?: AbortSignal },
+    options?: {signal?: AbortSignal},
   ): Promise<SearchPage>;
   getTrending(): Promise<CatalogItem[]>;
   getLatest(): Promise<CatalogItem[]>;

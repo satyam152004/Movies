@@ -61,15 +61,6 @@ export function parseCatalog(
       // Extract HEVC codec status
       const isHEVC = /hevc|x265|10bit/i.test(title);
 
-      // Extract rating from badge/imdb classes if present
-      let rating = $el
-        .find('.imdb, .rating, [class*="rating"], [class*="imdb"]')
-        .text()
-        .trim();
-      if (rating) {
-        rating = rating.replace(/imdb|★|⭐|\/10/gi, '').trim();
-      }
-
       items.push({
         title,
         url,
@@ -78,7 +69,6 @@ export function parseCatalog(
         resolution,
         isDualAudio,
         isHEVC,
-        rating: rating || undefined,
       });
     }
   });

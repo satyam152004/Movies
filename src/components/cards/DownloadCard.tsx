@@ -1,17 +1,34 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  Image,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import {DownloadTask, DownloadStatus} from '../../data/models';
-import {colors, radius, spacing, typography} from '../../theme';
+import {DownloadStatus} from '../../data/models';
+import {colors, typography} from '../../theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+interface DownloadTaskWithDetails {
+  id: string;
+  movieTitle: string;
+  fileSize: string;
+  downloadUrl: string;
+  progress: number;
+  status: DownloadStatus;
+  downloadSpeed: string;
+  downloadedSize: string;
+  eta: string;
+  logs: string[];
+  imageUrl?: string;
+  resolution: string;
+}
+
 interface DownloadCardProps {
-  task: DownloadTask;
+  task: DownloadTaskWithDetails;
   onPause: () => void;
   onResume: () => void;
   onCancel: () => void;
@@ -29,193 +46,306 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
   onToggleLogs,
   isLogsExpanded,
 }) => {
-  const getStatusColor = (status: DownloadStatus) => {
-    switch (status) {
+  const [showMenu, setShowMenu] = useState(false);
+
+  const getStatusLabel = () => {
+    switch (task.status) {
+      case 'completed':
+        return 'Completed';
+      case 'paused':
+        return 'Paused';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'failed':
+        return 'Failed';
+      case 'pending':
+        return 'Queued';
+      case 'downloading':
+        return 'Downloading';
+      default:
+        return 'Pending';
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (task.status) {
       case 'completed':
         return colors.success;
       case 'paused':
         return colors.warning;
-      case 'cancelled':
-        return colors.textMuted;
       case 'failed':
+      case 'cancelled':
         return colors.danger;
       case 'pending':
-        return colors.primary;
-      default:
         return colors.secondary;
+      default:
+        return colors.primary;
     }
   };
 
-  const getStatusBadgeStyle = (status: DownloadStatus) => {
-    switch (status) {
-      case 'completed':
-        return styles.badgeCompleted;
-      case 'paused':
-        return styles.badgePaused;
-      case 'cancelled':
-        return styles.badgeCancelled;
-      case 'failed':
-        return styles.badgeFailed;
-      case 'pending':
-        return styles.badgePending;
-      default:
-        return styles.badgeDownloading;
-    }
-  };
+  const statusColor = getStatusColor();
 
   return (
     <View style={styles.card}>
-      {/* File Details */}
-      <View style={styles.fileRow}>
-        <Icon name="film-outline" size={24} color={colors.primary} style={{marginRight: 6}} />
-        <View style={styles.fileInfo}>
-          <Text style={styles.fileName} numberOfLines={2}>
-            {task.movieTitle}
-          </Text>
-          <Text style={styles.fileSizeText}>
-            Size: <Text style={styles.highlightText}>{task.fileSize}</Text>
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.deleteRecordBtn}
-          onPress={onRemove}
-          activeOpacity={0.7}>
-          <Icon name="trash-outline" size={18} color={colors.danger} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Progress Header */}
-      <View style={styles.progressHeader}>
-        <Text style={styles.percentText}>{task.progress.toFixed(1)}%</Text>
-        <View style={[styles.statusBadge, getStatusBadgeStyle(task.status)]}>
-          <Text
-            style={[
-              styles.statusBadgeText,
-              {color: getStatusColor(task.status)},
-            ]}>
-            {task.status.toUpperCase()}
-          </Text>
-        </View>
-      </View>
-
-      {/* Progress Bar */}
-      <View style={styles.barContainer}>
-        <View
-          style={[
-            styles.barFiller,
-            {
-              width: `${task.progress}%`,
-              backgroundColor:
-                task.status === 'completed' ? colors.success : colors.primary,
-            },
-          ]}
-        />
-      </View>
-
-      {/* Metrics Row */}
-      {task.status === 'downloading' && (
-        <View style={styles.metricsRow}>
-          <View style={styles.metricItem}>
-            <Text style={styles.metricLabel}>SPEED</Text>
-            <Text style={styles.metricValue}>{task.downloadSpeed}</Text>
-          </View>
-          <View style={styles.metricDivider} />
-          <View style={styles.metricItem}>
-            <Text style={styles.metricLabel}>DOWNLOADED</Text>
-            <Text style={styles.metricValue}>{task.downloadedSize}</Text>
-          </View>
-          <View style={styles.metricDivider} />
-          <View style={styles.metricItem}>
-            <Text style={styles.metricLabel}>ETA</Text>
-            <Text style={styles.metricValue}>{task.eta}</Text>
-          </View>
-        </View>
-      )}
-
-      {/* Control Actions Row */}
-      <View style={styles.controlsRow}>
-        <View style={styles.actionButtons}>
-          {task.status === 'downloading' || task.status === 'pending' ? (
-            <>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.pauseBtn]}
-                onPress={onPause}
-                activeOpacity={0.8}>
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                  <Icon name="pause" size={14} color={colors.warning} />
-                  <Text style={styles.actionBtnText}>Pause</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.cancelBtn]}
-                onPress={onCancel}
-                activeOpacity={0.8}>
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                  <Icon name="close" size={14} color={colors.danger} />
-                  <Text style={styles.actionBtnText}>Cancel</Text>
-                </View>
-              </TouchableOpacity>
-            </>
-          ) : task.status === 'paused' ? (
-            <>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.resumeBtn]}
-                onPress={onResume}
-                activeOpacity={0.8}>
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                  <Icon name="play" size={14} color={colors.success} />
-                  <Text style={styles.actionBtnText}>Resume</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.cancelBtn]}
-                onPress={onCancel}
-                activeOpacity={0.8}>
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                  <Icon name="close" size={14} color={colors.danger} />
-                  <Text style={styles.actionBtnText}>Cancel</Text>
-                </View>
-              </TouchableOpacity>
-            </>
-          ) : task.status === 'failed' || task.status === 'cancelled' ? (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.retryBtn]}
-              onPress={onResume}
-              activeOpacity={0.8}>
-              <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                <Icon name="refresh" size={14} color={colors.primary} />
-                <Text style={styles.actionBtnText}>Retry Task</Text>
-              </View>
-            </TouchableOpacity>
+      <View style={styles.cardMain}>
+        {/* Poster image (2:3 aspect ratio) */}
+        <View style={styles.posterWrapper}>
+          {task.imageUrl ? (
+            <Image
+              source={{uri: task.imageUrl}}
+              style={styles.poster}
+              resizeMode="cover"
+            />
           ) : (
-            <View style={styles.completedPlaceholder}>
-              <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                <Icon name="checkmark-done" size={14} color={colors.success} />
-                <Text style={styles.completedText}>Saved Successfully</Text>
-              </View>
+            <View style={styles.posterPlaceholder}>
+              <Icon name="film-outline" size={24} color={colors.textMuted} />
             </View>
           )}
         </View>
 
-        <TouchableOpacity
-          style={styles.toggleLogBtn}
-          onPress={onToggleLogs}
-          activeOpacity={0.7}>
-          <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-            <Icon name={isLogsExpanded ? 'chevron-down' : 'chevron-up'} size={12} color={colors.textSecondary} />
-            <Text style={styles.toggleLogBtnText}>LOGS</Text>
+        {/* Title, Details, Actions */}
+        <View style={styles.detailsContainer}>
+          <View style={styles.titleRow}>
+            <Text
+              style={styles.movieTitle}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {task.movieTitle}
+            </Text>
+            <View style={styles.statusAndMenuRow}>
+              <View style={[styles.statusBadge, { backgroundColor: `${statusColor}1A` }]}>
+                <Text style={[styles.statusBadgeText, { color: statusColor }]}>
+                  {getStatusLabel()}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowMenu(!showMenu)}
+                activeOpacity={0.7}
+                style={styles.moreBtn}
+                hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                accessibilityLabel="More options"
+                accessibilityRole="button">
+                <Icon
+                  name="ellipsis-vertical"
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableOpacity>
+
+          <Text style={styles.metaText}>
+            {task.resolution} • {task.fileSize}
+          </Text>
+
+          {/* Render state-specific details */}
+          <View style={styles.progressAndButtonsRow}>
+            <View style={styles.progressColumn}>
+              {task.status === 'downloading' && (
+                <>
+                  <Text style={[styles.percentText, { color: colors.primary }]}>
+                    {Math.floor(task.progress)}%
+                  </Text>
+                  <View style={styles.progressBarBg}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          width: `${task.progress}%`,
+                          backgroundColor: colors.primary,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {task.downloadedSize} / {task.fileSize} • {task.eta || 'calculating...'}
+                  </Text>
+                </>
+              )}
+
+              {task.status === 'paused' && (
+                <>
+                  <Text style={[styles.percentText, { color: colors.warning }]}>
+                    {Math.floor(task.progress)}% (Paused)
+                  </Text>
+                  <View style={styles.progressBarBg}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          width: `${task.progress}%`,
+                          backgroundColor: colors.warning,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {task.downloadedSize} / {task.fileSize}
+                  </Text>
+                </>
+              )}
+
+              {task.status === 'pending' && (
+                <>
+                  <Text style={[styles.percentText, { color: colors.secondary }]}>
+                    Queued...
+                  </Text>
+                  <View style={styles.progressBarBg}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          width: '0%',
+                          backgroundColor: colors.secondary,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressText}>Preparing download</Text>
+                </>
+              )}
+
+              {task.status === 'completed' && (
+                <View style={styles.completedStatusWrapper}>
+                  <Icon name="checkmark-circle" size={16} color={colors.success} />
+                  <Text style={styles.completedStatusText}>Downloaded successfully</Text>
+                </View>
+              )}
+
+              {(task.status === 'failed' || task.status === 'cancelled') && (
+                <View style={styles.completedStatusWrapper}>
+                  <Icon name="alert-circle" size={16} color={colors.danger} />
+                  <Text style={[styles.completedStatusText, { color: colors.danger }]}>
+                    Download {task.status}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Circular buttons aligned horizontally on the right side */}
+            <View style={styles.actionButtons}>
+              {task.status === 'downloading' && (
+                <>
+                  <TouchableOpacity
+                    onPress={onPause}
+                    style={[styles.circleButton, { borderColor: `${colors.primary}40` }]}
+                    accessibilityLabel="Pause download"
+                    accessibilityRole="button">
+                    <Icon name="pause" size={16} color={colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={onCancel}
+                    style={[styles.circleButton, { borderColor: `${colors.primary}40` }]}
+                    accessibilityLabel="Cancel download"
+                    accessibilityRole="button">
+                    <Icon name="close" size={16} color={colors.primary} />
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {task.status === 'paused' && (
+                <>
+                  <TouchableOpacity
+                    onPress={onResume}
+                    style={[styles.circleButton, { borderColor: `${colors.warning}40` }]}
+                    accessibilityLabel="Resume download"
+                    accessibilityRole="button">
+                    <Icon name="play" size={16} color={colors.warning} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={onCancel}
+                    style={[styles.circleButton, { borderColor: `${colors.warning}40` }]}
+                    accessibilityLabel="Cancel download"
+                    accessibilityRole="button">
+                    <Icon name="close" size={16} color={colors.warning} />
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {task.status === 'pending' && (
+                <TouchableOpacity
+                  onPress={onCancel}
+                  style={[styles.circleButton, { borderColor: `${colors.secondary}40` }]}
+                  accessibilityLabel="Cancel download"
+                  accessibilityRole="button">
+                  <Icon name="close" size={16} color={colors.secondary} />
+                </TouchableOpacity>
+              )}
+
+              {task.status === 'completed' && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.circleButton, { borderColor: `${colors.success}40` }]}
+                    accessibilityLabel="Play download"
+                    accessibilityRole="button">
+                    <Icon name="play" size={16} color={colors.success} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={onRemove}
+                    style={[styles.circleButton, { borderColor: `${colors.danger}40` }]}
+                    accessibilityLabel="Delete download"
+                    accessibilityRole="button">
+                    <Icon name="trash-outline" size={16} color={colors.danger} />
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {(task.status === 'failed' || task.status === 'cancelled') && (
+                <>
+                  <TouchableOpacity
+                    onPress={onResume}
+                    style={[styles.circleButton, { borderColor: `${colors.primary}40` }]}
+                    accessibilityLabel="Retry download"
+                    accessibilityRole="button">
+                    <Icon name="refresh" size={16} color={colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={onRemove}
+                    style={[styles.circleButton, { borderColor: `${colors.danger}40` }]}
+                    accessibilityLabel="Delete download"
+                    accessibilityRole="button">
+                    <Icon name="trash-outline" size={16} color={colors.danger} />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
       </View>
 
-      {/* Logs Scroll */}
+      {/* Overflow Menu Modal Overlay */}
+      {showMenu && (
+        <View style={styles.menuOverlay}>
+          <TouchableOpacity
+            onPress={() => {
+              setShowMenu(false);
+              onRemove();
+            }}
+            style={styles.menuItem}
+            accessibilityLabel="Delete download"
+            accessibilityRole="button">
+            <Icon name="trash-outline" size={16} color={colors.danger} />
+            <Text style={[styles.menuItemText, {color: colors.danger}]}>
+              Delete Download
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setShowMenu(false)}
+            style={styles.menuItemClose}
+            accessibilityLabel="Cancel menu"
+            accessibilityRole="button">
+            <Text style={styles.menuItemCloseText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Collapsible Scraper Logs */}
       {isLogsExpanded && (
         <View style={styles.logsBox}>
+          <Text style={styles.logsTitle}>Scraper Debug Logs</Text>
           <ScrollView nestedScrollEnabled style={styles.logsScroll}>
             {task.logs.map((log, idx) => (
-              <Text
-                key={idx}
-                style={[styles.logRow, {color: colors.textSecondary}]}>
+              <Text key={idx} style={styles.logRow}>
                 {log}
               </Text>
             ))}
@@ -228,195 +358,185 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#121214',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.card,
-    padding: spacing.md,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+    padding: 12,
+    position: 'relative',
+  },
+  cardMain: {
+    flexDirection: 'row',
     gap: 12,
   },
-  fileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  fileIcon: {
-    fontSize: 22,
-  },
-  fileInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  fileName: {
-    color: colors.textPrimary,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.bold,
-    lineHeight: 18,
-  },
-  fileSizeText: {
-    color: colors.textSecondary,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-  },
-  highlightText: {
-    color: colors.primary,
-    fontWeight: typography.weights.bold,
-  },
-  deleteRecordBtn: {
-    padding: 6,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-  },
-  deleteRecordIcon: {
-    fontSize: 14,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  percentText: {
-    color: colors.textPrimary,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.heavy,
-  },
-  statusBadge: {
+  posterWrapper: {
+    width: 76,
+    height: 114,
     borderRadius: 8,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-  },
-  statusBadgeText: {
-    fontSize: 9,
-    fontWeight: typography.weights.bold,
-    letterSpacing: 0.5,
-  },
-  badgeDownloading: {
-    backgroundColor: 'rgba(6, 182, 212, 0.1)',
-  },
-  badgeCompleted: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-  },
-  badgePaused: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-  },
-  badgeCancelled: {
-    backgroundColor: 'rgba(148, 163, 184, 0.1)',
-  },
-  badgeFailed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-  },
-  badgePending: {
-    backgroundColor: 'rgba(144, 97, 249, 0.1)',
-  },
-  barContainer: {
-    height: 8,
-    backgroundColor: colors.elevated,
-    borderRadius: 4,
+    backgroundColor: '#101014',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  barFiller: {
+  poster: {
+    width: '100%',
     height: '100%',
   },
-  metricsRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.elevated,
-    padding: 10,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  metricItem: {
-    alignItems: 'center',
+  posterPlaceholder: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  metricLabel: {
-    color: colors.textMuted,
-    fontSize: 8,
-    fontWeight: typography.weights.heavy,
-    letterSpacing: 0.5,
-    marginBottom: 4,
+  detailsContainer: {
+    flex: 1,
+    justifyContent: 'space-between',
   },
-  metricValue: {
-    color: colors.textPrimary,
-    fontSize: 11,
-    fontWeight: typography.weights.bold,
-  },
-  metricDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: colors.border,
-  },
-  controlsRow: {
+  titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  movieTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: typography.weights.bold,
+    flex: 1,
+    marginRight: 8,
+  },
+  statusAndMenuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: typography.weights.bold,
+  },
+  moreBtn: {
+    padding: 4,
+  },
+  metaText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  progressAndButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressColumn: {
+    flex: 1,
+    marginRight: 12,
+  },
+  percentText: {
+    fontSize: 13,
+    fontWeight: typography.weights.bold,
+    marginBottom: 4,
+  },
+  progressBarBg: {
+    height: 5,
+    backgroundColor: '#1E1E24',
+    borderRadius: 2.5,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 2.5,
+  },
+  progressText: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  completedStatusWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  completedStatusText: {
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: typography.weights.semibold,
   },
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
-    flex: 1,
-  },
-  actionBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radius.sm,
-    justifyContent: 'center',
     alignItems: 'center',
   },
-  actionBtnText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: typography.weights.heavy,
-  },
-  pauseBtn: {
-    backgroundColor: colors.warning,
-  },
-  resumeBtn: {
-    backgroundColor: colors.success,
-  },
-  cancelBtn: {
-    backgroundColor: colors.danger,
-  },
-  retryBtn: {
-    backgroundColor: colors.primary,
-  },
-  completedPlaceholder: {
+  circleButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
-  completedText: {
-    color: colors.success,
-    fontSize: 11,
-    fontWeight: typography.weights.heavy,
+  menuOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    gap: 12,
+    zIndex: 10,
   },
-  toggleLogBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
   },
-  toggleLogBtnText: {
-    color: colors.primary,
-    fontSize: 10,
-    fontWeight: typography.weights.heavy,
-    letterSpacing: 0.5,
+  menuItemText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: typography.weights.bold,
+  },
+  menuItemClose: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: 4,
+  },
+  menuItemCloseText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: typography.weights.bold,
   },
   logsBox: {
+    marginTop: 10,
     backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 10,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: 10,
-    maxHeight: 130,
+  },
+  logsTitle: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: typography.weights.bold,
+    marginBottom: 6,
+    textTransform: 'uppercase',
   },
   logsScroll: {
-    maxHeight: 110,
+    maxHeight: 90,
   },
   logRow: {
     fontSize: 9,
+    color: colors.textSecondary,
     fontFamily: 'monospace',
     lineHeight: 14,
-    marginBottom: 3,
+    marginBottom: 2,
   },
 });

@@ -53,9 +53,21 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
     if (match && match[1]) {
       let val = match[1];
       const stopWords = [
-        'iMDB Rating:', 'iMDB:', 'Genre:', 'Genres:', 'Stars:', 'Cast:',
-        'Director:', 'Language:', 'Languages:', 'Quality:', 'Screen-Shots:',
-        'Screen-Shot:', 'Storyline:', 'Synopsis:', 'Screen-S'
+        'iMDB Rating:',
+        'iMDB:',
+        'Genre:',
+        'Genres:',
+        'Stars:',
+        'Cast:',
+        'Director:',
+        'Language:',
+        'Languages:',
+        'Quality:',
+        'Screen-Shots:',
+        'Screen-Shot:',
+        'Storyline:',
+        'Synopsis:',
+        'Screen-S',
       ];
       for (const word of stopWords) {
         const index = val.toLowerCase().indexOf(word.toLowerCase());
@@ -68,13 +80,6 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
     return '';
   };
 
-  // 5. Spec Row Extractions
-  // Match "iMDB Rating: 8.0/10" or "iMDB: 8.0"
-  let imdbRating =
-    extractSpec(/iMDB\s*Rating\s*:\s*([^\n]+)/i) ||
-    extractSpec(/iMDB\s*:\s*([^\n]+)/i) ||
-    '';
-
   // Genres
   const genresStr = extractSpec(/Genre\s*s?\s*:\s*([^\n]+)/i);
   const genres = genresStr
@@ -86,8 +91,7 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
 
   // Stars
   const starsStr =
-    extractSpec(/Stars\s*:\s*([^\n]+)/i) ||
-    extractSpec(/Cast\s*:\s*([^\n]+)/i);
+    extractSpec(/Stars\s*:\s*([^\n]+)/i) || extractSpec(/Cast\s*:\s*([^\n]+)/i);
   const stars = starsStr
     ? starsStr
         .split(/[,|]/)
@@ -119,6 +123,13 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
         return false; // break loop
       }
     });
+  }
+
+  if (storyline) {
+    storyline = sanitizeStoryline(storyline);
+    if (!isValidStoryline(storyline, title)) {
+      storyline = '';
+    }
   }
 
   // 7. Screenshots
@@ -208,7 +219,6 @@ export function parseMovieDetail(html: string, pageUrl: string): MovieDetail {
     date,
     imageUrl,
     categories,
-    imdbRating: imdbRating || undefined,
     genres,
     stars,
     director: director || undefined,
@@ -429,4 +439,95 @@ export function parseDirectFileHost(
   }
 
   return directLink;
+}
+/**
+ * Sanitizes scraped movie storylines to remove typical SEO/download-related link spam and boilerplate
+ */
+export function sanitizeStoryline(text: string): string {
+  if (!text) {
+    return '';
+  }
+  let clean = text;
+
+  // 1. Remove leading scraper/SEO technical repeats at the start of the storyline.
+  // Example: "Euphoria (2026) Hindi Dubbed 720p HDRip..."
+  // Clean if there's a clear separator (colon, dash, or double dash) after the tech specs:
+  const separatorMatch = clean.match(
+    /^[A-Za-z0-9\s()\-–—|&:.,]*?\b(?:Hindi|English|Dual|Multi|Dubbed|Lauched|Download|\d{3,4}p|HDRip|Web-DL|BluRay|HQ|HEVC|x264|x265|Full\s+Movie)\b.*?\s*[:–—\-]+\s*(.+)$/i,
+  );
+  if (separatorMatch) {
+    clean = separatorMatch[1];
+  } else {
+    // If no clean separator, strip known patterns from the beginning
+    clean = clean.replace(
+      /^[A-Za-z0-9\s\-–—|()]+?\b(?:Hindi|English|Dual|Multi|Dubbed|Lauched|Download|\d{3,4}p|HDRip|Web-DL|BluRay|HQ|HEVC|x264|x265|Full\s+Movie)\b.*?(?:\.|\b(?:is\s+a\s+|story\s+of\s+|about\s+a\s+|follows\s+a\s+|revolves\s+around\s+))\s*/i,
+      match => {
+        const keepMatch = match.match(
+          /\b(?:is\s+a\s+|story\s+of\s+|about\s+a\s+|follows\s+a\s+|revolves\s+around\s+)\s*$/i,
+        );
+        return keepMatch ? keepMatch[0] : '';
+      },
+    );
+  }
+
+  // 2. Remove trailing SEO / link spam / download prompts at the end of the storyline.
+  const spamPattern =
+    /(?:\.?\s*\b(?:Download|Watch\s+Online|How\s+to\s+Download|Click\s+Here|Direct\s+Link|Join\s+Telegram|Join\s+WhatsApp|Screenshots|Screen-Shots|Link\s*:\s*|Free\s+Download|Full\s+Movie\s+Download|HDTC\s+Full\s+Movie|Hindi\s+Dubbed|\d{3,4}p|HDRip|Web-DL|BluRay|HQ|HEVC|x264|x265)\b.+)$/i;
+  clean = clean.replace(spamPattern, '');
+
+  clean = clean.replace(/\s+/g, ' ').trim();
+
+  // Clean trailing punctuation or ellipses if possible, and ensure it ends naturally
+  clean = clean.replace(/[-–—|&:.,\s\s\.]*$/g, '').trim();
+
+  // If it doesn't end with a sentence ender, let's put a period if it looks like a complete-ish sentence,
+  // but only if it's not empty.
+  if (
+    clean &&
+    !clean.endsWith('.') &&
+    !clean.endsWith('?') &&
+    !clean.endsWith('!')
+  ) {
+    clean += '.';
+  }
+
+  return clean;
+}
+
+/**
+ * Validates if the text is a valid movie synopsis rather than review/opinion or SEO link farm text
+ */
+export function isValidStoryline(text: string, _movieTitle?: string): boolean {
+  if (!text || text.trim().length < 15) {
+    return false;
+  }
+
+  const lower = text.toLowerCase();
+
+  // Review, rating, download, or comment block indicators
+  const blacklist = [
+    'must watch',
+    'so good',
+    'i liked',
+    'i loved',
+    'overall the movie',
+    'watch online',
+    'download now',
+    'free download',
+    'full movie download',
+    'click here to',
+    'my rating',
+    'my review',
+    'movie review',
+    'parenting is so important',
+    'good movie',
+  ];
+
+  for (const word of blacklist) {
+    if (lower.includes(word)) {
+      return false;
+    }
+  }
+
+  return true;
 }

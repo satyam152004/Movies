@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Platform,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import {CatalogItem} from '../data/models';
 import {colors, spacing, typography} from '../theme';
@@ -25,20 +26,20 @@ export interface CategoryFilter {
 }
 
 const CATEGORIES: CategoryFilter[] = [
-  { label: 'All', path: null },
-  { label: 'Bollywood', path: 'category/bollywood-movies/' },
-  { label: 'Hollywood', path: 'category/hollywood-movies/' },
-  { label: 'Hindi Dubbed', path: 'category/hindi-dubbed/' },
-  { label: 'South Hindi', path: 'category/south-hindi-movies/' },
-  { label: 'Web Series', path: 'category/web-series/' },
-  { label: '18+', path: 'category/adult/' },
-  { label: 'Action', path: 'category/action-movies/' },
-  { label: 'Adventure', path: 'category/adventure/' },
-  { label: 'Animation', path: 'category/animated-movies/' },
-  { label: 'Comedy', path: 'category/comedy-movies/' },
-  { label: 'Horror', path: 'category/horror-movies/' },
-  { label: 'Sci-Fi', path: 'category/sci-fi/' },
-  { label: 'Thriller', path: 'category/thriller/' },
+  {label: 'All', path: null},
+  {label: 'Bollywood', path: 'category/bollywood-movies/'},
+  {label: 'Hollywood', path: 'category/hollywood-movies/'},
+  {label: 'Hindi Dubbed', path: 'category/hindi-dubbed/'},
+  {label: 'South Hindi', path: 'category/south-hindi-movies/'},
+  {label: 'Web Series', path: 'category/web-series/'},
+  {label: '18+', path: 'category/adult/'},
+  {label: 'Action', path: 'category/action-movies/'},
+  {label: 'Adventure', path: 'category/adventure/'},
+  {label: 'Animation', path: 'category/animated-movies/'},
+  {label: 'Comedy', path: 'category/comedy-movies/'},
+  {label: 'Horror', path: 'category/horror-movies/'},
+  {label: 'Sci-Fi', path: 'category/sci-fi/'},
+  {label: 'Thriller', path: 'category/thriller/'},
 ];
 
 interface HomeScreenProps {
@@ -182,8 +183,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     );
   }
 
-  const headerHeight = Platform.OS === 'ios' ? 100 : (StatusBar.currentHeight || 24) + 56;
-  const bannerHeight = 550;
+  const headerHeight =
+    Platform.OS === 'ios' ? 100 : (StatusBar.currentHeight || 24) + 56;
+  const bannerHeight = Math.min(
+    Math.max(Dimensions.get('window').height * 0.46, 360),
+    460,
+  );
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -192,139 +197,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <HeroBanner
             title={formatDisplayTitle(featuredMovie.title)}
             imageUrl={featuredMovie.imageUrl}
-            rating={featuredMovie.rating}
             year={featuredMovie.year}
             resolution={featuredMovie.resolution}
             isDualAudio={featuredMovie.isDualAudio}
             onPlayPress={() => onSelectItem(featuredMovie)}
             onInfoPress={() => onSelectItem(featuredMovie)}
             isWatchlisted={isFeaturedWatchlisted}
-            onWatchlistPress={onToggleWatchlist ? () => onToggleWatchlist(featuredMovie) : undefined}
+            onWatchlistPress={
+              onToggleWatchlist
+                ? () => onToggleWatchlist(featuredMovie)
+                : undefined
+            }
           />
         </View>
       )}
 
-      {/* Spacer/Placeholder for category chips so they don't cover content when sticky */}
-      <View style={[
-        styles.filterBarPlaceholder,
-        selectedCategory ? { height: headerHeight + 60 } : null
-      ]} />
-
-      <View style={styles.content}>
-        {!selectedCategory && sections.map(section => (
-          <View key={section.id} style={styles.section}>
-            <SectionHeader
-              title={section.title}
-              seeAllText="View All"
-              onPressSeeAll={() => onViewAllPress?.(section.title, section.data, section.id)}
-            />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScroll}>
-              {section.data.map(item => (
-                <MovieCard
-                  key={item.url}
-                  item={item}
-                  onPress={() => onSelectItem(item)}
-                  width={130}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        ))}
-
-        <View style={styles.sectionHeaderSpacing}>
-          <SectionHeader
-            title={
-              selectedCategory
-                ? CATEGORIES.find(c => c.path === selectedCategory)?.label + ' Catalog'
-                : 'Latest Releases'
-            }
-          />
-        </View>
-      </View>
-    </View>
-  );
-
-  const renderFooter = () => {
-    if (!isLoadingMore) {
-      return <View style={styles.footerSpacing} />;
-    }
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading more movies...</Text>
-      </View>
-    );
-  };
-
-  // Animated Transitions
-  const headerBgOpacity = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
-  const headerBorderOpacity = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
-  const stickyTop = selectedCategory ? headerHeight : bannerHeight;
-  const categoryTranslateY = selectedCategory
-    ? 0
-    : scrollY.interpolate({
-        inputRange: [0, bannerHeight - headerHeight],
-        outputRange: [0, -(bannerHeight - headerHeight)],
-        extrapolateRight: 'clamp',
-      });
-
-  const categoryBgOpacity = selectedCategory
-    ? 1
-    : scrollY.interpolate({
-        inputRange: [bannerHeight - headerHeight - 40, bannerHeight - headerHeight],
-        outputRange: [0, 1],
-        extrapolate: 'clamp',
-      });
-
-  return (
-    <View style={styles.container}>
-      <Animated.FlatList
-        style={styles.container}
-        data={items}
-        keyExtractor={(item, index) => `${item.url}-${index}`}
-        renderItem={({item}) => (
-          <View style={styles.gridCardWrapper}>
-            <MovieCard item={item} onPress={() => onSelectItem(item)} />
-          </View>
-        )}
-        numColumns={2}
-        columnWrapperStyle={styles.gridRowWrapper}
-        contentContainerStyle={styles.gridListContent}
-        ListHeaderComponent={renderHeader}
-        ListFooterComponent={renderFooter}
-        onEndReached={onLoadMore}
-        onEndReachedThreshold={3.0}
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{nativeEvent: {contentOffset: {y: scrollY}}}],
-          {useNativeDriver: true},
-        )}
-      />
-
-      {/* Sticky Category Filter Bar */}
-      <Animated.View
-        style={[
-          styles.stickyCategoryContainer,
-          {
-            top: stickyTop,
-            transform: [{translateY: categoryTranslateY}],
-          },
-        ]}>
-        <Animated.View style={[styles.categoryBg, {opacity: categoryBgOpacity}]} />
+      {/* Categories scroll naturally with content (non-sticky) */}
+      <View style={styles.categoryContainer}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -348,12 +237,109 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </Animated.View>
+      </View>
+
+      <View style={styles.content}>
+        {!selectedCategory &&
+          sections.map(section => (
+            <View key={section.id} style={styles.section}>
+              <SectionHeader
+                title={section.title}
+                seeAllText="View All"
+                onPressSeeAll={() =>
+                  onViewAllPress?.(section.title, section.data, section.id)
+                }
+              />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalScroll}>
+                {section.data.map(item => (
+                  <MovieCard
+                    key={item.url}
+                    item={item}
+                    onPress={() => onSelectItem(item)}
+                    width={130}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          ))}
+
+        <View style={styles.sectionHeaderSpacing}>
+          <SectionHeader
+            title={
+              selectedCategory
+                ? CATEGORIES.find(c => c.path === selectedCategory)?.label +
+                  ' Catalog'
+                : 'Latest Releases'
+            }
+          />
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderFooter = () => {
+    if (!isLoadingMore) {
+      return <View style={styles.footerSpacing} />;
+    }
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading more movies...</Text>
+      </View>
+    );
+  };
+
+  // Animated Transitions for top header blending on scroll
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const headerBorderOpacity = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <View style={styles.container}>
+      <Animated.FlatList
+        style={styles.container}
+        data={items}
+        keyExtractor={(item, index) => `${item.url}-${index}`}
+        renderItem={({item}) => (
+          <View style={styles.gridCardWrapper}>
+            <MovieCard item={item} onPress={() => onSelectItem(item)} />
+          </View>
+        )}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRowWrapper}
+        contentContainerStyle={[
+          styles.gridListContent,
+          selectedCategory ? {paddingTop: headerHeight + 12} : null,
+        ]}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        onEndReached={onLoadMore}
+        onEndReachedThreshold={3.0}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{nativeEvent: {contentOffset: {y: scrollY}}}],
+          {useNativeDriver: true},
+        )}
+      />
 
       {/* Floating Header */}
       <View style={styles.floatingHeader}>
         <Animated.View style={[styles.headerBg, {opacity: headerBgOpacity}]} />
-        <Animated.View style={[styles.headerBorder, {opacity: headerBorderOpacity}]} />
+        <Animated.View
+          style={[styles.headerBorder, {opacity: headerBorderOpacity}]}
+        />
         <View style={styles.headerContent}>
           <Text style={styles.logoText}>
             Cine<Text style={styles.logoTextPurple}>App</Text>
@@ -363,7 +349,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               onPress={onSearchPress}
               style={styles.iconButton}
               activeOpacity={0.7}>
-              <Icon name="search-outline" size={24} color={colors.white} />
+              <Icon name="search-outline" size={22} color={colors.white} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onProfilePress}
@@ -414,7 +400,8 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-    paddingTop: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4,
+    paddingTop:
+      Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -463,23 +450,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     backgroundColor: colors.background,
     paddingTop: spacing.xs,
-    gap: spacing.lg,
+    gap: 20,
   },
-  stickyCategoryContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 60,
-    zIndex: 9,
-    justifyContent: 'center',
-  },
-  categoryBg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#09090B',
-  },
-  filterBarPlaceholder: {
-    height: 60,
-    width: '100%',
+  categoryContainer: {
+    paddingVertical: 12,
+    backgroundColor: colors.background,
   },
   filterScroll: {
     paddingHorizontal: spacing.md,
@@ -489,10 +464,10 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    backgroundColor: '#17171C',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   chipActive: {
     backgroundColor: colors.primary,
@@ -507,7 +482,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   section: {
-    gap: spacing.sm,
+    gap: 12,
   },
   horizontalScroll: {
     paddingHorizontal: spacing.md,
@@ -515,8 +490,8 @@ const styles = StyleSheet.create({
   },
   sectionHeaderSpacing: {
     paddingHorizontal: spacing.md,
-    marginTop: spacing.xs,
-    marginBottom: spacing.sm,
+    marginTop: 4,
+    marginBottom: 4,
   },
   gridListContent: {
     backgroundColor: colors.background,
@@ -524,13 +499,13 @@ const styles = StyleSheet.create({
   },
   gridCardWrapper: {
     flex: 1,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 6,
     alignItems: 'center',
   },
   gridRowWrapper: {
     justifyContent: 'space-between',
     marginBottom: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
   },
   footerLoader: {
     paddingVertical: spacing.md,

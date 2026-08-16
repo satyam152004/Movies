@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, {useState, useMemo, useEffect, useRef} from 'react';
 import {
   StyleSheet,
   View,
@@ -14,12 +14,17 @@ import {
   ImageStyle,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CatalogItem } from '../data/models';
-import { colors as themeColors, radius as themeRadius, spacing as themeSpacing, typography } from '../theme';
-import { MovieCard } from '../components/cards/MovieCard';
-import { ScraperService } from '../services/scraper.service';
+import {CatalogItem} from '../data/models';
+import {
+  colors as themeColors,
+  radius as themeRadius,
+  spacing as themeSpacing,
+  typography,
+} from '../theme';
+import {MovieCard} from '../components/cards/MovieCard';
+import {ScraperService} from '../services/scraper.service';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { formatDisplayTitle } from '../utils/formatDisplayTitle';
+import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 
 interface SearchScreenProps {
   items: CatalogItem[];
@@ -42,13 +47,48 @@ const colors = {
 };
 
 const BROWSE_CATEGORIES = [
-  { label: 'Action', keyword: 'Action', image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&q=80' },
-  { label: 'Sci-Fi', keyword: 'Sci-Fi', image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80' },
-  { label: 'Comedy', keyword: 'Comedy', image: 'https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=400&q=80' },
-  { label: 'Anime', keyword: 'Animated', image: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&q=80' },
-  { label: 'Horror', keyword: 'Horror', image: 'https://images.unsplash.com/photo-1505635339358-30582854bdac?w=400&q=80' },
-  { label: 'Romance', keyword: 'Romance', image: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=400&q=80' },
-  { label: 'Thriller', keyword: 'Thriller', image: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?w=400&q=80' },
+  {
+    label: 'Action',
+    keyword: 'Action',
+    image:
+      'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&q=80',
+  },
+  {
+    label: 'Sci-Fi',
+    keyword: 'Sci-Fi',
+    image:
+      'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80',
+  },
+  {
+    label: 'Comedy',
+    keyword: 'Comedy',
+    image:
+      'https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=400&q=80',
+  },
+  {
+    label: 'Anime',
+    keyword: 'Animated',
+    image:
+      'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&q=80',
+  },
+  {
+    label: 'Horror',
+    keyword: 'Horror',
+    image:
+      'https://images.unsplash.com/photo-1505635339358-30582854bdac?w=400&q=80',
+  },
+  {
+    label: 'Romance',
+    keyword: 'Romance',
+    image:
+      'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=400&q=80',
+  },
+  {
+    label: 'Thriller',
+    keyword: 'Thriller',
+    image:
+      'https://images.unsplash.com/photo-1509248961158-e54f6934749c?w=400&q=80',
+  },
 ];
 
 // Custom spring-scale interactive component for premium press effects
@@ -56,7 +96,7 @@ const ScalePressable: React.FC<{
   onPress: () => void;
   style?: any;
   children: React.ReactNode;
-}> = ({ onPress, style, children }) => {
+}> = ({onPress, style, children}) => {
   const scale = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -83,7 +123,7 @@ const ScalePressable: React.FC<{
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}>
-      <Animated.View style={[style, { transform: [{ scale }] }]}>
+      <Animated.View style={[style, {transform: [{scale}]}]}>
         {children}
       </Animated.View>
     </TouchableOpacity>
@@ -94,11 +134,14 @@ const ScalePressable: React.FC<{
 const HorizontalPosterCard: React.FC<{
   item: CatalogItem;
   onPress: () => void;
-}> = ({ item, onPress }) => {
+}> = ({item, onPress}) => {
   return (
     <ScalePressable onPress={onPress} style={styles.horizontalCardContainer}>
       {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.horizontalCardPoster} />
+        <Image
+          source={{uri: item.imageUrl}}
+          style={styles.horizontalCardPoster}
+        />
       ) : (
         <View style={[styles.horizontalCardPoster, styles.posterFallback]} />
       )}
@@ -107,17 +150,16 @@ const HorizontalPosterCard: React.FC<{
           {formatDisplayTitle(item.title)}
         </Text>
         <View style={styles.horizontalCardMetaRow}>
-          <Text style={styles.horizontalCardSubText}>{item.year || '2026'}</Text>
-          {item.rating && (
-            <Text style={styles.horizontalCardRatingText}>★ {item.rating}</Text>
-          )}
+          <Text style={styles.horizontalCardSubText}>
+            {item.year || '2026'}
+          </Text>
         </View>
       </View>
     </ScalePressable>
   );
 };
 
-const Shimmer: React.FC<{ style?: any }> = ({ style }) => {
+const Shimmer: React.FC<{style?: any}> = ({style}) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -133,7 +175,7 @@ const Shimmer: React.FC<{ style?: any }> = ({ style }) => {
           duration: 1000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, []);
 
@@ -142,7 +184,9 @@ const Shimmer: React.FC<{ style?: any }> = ({ style }) => {
     outputRange: [0.25, 0.6],
   });
 
-  return <Animated.View style={[style, { opacity, backgroundColor: '#1E1E24' }]} />;
+  return (
+    <Animated.View style={[style, {opacity, backgroundColor: '#1E1E24'}]} />
+  );
 };
 
 export const SearchScreen: React.FC<SearchScreenProps> = ({
@@ -211,7 +255,11 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
         setSearchResults(results);
       }
     } catch (err: any) {
-      if (err.name === 'AbortError' || err.message === 'canceled' || err.message?.includes('aborted')) {
+      if (
+        err.name === 'AbortError' ||
+        err.message === 'canceled' ||
+        err.message?.includes('aborted')
+      ) {
         return;
       }
       console.error('Live search error:', err);
@@ -261,7 +309,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
     const clean = term.trim();
     if (!clean) return;
     try {
-      const filtered = recentSearches.filter(s => s.toLowerCase() !== clean.toLowerCase());
+      const filtered = recentSearches.filter(
+        s => s.toLowerCase() !== clean.toLowerCase(),
+      );
       const updated = [clean, ...filtered].slice(0, 10);
       setRecentSearches(updated);
       await AsyncStorage.setItem('@search_recents', JSON.stringify(updated));
@@ -310,7 +360,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   const continueWatchingItems = useMemo(() => items.slice(6, 12), [items]);
   const popularItems = useMemo(() => items.slice(12, 18), [items]);
 
-  const renderGridCard = ({ item }: { item: CatalogItem }) => (
+  const renderGridCard = ({item}: {item: CatalogItem}) => (
     <View style={styles.gridCardWrapper}>
       <MovieCard item={item} onPress={() => onSelectItem(item)} />
     </View>
@@ -328,7 +378,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             </Text>
           ) : (
             <Text key={i}>{part}</Text>
-          )
+          ),
         )}
       </Text>
     );
@@ -348,7 +398,10 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             activeOpacity={0.85}
             onPress={() => onSelectItem(item)}>
             {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.suggestionPoster} />
+              <Image
+                source={{uri: item.imageUrl}}
+                style={styles.suggestionPoster}
+              />
             ) : (
               <View style={[styles.suggestionPoster, styles.posterFallback]} />
             )}
@@ -359,7 +412,12 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
                 {item.resolution ? ` • ${item.resolution}` : ''}
               </Text>
             </View>
-            <Icon name="arrow-forward-outline" size={18} color={colors.secondaryText} style={styles.suggestionArrow} />
+            <Icon
+              name="arrow-forward-outline"
+              size={18}
+              color={colors.secondaryText}
+              style={styles.suggestionArrow}
+            />
           </TouchableOpacity>
         ))}
       </View>
@@ -368,7 +426,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
 
   const renderFooter = () => {
     if (!isSearchingMore) {
-      return <View style={{ height: 40 }} />;
+      return <View style={{height: 40}} />;
     }
     return (
       <View style={styles.footerLoader}>
@@ -398,8 +456,15 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
                   style={styles.recentItemLeft}
                   activeOpacity={0.8}
                   onPress={() => setSearch(term)}>
-                  <Icon name="time-outline" size={18} color={colors.secondaryText} style={styles.clockIcon} />
-                  <Text style={styles.recentText} numberOfLines={1}>{term}</Text>
+                  <Icon
+                    name="time-outline"
+                    size={18}
+                    color={colors.secondaryText}
+                    style={styles.clockIcon}
+                  />
+                  <Text style={styles.recentText} numberOfLines={1}>
+                    {term}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.recentDeleteBtn}
@@ -418,7 +483,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
           <View style={styles.sectionHeaderRow}>
             <View style={styles.titleWithSubtitle}>
               <Text style={styles.sectionTitle}>Trending Today</Text>
-              <Text style={styles.sectionSubtitle}>Most searched this week</Text>
+              <Text style={styles.sectionSubtitle}>
+                Most searched this week
+              </Text>
             </View>
           </View>
           <ScrollView
@@ -431,9 +498,14 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
                 onPress={() => onSelectItem(item)}
                 style={styles.trendingCard}>
                 {item.imageUrl ? (
-                  <Image source={{ uri: item.imageUrl }} style={styles.trendingPoster} />
+                  <Image
+                    source={{uri: item.imageUrl}}
+                    style={styles.trendingPoster}
+                  />
                 ) : (
-                  <View style={[styles.trendingPoster, styles.posterFallback]} />
+                  <View
+                    style={[styles.trendingPoster, styles.posterFallback]}
+                  />
                 )}
                 <View style={styles.rankBadge}>
                   <Text style={styles.rankText}>{index + 1}</Text>
@@ -446,11 +518,6 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
                     <Text style={styles.trendingSubtitleText}>
                       {item.year || '2026'}
                     </Text>
-                    {item.rating && (
-                      <Text style={styles.trendingRating}>
-                        ★ {item.rating}
-                      </Text>
-                    )}
                   </View>
                 </View>
               </ScalePressable>
@@ -467,7 +534,10 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             <Text style={styles.sectionSubtitle}>Discover movies by genre</Text>
           </View>
           {onViewAllPress && (
-            <TouchableOpacity onPress={() => onViewAllPress('All Movie Catalog', items, 'latest')}>
+            <TouchableOpacity
+              onPress={() =>
+                onViewAllPress('All Movie Catalog', items, 'latest')
+              }>
               <Text style={styles.clearAllBtn}>View All →</Text>
             </TouchableOpacity>
           )}
@@ -482,7 +552,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
               onPress={() => setSearch(cat.keyword)}
               style={styles.categoryCard}>
               <Image
-                source={{ uri: cat.image }}
+                source={{uri: cat.image}}
                 style={styles.categoryImage as ImageStyle}
                 resizeMode="cover"
               />
@@ -499,7 +569,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
           <View style={styles.sectionHeaderRow}>
             <View style={styles.titleWithSubtitle}>
               <Text style={styles.sectionTitle}>Continue Watching</Text>
-              <Text style={styles.sectionSubtitle}>Pick up where you left off</Text>
+              <Text style={styles.sectionSubtitle}>
+                Pick up where you left off
+              </Text>
             </View>
           </View>
           <ScrollView
@@ -523,7 +595,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
           <View style={styles.sectionHeaderRow}>
             <View style={styles.titleWithSubtitle}>
               <Text style={styles.sectionTitle}>Popular This Week</Text>
-              <Text style={styles.sectionSubtitle}>Top rated movies globally</Text>
+              <Text style={styles.sectionSubtitle}>
+                Top rated movies globally
+              </Text>
             </View>
           </View>
           <ScrollView
@@ -556,7 +630,10 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
           activeOpacity={0.9}
           onPress={() => onSelectItem(topMatchItem)}>
           {topMatchItem.imageUrl ? (
-            <Image source={{ uri: topMatchItem.imageUrl }} style={styles.topMatchPoster} />
+            <Image
+              source={{uri: topMatchItem.imageUrl}}
+              style={styles.topMatchPoster}
+            />
           ) : (
             <View style={[styles.topMatchPoster, styles.posterFallback]} />
           )}
@@ -565,15 +642,12 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
               {title}
             </Text>
             <View style={styles.topMatchBadgesRow}>
-              {topMatchItem.rating && (
-                <View style={styles.yellowBadge}>
-                  <Text style={styles.yellowBadgeText}>★ {topMatchItem.rating.includes('/10') ? topMatchItem.rating : `${topMatchItem.rating}/10`}</Text>
-                </View>
-              )}
               {topMatchItem.resolution && (
                 <View style={styles.borderBadge}>
                   <Text style={styles.borderBadgeText}>
-                    {topMatchItem.resolution.toUpperCase() === '2160P' ? '4K' : topMatchItem.resolution.toUpperCase()}
+                    {topMatchItem.resolution.toUpperCase() === '2160P'
+                      ? '4K'
+                      : topMatchItem.resolution.toUpperCase()}
                   </Text>
                 </View>
               )}
@@ -584,14 +658,26 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
               )}
             </View>
             <Text style={styles.topMatchDescription} numberOfLines={3}>
-              Click to view complete details, synopsis, high-quality download links, and cast reviews for {title}.
+              Click to view complete details, synopsis, high-quality download
+              links, and cast reviews for {title}.
             </Text>
             <View style={styles.topMatchActions}>
-              <TouchableOpacity style={styles.topMatchPlayBtn} activeOpacity={0.8} onPress={() => onSelectItem(topMatchItem)}>
-                <Icon name="play" size={16} color={colors.text} style={styles.playIcon} />
+              <TouchableOpacity
+                style={styles.topMatchPlayBtn}
+                activeOpacity={0.8}
+                onPress={() => onSelectItem(topMatchItem)}>
+                <Icon
+                  name="play"
+                  size={16}
+                  color={colors.text}
+                  style={styles.playIcon}
+                />
                 <Text style={styles.playText}>Play</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.topMatchMoreBtn} activeOpacity={0.8} onPress={() => onSelectItem(topMatchItem)}>
+              <TouchableOpacity
+                style={styles.topMatchMoreBtn}
+                activeOpacity={0.8}
+                onPress={() => onSelectItem(topMatchItem)}>
                 <Text style={styles.moreText}>More Info</Text>
               </TouchableOpacity>
             </View>
@@ -619,8 +705,12 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
         <View style={styles.emptyStateContainer}>
           <Icon name="search-outline" size={54} color={colors.secondaryText} />
           <Text style={styles.emptyTitle}>No results found</Text>
-          <Text style={styles.emptySubtitle}>Try searching for other movies, series, actors, or genres.</Text>
-          <TouchableOpacity style={styles.exploreBtn} onPress={() => setSearch('')}>
+          <Text style={styles.emptySubtitle}>
+            Try searching for other movies, series, actors, or genres.
+          </Text>
+          <TouchableOpacity
+            style={styles.exploreBtn}
+            onPress={() => setSearch('')}>
             <Text style={styles.exploreBtnText}>Explore Trending</Text>
           </TouchableOpacity>
         </View>
@@ -631,7 +721,8 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
       <View style={styles.resultsContainer}>
         <View style={styles.resultsHeaderRow}>
           <Text style={styles.resultsCount}>
-            {filteredItems.length} {filteredItems.length === 1 ? 'Result' : 'Results'}
+            {filteredItems.length}{' '}
+            {filteredItems.length === 1 ? 'Result' : 'Results'}
           </Text>
           <Text style={styles.sortByText}>Sorted by Relevance</Text>
         </View>
@@ -656,7 +747,8 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   };
 
   const isTypingState = search.length > 0 && isLoading;
-  const safeAreaTop = Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24);
+  const safeAreaTop =
+    Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
 
   const HEADER_HEIGHT = safeAreaTop + 54 + 58 + 32;
 
@@ -667,7 +759,11 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
         Keeps Header and Search Bar strictly sticky and fixed.
         Opaque background (#050506) completely covers background content.
       */}
-      <View style={[styles.stickyHeaderBlock, { height: HEADER_HEIGHT, paddingTop: safeAreaTop }]}>
+      <View
+        style={[
+          styles.stickyHeaderBlock,
+          {height: HEADER_HEIGHT, paddingTop: safeAreaTop},
+        ]}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Search</Text>
@@ -678,8 +774,18 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
 
         {/* Search Bar Container */}
         <View style={styles.searchBarWrapper}>
-          <Animated.View style={[styles.searchBar, { transform: [{ scale: searchScale }] }, isFocused && styles.searchBarFocused]}>
-            <Icon name="search-outline" size={22} color={colors.secondaryText} style={styles.searchIcon} />
+          <Animated.View
+            style={[
+              styles.searchBar,
+              {transform: [{scale: searchScale}]},
+              isFocused && styles.searchBarFocused,
+            ]}>
+            <Icon
+              name="search-outline"
+              size={22}
+              color={colors.secondaryText}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.searchInput}
               value={search}
@@ -690,11 +796,18 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
               onBlur={() => setIsFocused(false)}
             />
             {search.length > 0 ? (
-              <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
+              <TouchableOpacity
+                onPress={() => setSearch('')}
+                style={styles.clearBtn}>
                 <Icon name="close" size={18} color={colors.text} />
               </TouchableOpacity>
             ) : (
-              <Icon name="mic-outline" size={20} color={colors.secondaryText} style={styles.micIcon} />
+              <Icon
+                name="mic-outline"
+                size={20}
+                color={colors.secondaryText}
+                style={styles.micIcon}
+              />
             )}
           </Animated.View>
         </View>
@@ -751,7 +864,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: colors.text,
-    fontSize: 30, // Premium 30px Extra Bold title
+    fontSize: 24, // Premium 24px Extra Bold title
     fontWeight: '900',
   },
   avatarCircle: {
@@ -785,7 +898,7 @@ const styles = StyleSheet.create({
   searchBarFocused: {
     borderColor: colors.primary,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 4,
@@ -824,7 +937,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 22, // 22px Bold section titles
+    fontSize: 18, // 18px Bold section titles
     fontWeight: '900',
     letterSpacing: 0.2,
   },
