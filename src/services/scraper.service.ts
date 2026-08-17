@@ -948,7 +948,7 @@ export class ScraperService {
     const today = new Date().toISOString().split('T')[0];
     const proxyUrl = 'https://search.pingora.fyi/collections/post/documents/search';
 
-    let activeDomain = 'https://new3.hdhub4u.cl';
+    let activeDomain = 'https://new1.hdhub4u.af';
     try {
       const cached = await AsyncStorage.getItem('@hdhub4u_discovered_url');
       if (cached) {
