@@ -91,7 +91,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#0F0F13',
-    borderRadius: 12,
+    borderRadius: radius.card,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.04)',

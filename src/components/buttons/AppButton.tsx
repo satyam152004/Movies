@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   base: {
     height: 48, // Touch target >= 44dp
     minWidth: 120,
-    borderRadius: radius.button,
+    borderRadius: radius.cardControl,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.md,

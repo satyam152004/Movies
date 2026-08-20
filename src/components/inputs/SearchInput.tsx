@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: radius.input,
+    borderRadius: radius.search,
     height: 48,
     paddingHorizontal: 12,
     borderWidth: 1,

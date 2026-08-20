@@ -18,6 +18,7 @@ import {CatalogItem} from '../data/models';
 import {MovieCard} from '../components/cards/MovieCard';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 import {BackButton} from '../components/navigation/BackButton';
+import {radius} from '../theme';
 
 interface CollectionScreenProps {
   title: string;
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
   searchBarWrapper: {
     flex: 1,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.search,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     flexDirection: 'row',
     alignItems: 'center',
@@ -464,7 +465,7 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.round,
     paddingHorizontal: 16,
     justifyContent: 'center',
     backgroundColor: colors.card,
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     backgroundColor: '#161622',
-    borderRadius: 14,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 6,
@@ -526,7 +527,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: radius.compactControl,
   },
   sortOptionItemActive: {
     backgroundColor: 'rgba(144, 97, 249, 0.08)',

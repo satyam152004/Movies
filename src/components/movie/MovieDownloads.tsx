@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#161922',
     borderWidth: 1.5,
     borderColor: '#272C38',
-    borderRadius: 12,
+    borderRadius: movieTheme.radius.card,
     padding: 14,
   },
   optionCardSelected: {
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   downloadBtn: {
     height: 48,
     backgroundColor: movieTheme.colors.primary,
-    borderRadius: 8,
+    borderRadius: movieTheme.radius.cardControl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A0E10',
     borderWidth: 1.5,
     borderColor: '#4A1D24',
-    borderRadius: 12,
+    borderRadius: movieTheme.radius.card,
     padding: 14,
     marginBottom: 20,
     gap: 8,
@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
   },
   retryBtn: {
     backgroundColor: '#E53E3E',
-    borderRadius: 8,
+    borderRadius: movieTheme.radius.compactControl,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',

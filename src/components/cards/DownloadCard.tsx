@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {DownloadStatus} from '../../data/models';
-import {colors, typography} from '../../theme';
+import {colors, radius, typography} from '../../theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 interface DownloadTaskWithDetails {
@@ -359,7 +359,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#121214',
-    borderRadius: 12,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.04)',
     padding: 12,
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   posterWrapper: {
     width: 76,
     height: 114,
-    borderRadius: 8,
+    borderRadius: radius.compactControl,
     backgroundColor: '#101014',
     overflow: 'hidden',
   },
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: radius.card,
     justifyContent: 'center',
     paddingHorizontal: 20,
     gap: 12,
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   logsBox: {
     marginTop: 10,
     backgroundColor: colors.background,
-    borderRadius: 8,
+    borderRadius: radius.compactControl,
     padding: 10,
     borderWidth: 1,
     borderColor: colors.border,

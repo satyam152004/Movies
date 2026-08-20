@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   card: {
     width: 160,
     height: 90,
-    borderRadius: 8,
+    borderRadius: movieTheme.radius.compactControl,
     overflow: 'hidden',
     backgroundColor: movieTheme.colors.card,
     borderWidth: 1,

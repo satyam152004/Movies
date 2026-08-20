@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     height: 58, // Fixed 58px search height
-    borderRadius: 30, // 30px border radius
+    borderRadius: themeRadius.search, // 30px border radius
     backgroundColor: 'rgba(20, 20, 26, 0.92)',
     flexDirection: 'row',
     alignItems: 'center',
@@ -959,7 +959,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 14,
+    borderRadius: themeRadius.card,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 14,
@@ -980,7 +980,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   recentDeleteBtn: {
-    padding: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   trendingSection: {
     marginBottom: 32,
@@ -991,7 +998,7 @@ const styles = StyleSheet.create({
   trendingCard: {
     width: 150, // 150px poster width
     backgroundColor: colors.card,
-    borderRadius: 20, // 20px poster radius
+    borderRadius: themeRadius.card, // Premium card radius
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
@@ -1061,7 +1068,7 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: 150,
     height: 90,
-    borderRadius: 20, // 20px rounded corners
+    borderRadius: themeRadius.card, // Premium card radius
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1086,7 +1093,7 @@ const styles = StyleSheet.create({
   horizontalCardContainer: {
     width: 130, // Fixed 130px width for horizontal cards
     backgroundColor: colors.card,
-    borderRadius: 20,
+    borderRadius: themeRadius.card,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
@@ -1190,7 +1197,7 @@ const styles = StyleSheet.create({
   topMatchBadge: {
     alignSelf: 'flex-start',
     backgroundColor: colors.primary,
-    borderRadius: 10,
+    borderRadius: themeRadius.round,
     paddingVertical: 4,
     paddingHorizontal: 10,
   },
@@ -1203,7 +1210,7 @@ const styles = StyleSheet.create({
   topMatchCard: {
     flexDirection: 'row',
     backgroundColor: colors.card,
-    borderRadius: 20,
+    borderRadius: themeRadius.card,
     padding: 14,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1211,7 +1218,7 @@ const styles = StyleSheet.create({
   topMatchPoster: {
     width: 130, // 130px Top Match Poster
     height: 190, // 190px Top Match Poster
-    borderRadius: 12,
+    borderRadius: themeRadius.cardControl,
     marginRight: 16,
   },
   topMatchDetails: {
@@ -1267,7 +1274,7 @@ const styles = StyleSheet.create({
   topMatchPlayBtn: {
     flex: 1,
     backgroundColor: colors.primary,
-    borderRadius: 18,
+    borderRadius: themeRadius.compactControl,
     height: 36,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -1286,7 +1293,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 18,
+    borderRadius: themeRadius.compactControl,
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1355,7 +1362,7 @@ const styles = StyleSheet.create({
   },
   exploreBtn: {
     backgroundColor: colors.primary,
-    borderRadius: 20,
+    borderRadius: themeRadius.control,
     paddingVertical: 10,
     paddingHorizontal: 24,
     marginTop: 8,

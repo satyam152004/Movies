@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   base: {
     width: 44, // Touch target >= 44dp
     height: 44,
-    borderRadius: radius.sm,
+    borderRadius: radius.compactControl,
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',

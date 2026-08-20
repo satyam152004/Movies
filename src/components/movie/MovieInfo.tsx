@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   posterWrapper: {
     width: 110,
     height: 165,
-    borderRadius: 12,
+    borderRadius: movieTheme.radius.cardControl,
     overflow: 'hidden',
     backgroundColor: movieTheme.colors.card,
     borderWidth: 1.5,

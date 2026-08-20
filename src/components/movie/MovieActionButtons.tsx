@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   largeButton: {
     flex: 1,
     height: 52,
-    borderRadius: 8,
+    borderRadius: movieTheme.radius.cardControl,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   auxButton: {
     flex: 1,
     height: 38,
-    borderRadius: 8,
+    borderRadius: movieTheme.radius.compactControl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

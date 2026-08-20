@@ -12,7 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import {CatalogItem} from '../data/models';
-import {colors, spacing, typography} from '../theme';
+import {colors, radius, spacing, typography} from '../theme';
 import {HeroBanner} from '../components/media/HeroBanner';
 import {SectionHeader} from '../components/layout/SectionHeader';
 import {MovieCard} from '../components/cards/MovieCard';
@@ -422,14 +422,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -464,7 +472,7 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: radius.round,
     backgroundColor: '#17171C',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.04)',

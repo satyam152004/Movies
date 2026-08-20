@@ -13,6 +13,7 @@ import {
   FlatList,
   Image,
   BackHandler,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -325,9 +326,11 @@ function App(): React.JSX.Element {
   };
 
   const renderWatchlistScreen = () => {
+    const safeAreaTop =
+      Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4;
     return (
       <View style={styles.tabContainer}>
-        <View style={styles.screenHeader}>
+        <View style={[styles.screenHeader, { paddingTop: safeAreaTop, height: 56 + safeAreaTop }]}>
           <Text style={styles.screenTitle}>My Watchlist</Text>
           <View style={styles.countBadge}>
             <Text style={styles.countText}>{watchlist.length} ITEMS</Text>
@@ -349,7 +352,9 @@ function App(): React.JSX.Element {
             data={watchlist}
             keyExtractor={item => item.url}
             renderItem={({item}) => (
-              <MovieCard item={item} onPress={() => handleSelectItem(item)} />
+              <View style={styles.gridCardWrapper}>
+                <MovieCard item={item} onPress={() => handleSelectItem(item)} />
+              </View>
             )}
             numColumns={2}
             columnWrapperStyle={styles.gridRowWrapper}
@@ -362,6 +367,9 @@ function App(): React.JSX.Element {
   };
 
   const renderProfileScreen = () => {
+    const safeAreaTop =
+      Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4;
+
     const cycleVideoQuality = () => {
       const nextMap: Record<typeof videoQuality, typeof videoQuality> = {
         high: 'medium',
@@ -381,65 +389,81 @@ function App(): React.JSX.Element {
     };
 
     return (
-      <ScrollView
-        style={styles.tabContainer}
-        contentContainerStyle={styles.profileScroll}
-        showsVerticalScrollIndicator={false}>
-        
-        {/* App Preferences */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>Playback Preferences</Text>
-
-          <TouchableOpacity style={styles.settingItemBorder} onPress={cycleVideoQuality}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Streaming Video Quality</Text>
-              <Text style={styles.settingDesc}>Select preferred default streaming resolution</Text>
-            </View>
-            <Text style={styles.settingValueActive}>{videoQuality.toUpperCase()}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItemBorderLast} onPress={cycleDownloadQuality}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Download Video Quality</Text>
-              <Text style={styles.settingDesc}>Select default resolution for offline downloads</Text>
-            </View>
-            <Text style={styles.settingValueActive}>{downloadQuality}</Text>
-          </TouchableOpacity>
+      <View style={styles.tabContainer}>
+        <View style={[styles.screenHeader, { paddingTop: safeAreaTop, height: 56 + safeAreaTop }]}>
+          <Text style={styles.screenTitle}>Profile & Settings</Text>
         </View>
-
-        {/* Download Rules */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>Network Settings</Text>
-
-          <View style={styles.settingItemBorderLast}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Download Over Wi-Fi Only</Text>
-              <Text style={styles.settingDesc}>Restrict data usage and only download on Wi-Fi</Text>
+        <ScrollView
+          style={styles.flexOne}
+          contentContainerStyle={styles.profileScroll}
+          showsVerticalScrollIndicator={false}>
+          
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>C</Text>
             </View>
-            <Switch
-              value={wifiOnly}
-              onValueChange={handleToggleWifiOnly}
-              trackColor={{ false: colors.elevated, true: colors.primary }}
-              thumbColor={colors.white}
-            />
-          </View>
-        </View>
-
-        {/* App Settings */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>Application Settings</Text>
-
-          <View style={styles.settingItemBorder}>
-            <Text style={styles.settingLabelStatic}>Appearance</Text>
-            <Text style={styles.settingValueStatic}>Dark Theme (Default)</Text>
+            <View style={styles.profileMeta}>
+              <Text style={styles.profileName}>Cine Guest</Text>
+              <Text style={styles.profileTier}>PREMIUM MEMBER</Text>
+            </View>
           </View>
 
-          <View style={styles.settingItemBorderLast}>
-            <Text style={styles.settingLabelStatic}>App Version</Text>
-            <Text style={styles.settingValueStatic}>v1.1.0 (Production)</Text>
+          {/* App Preferences */}
+          <View style={styles.settingsCard}>
+            <Text style={styles.settingsSectionTitle}>Playback Preferences</Text>
+
+            <TouchableOpacity style={styles.settingItemBorder} onPress={cycleVideoQuality}>
+              <View style={styles.settingTextGroup}>
+                <Text style={styles.settingLabel}>Streaming Video Quality</Text>
+                <Text style={styles.settingDesc}>Select preferred default streaming resolution</Text>
+              </View>
+              <Text style={styles.settingValueActive}>{videoQuality.toUpperCase()}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingItemBorderLast} onPress={cycleDownloadQuality}>
+              <View style={styles.settingTextGroup}>
+                <Text style={styles.settingLabel}>Download Video Quality</Text>
+                <Text style={styles.settingDesc}>Select default resolution for offline downloads</Text>
+              </View>
+              <Text style={styles.settingValueActive}>{downloadQuality}</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
+
+          {/* Download Rules */}
+          <View style={styles.settingsCard}>
+            <Text style={styles.settingsSectionTitle}>Network Settings</Text>
+
+            <View style={styles.settingItemBorderLast}>
+              <View style={styles.settingTextGroup}>
+                <Text style={styles.settingLabel}>Download Over Wi-Fi Only</Text>
+                <Text style={styles.settingDesc}>Restrict data usage and only download on Wi-Fi</Text>
+              </View>
+              <Switch
+                value={wifiOnly}
+                onValueChange={handleToggleWifiOnly}
+                trackColor={{ false: colors.elevated, true: colors.primary }}
+                thumbColor={colors.white}
+              />
+            </View>
+          </View>
+
+          {/* App Settings */}
+          <View style={styles.settingsCard}>
+            <Text style={styles.settingsSectionTitle}>Application Settings</Text>
+
+            <View style={styles.settingItemBorder}>
+              <Text style={styles.settingLabelStatic}>Appearance</Text>
+              <Text style={styles.settingValueStatic}>Dark Theme (Default)</Text>
+            </View>
+
+            <View style={styles.settingItemBorderLast}>
+              <Text style={styles.settingLabelStatic}>App Version</Text>
+              <Text style={styles.settingValueStatic}>v1.1.0 (Production)</Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     );
   };
 
@@ -542,79 +566,54 @@ function App(): React.JSX.Element {
         translucent={true}
       />
 
-      {/* Top Premium Header */}
-      {screen === 'main' &&
-        activeTab !== 'home' &&
-        activeTab !== 'search' &&
-        activeTab !== 'downloads' && (
-          <SafeAreaView style={styles.topNavSafeArea}>
-            <View style={styles.topNav}>
-              <Text style={styles.navTitle}>
-                <Text style={styles.primaryText}>Cine</Text>App
-              </Text>
-            </View>
-          </SafeAreaView>
-        )}
-
       {/* Primary Content Render */}
-      {activeTab === 'home' ||
-      activeTab === 'search' ||
-      screen === 'detail' ||
-      screen === 'collection' ? (
-        <View style={styles.screenWrapper}>{renderContent()}</View>
-      ) : (
-        <SafeAreaView style={styles.safeContentWrapper}>
-          <View style={styles.screenWrapper}>{renderContent()}</View>
-        </SafeAreaView>
-      )}
+      <View style={styles.screenWrapper}>{renderContent()}</View>
 
       {/* Always Visible Bottom Tab Navigation */}
       <View style={styles.bottomTabBar}>
         {(
           ['home', 'search', 'downloads', 'watchlist', 'profile'] as ActiveTab[]
-        ).map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
-            onPress={() => {
-              setScreen('main');
-              setActiveTab(tab);
-            }}>
-            <Icon
-              name={
-                tab === 'home'
-                  ? activeTab === tab
-                    ? 'home'
-                    : 'home-outline'
-                  : tab === 'search'
-                  ? activeTab === tab
-                    ? 'search'
-                    : 'search-outline'
-                  : tab === 'downloads'
-                  ? activeTab === tab
-                    ? 'download'
-                    : 'download-outline'
-                  : tab === 'watchlist'
-                  ? activeTab === tab
-                    ? 'heart'
-                    : 'heart-outline'
-                  : activeTab === tab
-                  ? 'person'
-                  : 'person-outline'
-              }
-              size={22}
-              color={activeTab === tab ? colors.primary : colors.textSecondary}
-              style={styles.tabIconSpacing}
-            />
-            <Text
-              style={[
-                styles.tabLabel,
-                activeTab === tab && styles.tabLabelActive,
-              ]}>
-              {tab.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        ).map(tab => {
+          const isActive = activeTab === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              style={styles.tabItem}
+              onPress={() => {
+                setScreen('main');
+                setActiveTab(tab);
+              }}
+              activeOpacity={0.85}>
+              <View style={[styles.iconContainer, isActive && styles.iconContainerActive]}>
+                <Icon
+                  name={
+                    tab === 'home'
+                      ? isActive
+                        ? 'home'
+                        : 'home-outline'
+                      : tab === 'search'
+                      ? isActive
+                        ? 'search'
+                        : 'search-outline'
+                      : tab === 'downloads'
+                      ? isActive
+                        ? 'download'
+                        : 'download-outline'
+                      : tab === 'watchlist'
+                      ? isActive
+                        ? 'heart'
+                        : 'heart-outline'
+                      : isActive
+                      ? 'person'
+                      : 'person-outline'
+                  }
+                  size={22}
+                  color={isActive ? colors.white : 'rgba(255, 255, 255, 0.6)'}
+                />
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Headless WebView crawler engine */}
@@ -738,16 +737,20 @@ const styles = StyleSheet.create({
   },
   gridListContent: {
     padding: spacing.md,
-    paddingBottom: 40,
+    paddingBottom: 110,
   },
   gridRowWrapper: {
     justifyContent: 'space-between',
     marginBottom: 16,
   },
+  gridCardWrapper: {
+    flex: 1,
+    paddingHorizontal: 6,
+  },
   profileScroll: {
     padding: spacing.md,
     gap: 16,
-    paddingBottom: 40,
+    paddingBottom: 110,
   },
   profileCard: {
     backgroundColor: colors.surface,
@@ -782,7 +785,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   profileTier: {
-    color: colors.secondary,
+    color: colors.primary,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -846,7 +849,7 @@ const styles = StyleSheet.create({
   },
   devDashboardBtn: {
     backgroundColor: colors.primary,
-    borderRadius: radius.button,
+    borderRadius: radius.control,
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
@@ -918,33 +921,40 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bottomTabBar: {
-    height: 60,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 28 : 20,
+    left: 24,
+    right: 24,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(23, 23, 28, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    elevation: 8,
   },
   tabItem: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
-    opacity: 0.6,
   },
-  tabItemActive: {
-    opacity: 1,
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  tabIconSpacing: {
-    marginBottom: 2,
-  },
-  tabLabel: {
-    color: colors.textSecondary,
-    fontSize: 8,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  tabLabelActive: {
-    color: colors.primary,
+  iconContainerActive: {
+    backgroundColor: colors.primary,
+    borderRadius: 24,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -17,7 +17,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {DownloadService, DownloadRecord} from '../services/download.service';
 import {ScraperService} from '../services/scraper.service';
-import {colors, spacing, typography} from '../theme';
+import {colors, radius, spacing, typography} from '../theme';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {DownloadCard} from '../components/cards/DownloadCard';
 import {Container} from '../components/layout/Container';
@@ -282,17 +282,6 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
               accessibilityRole="button">
               <Icon
                 name="search-outline"
-                size={22}
-                color={colors.textPrimary}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerIconBtn}
-              activeOpacity={0.7}
-              accessibilityLabel="Settings"
-              accessibilityRole="button">
-              <Icon
-                name="settings-outline"
                 size={22}
                 color={colors.textPrimary}
               />
@@ -636,6 +625,10 @@ const styles = StyleSheet.create({
   headerIconBtn: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -711,7 +704,7 @@ const styles = StyleSheet.create({
   browseBtn: {
     height: 44,
     paddingHorizontal: 28,
-    borderRadius: 12,
+    borderRadius: radius.cardControl,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -798,7 +791,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     marginBottom: 16,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
