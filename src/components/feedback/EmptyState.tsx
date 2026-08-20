@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
-import {colors, spacing, typography} from '../../theme';
+import {colors, radius, spacing, typography} from '../../theme';
 import {AppButton} from '../buttons/AppButton';
 
 interface EmptyStateProps {
@@ -72,5 +72,6 @@ const styles = StyleSheet.create({
   },
   btn: {
     minWidth: 150,
+    borderRadius: radius.round,
   },
 });

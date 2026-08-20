@@ -57,7 +57,7 @@ export const MovieStickyCTA: React.FC<MovieStickyCTAProps> = ({
           style={[styles.button, styles.downloadButton]}
           onPress={onDownloadPress}
           activeOpacity={0.8}>
-          <Icon name="download" size={18} color="#FFFFFF" />
+          <Icon name="arrow-down" size={18} color="#FFFFFF" />
           <Text style={styles.downloadText}>Download</Text>
         </TouchableOpacity>
       </View>

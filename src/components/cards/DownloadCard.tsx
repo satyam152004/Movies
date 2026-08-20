@@ -488,14 +488,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 0,
     zIndex: 10,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 18,
   },
   menuItemText: {
     color: '#FFFFFF',
@@ -504,10 +505,10 @@ const styles = StyleSheet.create({
   },
   menuItemClose: {
     alignItems: 'center',
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingVertical: 18,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    marginTop: 4,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
   },
   menuItemCloseText: {
     color: colors.textSecondary,

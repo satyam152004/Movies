@@ -436,186 +436,192 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
     );
   };
 
-  const renderIdleState = () => (
-    <View style={styles.idleStateContainer}>
-      {/* Recent Searches (Netflix Style list) */}
-      {recentSearches.length > 0 && (
-        <View style={styles.recentSection}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.titleWithSubtitle}>
-              <Text style={styles.sectionTitle}>Recent Searches</Text>
-            </View>
-            <TouchableOpacity onPress={clearAllRecentSearches}>
-              <Text style={styles.clearAllBtn}>Clear All</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.recentList}>
-            {recentSearches.map((term, index) => (
-              <View key={`${term}-${index}`} style={styles.recentItem}>
-                <TouchableOpacity
-                  style={styles.recentItemLeft}
-                  activeOpacity={0.8}
-                  onPress={() => setSearch(term)}>
-                  <Icon
-                    name="time-outline"
-                    size={18}
-                    color={colors.secondaryText}
-                    style={styles.clockIcon}
-                  />
-                  <Text style={styles.recentText} numberOfLines={1}>
-                    {term}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.recentDeleteBtn}
-                  onPress={() => deleteRecentSearch(term)}>
-                  <Icon name="close" size={18} color={colors.secondaryText} />
-                </TouchableOpacity>
+  const renderIdleState = () => {
+    if (isFocused && recentSearches.length > 0) {
+      return (
+        <View style={styles.idleStateContainer}>
+          {/* Recent Searches (Netflix Style list) */}
+          <View style={styles.recentSection}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.titleWithSubtitle}>
+                <Text style={styles.sectionTitle}>Recent Searches</Text>
               </View>
-            ))}
+              <TouchableOpacity onPress={clearAllRecentSearches}>
+                <Text style={styles.clearAllBtn}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.recentList}>
+              {recentSearches.map((term, index) => (
+                <View key={`${term}-${index}`} style={styles.recentItem}>
+                  <TouchableOpacity
+                    style={styles.recentItemLeft}
+                    activeOpacity={0.8}
+                    onPress={() => setSearch(term)}>
+                    <Icon
+                      name="time-outline"
+                      size={18}
+                      color={colors.secondaryText}
+                      style={styles.clockIcon}
+                    />
+                    <Text style={styles.recentText} numberOfLines={1}>
+                      {term}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.recentDeleteBtn}
+                    onPress={() => deleteRecentSearch(term)}>
+                    <Icon name="close" size={18} color={colors.secondaryText} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
-      )}
+      );
+    }
 
-      {/* Trending Searches Rank Cards */}
-      {trendingItems.length > 0 && (
-        <View style={styles.trendingSection}>
+    return (
+      <View style={styles.idleStateContainer}>
+        {/* Trending Searches Rank Cards */}
+        {trendingItems.length > 0 && (
+          <View style={styles.trendingSection}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.titleWithSubtitle}>
+                <Text style={styles.sectionTitle}>Trending Today</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Most searched this week
+                </Text>
+              </View>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.trendingScroll}>
+              {trendingItems.map((item, index) => (
+                <ScalePressable
+                  key={item.url}
+                  onPress={() => onSelectItem(item)}
+                  style={styles.trendingCard}>
+                  {item.imageUrl ? (
+                    <Image
+                      source={{uri: item.imageUrl}}
+                      style={styles.trendingPoster}
+                    />
+                  ) : (
+                    <View
+                      style={[styles.trendingPoster, styles.posterFallback]}
+                    />
+                  )}
+                  <View style={styles.rankBadge}>
+                    <Text style={styles.rankText}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.trendingMeta}>
+                    <Text style={styles.trendingTitle} numberOfLines={1}>
+                      {formatDisplayTitle(item.title)}
+                    </Text>
+                    <View style={styles.trendingMetaRow}>
+                      <Text style={styles.trendingSubtitleText}>
+                        {item.year || '2026'}
+                      </Text>
+                    </View>
+                  </View>
+                </ScalePressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Browse Categories */}
+        <View style={styles.categoriesSection}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.titleWithSubtitle}>
-              <Text style={styles.sectionTitle}>Trending Today</Text>
-              <Text style={styles.sectionSubtitle}>
-                Most searched this week
-              </Text>
+              <Text style={styles.sectionTitle}>Browse</Text>
+              <Text style={styles.sectionSubtitle}>Discover movies by genre</Text>
             </View>
+            {onViewAllPress && (
+              <TouchableOpacity
+                onPress={() =>
+                  onViewAllPress('All Movie Catalog', items, 'latest')
+                }>
+                <Text style={styles.clearAllBtn}>View All →</Text>
+              </TouchableOpacity>
+            )}
           </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.trendingScroll}>
-            {trendingItems.map((item, index) => (
+            contentContainerStyle={styles.categoriesScroll}>
+            {BROWSE_CATEGORIES.map(cat => (
               <ScalePressable
-                key={item.url}
-                onPress={() => onSelectItem(item)}
-                style={styles.trendingCard}>
-                {item.imageUrl ? (
-                  <Image
-                    source={{uri: item.imageUrl}}
-                    style={styles.trendingPoster}
-                  />
-                ) : (
-                  <View
-                    style={[styles.trendingPoster, styles.posterFallback]}
-                  />
-                )}
-                <View style={styles.rankBadge}>
-                  <Text style={styles.rankText}>{index + 1}</Text>
-                </View>
-                <View style={styles.trendingMeta}>
-                  <Text style={styles.trendingTitle} numberOfLines={1}>
-                    {formatDisplayTitle(item.title)}
-                  </Text>
-                  <View style={styles.trendingMetaRow}>
-                    <Text style={styles.trendingSubtitleText}>
-                      {item.year || '2026'}
-                    </Text>
-                  </View>
-                </View>
+                key={cat.label}
+                onPress={() => setSearch(cat.keyword)}
+                style={styles.categoryCard}>
+                <Image
+                  source={{uri: cat.image}}
+                  style={styles.categoryImage as ImageStyle}
+                  resizeMode="cover"
+                />
+                <View style={styles.categoryOverlay} />
+                <Text style={styles.categoryText}>{cat.label}</Text>
               </ScalePressable>
             ))}
           </ScrollView>
         </View>
-      )}
 
-      {/* Browse Categories */}
-      <View style={styles.categoriesSection}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.titleWithSubtitle}>
-            <Text style={styles.sectionTitle}>Browse</Text>
-            <Text style={styles.sectionSubtitle}>Discover movies by genre</Text>
+        {/* Continue Watching Section */}
+        {continueWatchingItems.length > 0 && (
+          <View style={styles.trendingSection}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.titleWithSubtitle}>
+                <Text style={styles.sectionTitle}>Continue Watching</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Pick up where you left off
+                </Text>
+              </View>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.trendingScroll}>
+              {continueWatchingItems.map(item => (
+                <HorizontalPosterCard
+                  key={item.url}
+                  item={item}
+                  onPress={() => onSelectItem(item)}
+                />
+              ))}
+            </ScrollView>
           </View>
-          {onViewAllPress && (
-            <TouchableOpacity
-              onPress={() =>
-                onViewAllPress('All Movie Catalog', items, 'latest')
-              }>
-              <Text style={styles.clearAllBtn}>View All →</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesScroll}>
-          {BROWSE_CATEGORIES.map(cat => (
-            <ScalePressable
-              key={cat.label}
-              onPress={() => setSearch(cat.keyword)}
-              style={styles.categoryCard}>
-              <Image
-                source={{uri: cat.image}}
-                style={styles.categoryImage as ImageStyle}
-                resizeMode="cover"
-              />
-              <View style={styles.categoryOverlay} />
-              <Text style={styles.categoryText}>{cat.label}</Text>
-            </ScalePressable>
-          ))}
-        </ScrollView>
+        )}
+
+        {/* Popular This Week Section */}
+        {popularItems.length > 0 && (
+          <View style={styles.trendingSection}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.titleWithSubtitle}>
+                <Text style={styles.sectionTitle}>Popular This Week</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Top rated movies globally
+                </Text>
+              </View>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.trendingScroll}>
+              {popularItems.map(item => (
+                <HorizontalPosterCard
+                  key={item.url}
+                  item={item}
+                  onPress={() => onSelectItem(item)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </View>
-
-      {/* Continue Watching Section */}
-      {continueWatchingItems.length > 0 && (
-        <View style={styles.trendingSection}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.titleWithSubtitle}>
-              <Text style={styles.sectionTitle}>Continue Watching</Text>
-              <Text style={styles.sectionSubtitle}>
-                Pick up where you left off
-              </Text>
-            </View>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.trendingScroll}>
-            {continueWatchingItems.map(item => (
-              <HorizontalPosterCard
-                key={item.url}
-                item={item}
-                onPress={() => onSelectItem(item)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Popular This Week Section */}
-      {popularItems.length > 0 && (
-        <View style={styles.trendingSection}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.titleWithSubtitle}>
-              <Text style={styles.sectionTitle}>Popular This Week</Text>
-              <Text style={styles.sectionSubtitle}>
-                Top rated movies globally
-              </Text>
-            </View>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.trendingScroll}>
-            {popularItems.map(item => (
-              <HorizontalPosterCard
-                key={item.url}
-                item={item}
-                onPress={() => onSelectItem(item)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )}
-    </View>
-  );
+    );
+  };
 
   const renderTopMatch = () => {
     if (!topMatchItem) return null;
@@ -750,7 +756,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   const safeAreaTop =
     Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
 
-  const HEADER_HEIGHT = safeAreaTop + 54 + 58 + 32;
+  const HEADER_HEIGHT = safeAreaTop + 48 + 48 + 16;
 
   return (
     <View style={styles.container}>
@@ -782,7 +788,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             ]}>
             <Icon
               name="search-outline"
-              size={22}
+              size={18}
               color={colors.secondaryText}
               style={styles.searchIcon}
             />
@@ -790,7 +796,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
               style={styles.searchInput}
               value={search}
               onChangeText={setSearch}
-              placeholder="Search movies, series, actors..."
+              placeholder="Movie, series, shows..."
               placeholderTextColor={colors.secondaryText}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
@@ -804,7 +810,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             ) : (
               <Icon
                 name="mic-outline"
-                size={20}
+                size={18}
                 color={colors.secondaryText}
                 style={styles.micIcon}
               />
@@ -855,7 +861,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   header: {
-    height: 54,
+    height: 48,
     paddingHorizontal: 20,
     marginTop: 0,
     flexDirection: 'row',
@@ -864,34 +870,34 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: colors.text,
-    fontSize: 24, // Premium 24px Extra Bold title
+    fontSize: 15, // Match other screens (15px)
     fontWeight: '900',
   },
   avatarCircle: {
-    width: 42, // Vertically centered 42px avatar
-    height: 42,
-    borderRadius: 21,
+    width: 32, // Match App.tsx avatar size
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '900',
   },
   searchBarWrapper: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   searchBar: {
-    height: 58, // Fixed 58px search height
-    borderRadius: themeRadius.search, // 30px border radius
+    height: 48, // Fixed 48px compact search height
+    borderRadius: themeRadius.search,
     backgroundColor: 'rgba(20, 20, 26, 0.92)',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -909,7 +915,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: colors.text,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     padding: 0,
   },
@@ -920,7 +926,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   idleStateContainer: {
-    paddingTop: 24,
+    paddingTop: 12,
   },
   recentSection: {
     marginBottom: 32,
@@ -953,18 +959,16 @@ const styles = StyleSheet.create({
   },
   recentList: {
     paddingHorizontal: 20,
-    gap: 8,
+    gap: 0,
   },
   recentItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: themeRadius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 14,
-    height: 48,
+    paddingHorizontal: 4,
+    height: 44,
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
   recentItemLeft: {
     flexDirection: 'row',
@@ -980,12 +984,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   recentDeleteBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },

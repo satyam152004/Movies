@@ -295,7 +295,7 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           <View style={styles.emptyStateContainer}>
             {/* Visual Hero Art */}
             <View style={styles.emptyIconCircle}>
-              <Icon name="download-outline" size={32} color={colors.primary} />
+              <Icon name="arrow-down-outline" size={32} color={colors.primary} />
             </View>
             <Text style={styles.emptyTitle}>
               Your downloads are waiting here
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
   browseBtn: {
     height: 44,
     paddingHorizontal: 28,
-    borderRadius: radius.cardControl,
+    borderRadius: radius.round,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',

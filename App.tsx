@@ -541,10 +541,11 @@ function App(): React.JSX.Element {
 
   if (isDomainResolving) {
     return (
-      <SafeAreaView style={styles.splashContainer}>
+      <View style={styles.splashContainer}>
         <StatusBar
           barStyle="light-content"
-          backgroundColor={colors.background}
+          backgroundColor="transparent"
+          translucent={true}
         />
         <View style={styles.splashContent}>
           <Image
@@ -554,7 +555,7 @@ function App(): React.JSX.Element {
           />
         </View>
         <HiddenWebView />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -597,8 +598,8 @@ function App(): React.JSX.Element {
                         : 'search-outline'
                       : tab === 'downloads'
                       ? isActive
-                        ? 'download'
-                        : 'download-outline'
+                        ? 'arrow-down'
+                        : 'arrow-down-outline'
                       : tab === 'watchlist'
                       ? isActive
                         ? 'heart'

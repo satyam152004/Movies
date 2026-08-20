@@ -485,7 +485,7 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
                 ) : (
                   <>
                     <Icon
-                      name="download-outline"
+                      name="arrow-down-outline"
                       size={20}
                       color="#FFFFFF"
                       style={{marginRight: 6}}

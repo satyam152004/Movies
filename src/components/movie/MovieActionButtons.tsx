@@ -98,7 +98,7 @@ export const MovieActionButtons: React.FC<MovieActionButtonsProps> = ({
             onPress={onDownloadPress}
             style={[styles.largeButton, styles.downloadButton]}>
             <Icon
-              name="download-outline"
+              name="arrow-down-outline"
               size={20}
               color={movieTheme.colors.primary}
               style={styles.btnIconSpacing}
