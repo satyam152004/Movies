@@ -71,9 +71,11 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   input: {
+    ...typography.tokens.body,
+
     flex: 1,
     color: colors.textPrimary,
-    fontSize: typography.sizes.sm,
+    
     fontWeight: typography.weights.medium,
     height: '100%',
     padding: 0,

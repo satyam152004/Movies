@@ -586,12 +586,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 26,
-    fontWeight: typography.weights.bold,
+    ...typography.tokens.h3,
   },
   headerSubtitle: {
+    ...typography.tokens.secondary,
+
     color: colors.textSecondary,
-    fontSize: 13,
+    
     marginTop: 4,
   },
   headerRight: {
@@ -610,8 +611,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerSearchInput: {
+    ...typography.tokens.bodyMedium,
+
     color: '#FFFFFF',
-    fontSize: 16,
+    
     padding: 0,
     fontWeight: typography.weights.semibold,
   },
@@ -636,7 +639,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
   },
   tabText: {
-    fontSize: 13,
+    ...typography.tokens.secondary,
+
+    
     fontWeight: typography.weights.bold,
     color: colors.textSecondary,
   },
@@ -672,8 +677,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyDesc: {
+    ...typography.tokens.body,
+
     color: colors.textSecondary,
-    fontSize: 15,
+    
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -720,8 +727,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
   },
   infoRowDesc: {
+    ...typography.tokens.secondary,
+
     color: colors.textSecondary,
-    fontSize: 13,
+    
   },
   listHeaderContainer: {
     paddingHorizontal: spacing.md,
@@ -747,8 +756,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   viewAllText: {
+    ...typography.tokens.secondary,
+
     color: colors.primary,
-    fontSize: 13,
+    
     fontWeight: typography.weights.bold,
   },
   sectionListGap: {
@@ -825,13 +836,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   cardSubtitle: {
+    ...typography.tokens.caption,
+
     color: colors.textSecondary,
-    fontSize: 12,
+    
     marginBottom: 4,
   },
   cardDetails: {
-    color: 'rgba(255, 255, 255, 0.4)',
+    ...typography.tokens.caption,
     fontSize: 11,
+
+    color: 'rgba(255, 255, 255, 0.4)',
+    
   },
   rightActions: {
     flexDirection: 'row',

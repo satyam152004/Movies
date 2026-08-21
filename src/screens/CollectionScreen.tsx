@@ -18,7 +18,7 @@ import {CatalogItem} from '../data/models';
 import {MovieCard} from '../components/cards/MovieCard';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 import {BackButton} from '../components/navigation/BackButton';
-import {radius} from '../theme';
+import {radius, typography} from '../theme';
 
 interface CollectionScreenProps {
   title: string;
@@ -419,11 +419,11 @@ const styles = StyleSheet.create({
 
   titleContainer: {
     flex: 1,
+    marginLeft: 12,
   },
   headerTitle: {
+    ...typography.tokens.h3,
     color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
   },
   headerSubtitle: {
     color: colors.secondaryText,

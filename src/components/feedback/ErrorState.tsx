@@ -43,15 +43,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
+    ...typography.tokens.bodyMedium,
+
     color: colors.textPrimary,
-    fontSize: typography.sizes.md,
+    
     fontWeight: typography.weights.heavy,
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
   message: {
+    ...typography.tokens.caption,
+
     color: colors.textSecondary,
-    fontSize: typography.sizes.xs,
+    
     textAlign: 'center',
     lineHeight: 18,
     maxWidth: 260,

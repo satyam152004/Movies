@@ -2,6 +2,7 @@ import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import {movieTheme} from './theme';
 import {movieStyles} from './styles';
+import {typography} from '../../theme';
 
 interface CrewMember {
   name: string;
@@ -61,14 +62,18 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   crewJob: {
+    ...typography.tokens.label,
+
     color: movieTheme.colors.secondary,
-    fontSize: 10,
+    
     fontWeight: movieTheme.typography.weights.bold,
     letterSpacing: 0.5,
   },
   crewName: {
+    ...typography.tokens.secondary,
+
     color: movieTheme.colors.text,
-    fontSize: 13,
+    
     fontWeight: movieTheme.typography.weights.semibold,
   },
 });

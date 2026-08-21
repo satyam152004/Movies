@@ -10,6 +10,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import {movieTheme} from './theme';
 import {MovieDetail} from '../../data/models';
+import {typography} from '../../theme';
 
 interface MovieActionButtonsProps {
   movie: MovieDetail;
@@ -145,8 +146,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   playButtonText: {
+    ...typography.tokens.navigation,
+
     color: '#000000',
-    fontSize: 12,
+    
     fontWeight: movieTheme.typography.weights.bold,
   },
   downloadButton: {
@@ -154,8 +157,11 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   downloadButtonText: {
-    color: movieTheme.colors.primary,
+    ...typography.tokens.caption,
     fontSize: 11,
+
+    color: movieTheme.colors.primary,
+    
     fontWeight: movieTheme.typography.weights.bold,
   },
   secondaryRow: {
@@ -180,8 +186,11 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   buttonText: {
-    color: movieTheme.colors.text,
+    ...typography.tokens.caption,
     fontSize: 11,
+
+    color: movieTheme.colors.text,
+    
     fontWeight: movieTheme.typography.weights.semibold,
   },
   btnIconSpacing: {

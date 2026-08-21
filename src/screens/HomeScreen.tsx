@@ -479,9 +479,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   logoText: {
-    color: colors.white,
+    ...typography.tokens.h3,
     fontSize: 20,
-    fontWeight: '900',
+
+    color: colors.white,
+    
     letterSpacing: 0.5,
   },
   logoTextPurple: {
@@ -521,9 +523,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
+    ...typography.tokens.button,
+
     color: colors.white,
-    fontSize: 14,
-    fontWeight: '900',
+    
   },
   content: {
     paddingBottom: spacing.lg,
@@ -553,9 +556,8 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   chipText: {
-    color: colors.textSecondary,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.bold,
+    ...typography.tokens.navigation,
+
   },
   chipTextActive: {
     color: '#FFFFFF',
@@ -594,8 +596,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingText: {
-    color: colors.textSecondary,
+    ...typography.tokens.caption,
     fontSize: 11,
+
+    color: colors.textSecondary,
+    
     fontWeight: '700',
   },
   footerSpacing: {
@@ -656,8 +661,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   statusText: {
+    ...typography.tokens.caption,
+
     color: colors.textSecondary,
-    fontSize: 12,
+    
     fontWeight: '500',
   },
 });

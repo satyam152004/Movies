@@ -404,8 +404,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   movieTitle: {
+    ...typography.tokens.bodyMedium,
+
     color: '#FFFFFF',
-    fontSize: 16,
+    
     fontWeight: typography.weights.bold,
     flex: 1,
     marginRight: 8,
@@ -421,15 +423,19 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   statusBadgeText: {
-    fontSize: 10,
+    ...typography.tokens.label,
+
+    
     fontWeight: typography.weights.bold,
   },
   moreBtn: {
     padding: 4,
   },
   metaText: {
+    ...typography.tokens.caption,
+
     color: colors.textSecondary,
-    fontSize: 12,
+    
     marginTop: 2,
     marginBottom: 4,
   },
@@ -443,7 +449,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   percentText: {
-    fontSize: 13,
+    ...typography.tokens.secondary,
+
+    
     fontWeight: typography.weights.bold,
     marginBottom: 4,
   },
@@ -459,7 +467,10 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   progressText: {
+    ...typography.tokens.caption,
     fontSize: 11,
+
+    
     color: colors.textMuted,
   },
   completedStatusWrapper: {
@@ -469,8 +480,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   completedStatusText: {
+    ...typography.tokens.caption,
+
     color: colors.success,
-    fontSize: 12,
+    
     fontWeight: typography.weights.semibold,
   },
   actionButtons: {
@@ -508,8 +521,10 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   menuItemText: {
+    ...typography.tokens.secondary,
+
     color: '#FFFFFF',
-    fontSize: 13,
+    
     fontWeight: typography.weights.bold,
   },
   menuItemClose: {
@@ -520,8 +535,10 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255, 255, 255, 0.06)',
   },
   menuItemCloseText: {
+    ...typography.tokens.secondary,
+
     color: colors.textSecondary,
-    fontSize: 13,
+    
     fontWeight: typography.weights.bold,
   },
   logsBox: {
@@ -533,8 +550,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   logsTitle: {
+    ...typography.tokens.label,
+
     color: colors.textSecondary,
-    fontSize: 10,
+    
     fontWeight: typography.weights.bold,
     marginBottom: 6,
     textTransform: 'uppercase',

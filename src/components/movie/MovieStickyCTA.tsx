@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {movieTheme} from './theme';
+import {typography} from '../../theme';
 
 interface MovieStickyCTAProps {
   visible: boolean;
@@ -23,16 +24,17 @@ export const MovieStickyCTA: React.FC<MovieStickyCTAProps> = ({
   onPlayPress,
   onDownloadPress,
 }) => {
-  const slideAnim = useRef(new Animated.Value(100)).current; // Start hidden below screen
+  const slideAnim = useRef(new Animated.Value(80)).current;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
-      toValue: visible ? 0 : 100,
-      tension: 50,
-      friction: 8,
+      toValue: visible ? 0 : 80,
       useNativeDriver: true,
+      bounciness: 4,
     }).start();
   }, [visible, slideAnim]);
+
+  if (!hasWatchLink) return null;
 
   return (
     <Animated.View
@@ -43,23 +45,23 @@ export const MovieStickyCTA: React.FC<MovieStickyCTAProps> = ({
         },
       ]}>
       <View style={styles.content}>
-        {hasWatchLink && (
+        <TouchableOpacity
+          style={[styles.button, styles.playButton]}
+          onPress={onPlayPress}
+          activeOpacity={0.8}>
+          <Icon name="play" size={18} color="#000000" />
+          <Text style={styles.playText}>Play Movie</Text>
+        </TouchableOpacity>
+
+        {onDownloadPress && (
           <TouchableOpacity
-            style={[styles.button, styles.playButton]}
-            onPress={onPlayPress}
+            style={[styles.button, styles.downloadButton]}
+            onPress={onDownloadPress}
             activeOpacity={0.8}>
-            <Icon name="play" size={18} color="#000000" />
-            <Text style={styles.playText}>Play</Text>
+            <Icon name="download" size={18} color="#FFFFFF" />
+            <Text style={styles.downloadText}>Download</Text>
           </TouchableOpacity>
         )}
-
-        <TouchableOpacity
-          style={[styles.button, styles.downloadButton]}
-          onPress={onDownloadPress}
-          activeOpacity={0.8}>
-          <Icon name="arrow-down" size={18} color="#FFFFFF" />
-          <Text style={styles.downloadText}>Download</Text>
-        </TouchableOpacity>
       </View>
     </Animated.View>
   );
@@ -102,15 +104,13 @@ const styles = StyleSheet.create({
   },
   playText: {
     color: '#000000',
-    fontWeight: movieTheme.typography.weights.bold,
-    fontSize: 14,
+    ...typography.tokens.button,
   },
   downloadButton: {
     backgroundColor: movieTheme.colors.primary,
   },
   downloadText: {
     color: '#FFFFFF',
-    fontWeight: movieTheme.typography.weights.bold,
-    fontSize: 14,
+    ...typography.tokens.button,
   },
 });

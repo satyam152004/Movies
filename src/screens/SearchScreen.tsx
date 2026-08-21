@@ -892,9 +892,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
+    ...typography.tokens.button,
+
     color: colors.text,
-    fontSize: 14,
-    fontWeight: '900',
+    
   },
   searchBarWrapper: {
     paddingHorizontal: 20,
@@ -923,9 +924,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   searchInput: {
+    ...typography.tokens.secondary,
+
     flex: 1,
     color: colors.text,
-    fontSize: 13,
+    
     fontWeight: '600',
     padding: 0,
   },
@@ -958,14 +961,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   sectionSubtitle: {
+    ...typography.tokens.secondary,
+
     color: colors.secondaryText,
-    fontSize: 13, // 13px Gray subtitle
+     // 13px Gray subtitle
     fontWeight: '600',
   },
   clearAllBtn: {
-    color: colors.primary,
-    fontSize: 13,
+    ...typography.tokens.secondary,
     fontWeight: '700',
+
+    color: colors.primary,
+    
   },
   recentList: {
     paddingHorizontal: 20,
@@ -989,9 +996,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   recentText: {
+    ...typography.tokens.button,
+
     color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
+    
   },
   recentDeleteBtn: {
     padding: 6,
@@ -1040,18 +1048,22 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   rankText: {
+    ...typography.tokens.caption,
+    fontWeight: '700',
+
     color: colors.primary,
-    fontSize: 12,
-    fontWeight: '900',
+    
   },
   trendingMeta: {
     padding: 10,
     gap: 4,
   },
   trendingTitle: {
-    color: colors.text,
-    fontSize: 12,
+    ...typography.tokens.caption,
     fontWeight: '700',
+
+    color: colors.text,
+    
   },
   trendingMetaRow: {
     flexDirection: 'row',
@@ -1059,14 +1071,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   trendingSubtitleText: {
-    color: colors.secondaryText,
-    fontSize: 10,
+    ...typography.tokens.label,
     fontWeight: '600',
+
+    color: colors.secondaryText,
+    
   },
   trendingRating: {
+    ...typography.tokens.label,
+    fontWeight: '700',
+
     color: '#FFC107',
-    fontSize: 10,
-    fontWeight: '800',
+    
   },
   categoriesSection: {
     marginBottom: 32,
@@ -1094,9 +1110,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   categoryText: {
+    ...typography.tokens.body,
+    fontWeight: '700',
+
     color: colors.text,
-    fontSize: 15,
-    fontWeight: '900',
+    
     zIndex: 2,
   },
   horizontalCardContainer: {
@@ -1117,9 +1135,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   horizontalCardTitle: {
-    color: colors.text,
-    fontSize: 12,
+    ...typography.tokens.caption,
     fontWeight: '700',
+
+    color: colors.text,
+    
   },
   horizontalCardMetaRow: {
     flexDirection: 'row',
@@ -1127,14 +1147,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   horizontalCardSubText: {
-    color: colors.secondaryText,
-    fontSize: 10,
+    ...typography.tokens.label,
     fontWeight: '600',
+
+    color: colors.secondaryText,
+    
   },
   horizontalCardRatingText: {
+    ...typography.tokens.label,
+    fontWeight: '700',
+
     color: '#FFC107',
-    fontSize: 10,
-    fontWeight: '800',
+    
   },
   suggestionsContainer: {
     paddingHorizontal: 20,
@@ -1161,18 +1185,21 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   suggestionTitleText: {
+    ...typography.tokens.button,
+
     color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
+    
   },
   highlightText: {
     color: colors.primary,
     fontWeight: '900',
   },
   suggestionMeta: {
-    color: colors.secondaryText,
+    ...typography.tokens.caption,
     fontSize: 11,
-    fontWeight: '600',
+
+    color: colors.secondaryText,
+    
   },
   suggestionArrow: {
     marginRight: 4,
@@ -1189,14 +1216,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   resultsCount: {
+    ...typography.tokens.button,
+    fontWeight: '700',
+
     color: colors.text,
-    fontSize: 14,
-    fontWeight: '900',
+    
   },
   sortByText: {
-    color: colors.secondaryText,
+    ...typography.tokens.caption,
     fontSize: 11,
     fontWeight: '700',
+
+    color: colors.secondaryText,
+    
   },
   topMatchSection: {
     paddingHorizontal: 20,
@@ -1235,9 +1267,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   topMatchTitle: {
+    ...typography.tokens.h3,
+
     color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
+    
     lineHeight: 22,
   },
   topMatchBadgesRow: {
@@ -1270,9 +1303,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   topMatchDescription: {
-    color: colors.secondaryText,
+    ...typography.tokens.caption,
     fontSize: 11,
-    fontWeight: '600',
+
+    color: colors.secondaryText,
+    
     lineHeight: 15,
     marginBottom: 6,
   },
@@ -1293,9 +1328,11 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   playText: {
+    ...typography.tokens.navigation,
+    fontWeight: '700',
+
     color: colors.text,
-    fontSize: 12,
-    fontWeight: '800',
+    
   },
   topMatchMoreBtn: {
     flex: 1,
@@ -1308,9 +1345,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   moreText: {
+    ...typography.tokens.navigation,
+    fontWeight: '700',
+
     color: colors.text,
-    fontSize: 12,
-    fontWeight: '800',
+    
   },
   gridListContent: {
     paddingHorizontal: 20,
@@ -1346,9 +1385,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingText: {
-    color: colors.secondaryText,
+    ...typography.tokens.caption,
     fontSize: 11,
     fontWeight: '700',
+
+    color: colors.secondaryText,
+    
   },
   emptyStateContainer: {
     alignItems: 'center',
@@ -1358,14 +1400,17 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyTitle: {
+    ...typography.tokens.h3,
+
     color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
+    
   },
   emptySubtitle: {
-    color: colors.secondaryText,
-    fontSize: 13,
+    ...typography.tokens.secondary,
     fontWeight: '600',
+
+    color: colors.secondaryText,
+    
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -1377,9 +1422,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   exploreBtnText: {
+    ...typography.tokens.secondary,
+    fontWeight: '700',
+
     color: colors.text,
-    fontSize: 13,
-    fontWeight: '800',
+    
   },
 });
 

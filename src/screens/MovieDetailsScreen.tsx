@@ -33,6 +33,7 @@ import {MovieDetail, DownloadLink, CatalogItem} from '../data/models';
 import {ScraperService} from '../services/scraper.service';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 import {BackButton} from '../components/navigation/BackButton';
+import {typography} from '../theme';
 
 interface MovieDetailsScreenProps {
   movie: MovieDetail;
@@ -758,9 +759,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerTitle: {
+    ...typography.tokens.bodyMedium,
+    fontWeight: '700',
+
     color: movieTheme.colors.text,
-    fontSize: 17,
-    fontWeight: movieTheme.typography.weights.bold,
+    
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 12,
@@ -836,9 +839,10 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   browserHeaderBtnText: {
+    ...typography.tokens.label,
+
     color: movieTheme.colors.text,
-    fontSize: 11,
-    fontWeight: '700',
+    
   },
   browserHeaderNav: {
     flexDirection: 'row',

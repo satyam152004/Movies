@@ -4,6 +4,7 @@ import {movieTheme} from './theme';
 import {MovieCard} from '../cards/MovieCard';
 import {CatalogItem, MovieDetail} from '../../data/models';
 import {formatDisplayTitle} from '../../utils/formatDisplayTitle';
+import {typography} from '../../theme';
 
 interface MovieRecommendationsProps {
   currentMovie: MovieDetail;
@@ -93,7 +94,9 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   sectionTitle: {
-    fontSize: 14,
+    ...typography.tokens.button,
+
+    
     fontWeight: movieTheme.typography.weights.bold,
     color: movieTheme.colors.text,
     paddingHorizontal: 16,

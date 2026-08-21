@@ -26,8 +26,10 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   text: {
+    ...typography.tokens.label,
+
     color: colors.primary,
-    fontSize: typography.sizes.xxs,
+    
     fontWeight: typography.weights.heavy,
     letterSpacing: 1.5,
   },

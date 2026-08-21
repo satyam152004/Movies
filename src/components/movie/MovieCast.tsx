@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView, Image} from 'react-native';
 import {movieTheme} from './theme';
+import {typography} from '../../theme';
 
 interface MovieCastProps {
   stars: string[];
@@ -75,7 +76,9 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   sectionTitle: {
-    fontSize: 14,
+    ...typography.tokens.button,
+
+    
     fontWeight: movieTheme.typography.weights.bold,
     color: movieTheme.colors.text,
     paddingHorizontal: 16,
@@ -112,8 +115,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fallbackText: {
+    ...typography.tokens.body,
+
     color: movieTheme.colors.primary,
-    fontSize: 14,
+    
     fontWeight: '700',
     letterSpacing: 0.5,
   },
@@ -126,8 +131,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   characterName: {
-    color: movieTheme.colors.secondary,
+    ...typography.tokens.label,
     fontSize: 9,
+
+    color: movieTheme.colors.secondary,
+    
     fontWeight: movieTheme.typography.weights.regular,
     marginTop: 1,
     textAlign: 'center',

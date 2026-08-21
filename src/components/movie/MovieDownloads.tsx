@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {movieTheme} from './theme';
+import {typography} from '../../theme';
 import {DownloadLink, MovieDetail} from '../../data/models';
 import {formatDisplayTitle} from '../../utils/formatDisplayTitle';
 
@@ -539,7 +540,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 18,
+    ...typography.tokens.h3,
+
+    
     fontWeight: movieTheme.typography.weights.bold,
     color: movieTheme.colors.text,
   },
@@ -550,17 +553,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   movieName: {
-    fontSize: 16,
+    ...typography.tokens.bodyMedium,
+
+    
     fontWeight: movieTheme.typography.weights.bold,
     color: movieTheme.colors.text,
     marginBottom: 4,
   },
   movieMeta: {
-    fontSize: 12,
+    ...typography.tokens.caption,
+
+    
     color: movieTheme.colors.secondary,
   },
   labelTitle: {
+    ...typography.tokens.caption,
     fontSize: 11,
+
+    
     fontWeight: movieTheme.typography.weights.bold,
     color: '#70798A',
     textTransform: 'uppercase',
@@ -599,12 +609,17 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   optionResolution: {
-    fontSize: 14,
+    ...typography.tokens.button,
+
+    
     fontWeight: movieTheme.typography.weights.bold,
     color: movieTheme.colors.text,
   },
   optionSubText: {
+    ...typography.tokens.caption,
     fontSize: 11,
+
+    
     color: movieTheme.colors.secondary,
   },
   noLinksText: {
@@ -629,8 +644,7 @@ const styles = StyleSheet.create({
   },
   recBadgeText: {
     color: movieTheme.colors.primary,
-    fontSize: 7,
-    fontWeight: '900',
+    ...typography.tokens.label,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -643,11 +657,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   summaryLabel: {
-    fontSize: 13,
+    ...typography.tokens.secondary,
+
+    
     color: movieTheme.colors.secondary,
   },
   summaryValue: {
-    fontSize: 15,
+    ...typography.tokens.body,
+
+    
     fontWeight: movieTheme.typography.weights.bold,
     color: movieTheme.colors.primary,
   },
@@ -663,8 +681,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   downloadBtnText: {
+    ...typography.tokens.button,
+
     color: '#FFFFFF',
-    fontSize: 14,
+    
     fontWeight: movieTheme.typography.weights.bold,
   },
   /* PREPARING STATE STYLES */
@@ -673,20 +693,26 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
   },
   preparingTitle: {
-    fontSize: 18,
+    ...typography.tokens.h3,
+
+    
     fontWeight: movieTheme.typography.weights.bold,
     color: movieTheme.colors.text,
     marginBottom: 8,
   },
   movieTitleText: {
-    fontSize: 15,
+    ...typography.tokens.body,
+
+    
     fontWeight: movieTheme.typography.weights.medium,
     color: movieTheme.colors.primary,
     textAlign: 'center',
     marginBottom: 4,
   },
   movieSubText: {
-    fontSize: 12,
+    ...typography.tokens.caption,
+
+    
     color: movieTheme.colors.secondary,
     marginBottom: 26,
   },
@@ -708,7 +734,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stepText: {
-    fontSize: 13,
+    ...typography.tokens.secondary,
+
+    
     color: movieTheme.colors.secondary,
   },
   activeStepText: {
@@ -728,7 +756,10 @@ const styles = StyleSheet.create({
     backgroundColor: movieTheme.colors.success,
   },
   pleaseWaitText: {
+    ...typography.tokens.caption,
     fontSize: 11,
+
+    
     color: '#70798A',
   },
   /* ERROR STYLES */
@@ -752,16 +783,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   errorTitle: {
+    ...typography.tokens.button,
+
     color: '#FC8181',
-    fontSize: 14,
+    
     fontWeight: '700',
   },
   errorCloseBtn: {
     padding: 2,
   },
   errorMessage: {
+    ...typography.tokens.caption,
+
     color: '#E5E7EB',
-    fontSize: 12,
+    
     lineHeight: 16,
   },
   retryBtn: {
@@ -773,8 +808,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   retryText: {
+    ...typography.tokens.caption,
+
     color: '#FFFFFF',
-    fontSize: 12,
+    
     fontWeight: '700',
   },
 });

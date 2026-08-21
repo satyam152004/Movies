@@ -1,3 +1,5 @@
+import {typography} from '../../theme';
+
 export const movieTheme = {
   colors: {
     background: '#09090B',
@@ -15,19 +17,19 @@ export const movieTheme = {
   },
   typography: {
     sizes: {
-      heroTitle: 34,
-      sectionTitle: 18,
-      subtitle: 16,
-      body: 15,
-      meta: 13,
-      badge: 10,
+      heroTitle: typography.tokens.display.fontSize,
+      sectionTitle: typography.tokens.h3.fontSize,
+      subtitle: typography.tokens.bodyMedium.fontSize,
+      body: typography.tokens.body.fontSize,
+      meta: typography.tokens.metadata.fontSize,
+      badge: typography.tokens.label.fontSize,
     },
     weights: {
-      regular: '400' as const,
-      medium: '500' as const,
-      semibold: '600' as const,
-      bold: '900' as const,
-      black: '900' as const,
+      regular: typography.weights.regular,
+      medium: typography.weights.medium,
+      semibold: typography.weights.semibold,
+      bold: typography.weights.heavy, // Map to heavy (900) as the existing theme specifies bold is '900'
+      black: typography.weights.heavy,
     },
   },
   radius: {

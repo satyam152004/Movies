@@ -44,8 +44,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   title: {
+    ...typography.tokens.h3,
+
     color: colors.textPrimary,
-    fontSize: typography.sizes.lg,
+    
     fontWeight: typography.weights.heavy,
     letterSpacing: 0.5,
   },
@@ -55,8 +57,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   seeAll: {
+    ...typography.tokens.caption,
+
     color: colors.primary,
-    fontSize: typography.sizes.xs,
+    
     fontWeight: typography.weights.bold,
   },
   chevron: {

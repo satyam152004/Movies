@@ -22,4 +22,66 @@ export const typography = {
     bold: '700' as TextStyle['fontWeight'],
     heavy: '900' as TextStyle['fontWeight'],
   },
+  tokens: {
+    display: {
+      fontSize: 34,
+      fontWeight: '900' as TextStyle['fontWeight'],
+      lineHeight: 42,
+    },
+    h1: {
+      fontSize: 26,
+      fontWeight: '700' as TextStyle['fontWeight'],
+      lineHeight: 32,
+    },
+    h2: {
+      fontSize: 22,
+      fontWeight: '700' as TextStyle['fontWeight'],
+      lineHeight: 28,
+    },
+    h3: {
+      fontSize: 18,
+      fontWeight: '700' as TextStyle['fontWeight'],
+      lineHeight: 24,
+    },
+    body: {
+      fontSize: 15,
+      fontWeight: '400' as TextStyle['fontWeight'],
+      lineHeight: 20,
+    },
+    bodyMedium: {
+      fontSize: 16,
+      fontWeight: '600' as TextStyle['fontWeight'],
+      lineHeight: 22,
+    },
+    secondary: {
+      fontSize: 13,
+      fontWeight: '400' as TextStyle['fontWeight'],
+      lineHeight: 18,
+    },
+    caption: {
+      fontSize: 12,
+      fontWeight: '400' as TextStyle['fontWeight'],
+      lineHeight: 16,
+    },
+    label: {
+      fontSize: 10,
+      fontWeight: '700' as TextStyle['fontWeight'],
+      lineHeight: 14,
+    },
+    button: {
+      fontSize: 14,
+      fontWeight: '600' as TextStyle['fontWeight'],
+      lineHeight: 18,
+    },
+    navigation: {
+      fontSize: 12,
+      fontWeight: '600' as TextStyle['fontWeight'],
+      lineHeight: 16,
+    },
+    metadata: {
+      fontSize: 13,
+      fontWeight: '400' as TextStyle['fontWeight'],
+      lineHeight: 18,
+    },
+  },
 };

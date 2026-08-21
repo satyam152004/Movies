@@ -50,21 +50,27 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   label: {
+    ...typography.tokens.label,
+
     color: colors.textSecondary,
-    fontSize: typography.sizes.xxs,
+    
     fontWeight: typography.weights.heavy,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   value: {
+    ...typography.tokens.h2,
+
     color: colors.textPrimary,
-    fontSize: typography.sizes.xl,
+    
     fontWeight: typography.weights.heavy,
     marginTop: 2,
   },
   subLabel: {
+    ...typography.tokens.label,
+
     color: colors.textMuted,
-    fontSize: typography.sizes.xxs,
+    
     fontWeight: typography.weights.semibold,
     marginTop: 2,
   },

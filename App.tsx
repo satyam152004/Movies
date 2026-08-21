@@ -34,6 +34,7 @@ import {TmdbService} from './src/services/tmdb.service';
 import {colors, radius, spacing, zIndex} from './src/theme';
 import {MovieCard} from './src/components/cards/MovieCard';
 import {EmptyState} from './src/components/feedback/EmptyState';
+import {typography} from './src/theme';
 
 type ActiveTab = 'home' | 'search' | 'downloads' | 'watchlist' | 'profile';
 type ActiveScreen = 'main' | 'detail' | 'collection';
@@ -531,8 +532,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   splashLogo: {
+    ...typography.tokens.display,
+    fontSize: 36, // Keep visual 36px splash logo
+
     color: colors.textPrimary,
-    fontSize: 36,
+    
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -542,8 +546,10 @@ const styles = StyleSheet.create({
     borderRadius: 60,
   },
   splashSubtitle: {
+    ...typography.tokens.bodyMedium,
+
     color: colors.textSecondary,
-    fontSize: 16,
+    
     fontWeight: '500',
     marginBottom: 40,
   },
@@ -552,8 +558,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   splashLoadingText: {
+    ...typography.tokens.button,
+
     color: colors.textSecondary,
-    fontSize: 14,
+    
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -568,8 +576,11 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   navTitle: {
+    ...typography.tokens.h3,
+    fontSize: 20, // Keep 20px header
+
     color: colors.textPrimary,
-    fontSize: 20,
+    
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -585,8 +596,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(144, 97, 249, 0.2)',
   },
   consoleBtnText: {
+    ...typography.tokens.label,
+
     color: colors.primary,
-    fontSize: 10,
+    
     fontWeight: '900',
   },
   screenWrapper: {
@@ -613,8 +626,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   screenTitle: {
+    ...typography.tokens.body,
+
     color: colors.textPrimary,
-    fontSize: 15,
+    
     fontWeight: '900',
   },
   countBadge: {
@@ -673,13 +688,17 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   profileName: {
+    ...typography.tokens.body,
+
     color: colors.textPrimary,
-    fontSize: 15,
+    
     fontWeight: '900',
   },
   profileTier: {
+    ...typography.tokens.label,
+
     color: colors.primary,
-    fontSize: 10,
+    
     fontWeight: '700',
   },
   settingsCard: {
@@ -691,8 +710,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   settingsSectionTitle: {
+    ...typography.tokens.label,
+    fontSize: 9, // Small section header
+
     color: colors.textSecondary,
-    fontSize: 9,
+    
     fontWeight: '900',
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -713,8 +735,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   storageLabel: {
+    ...typography.tokens.label,
+
     color: colors.textMuted,
-    fontSize: 10,
+    
     fontWeight: '600',
   },
   settingRow: {
@@ -731,13 +755,17 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   settingLabel: {
+    ...typography.tokens.secondary,
+
     color: colors.textPrimary,
-    fontSize: 13,
+    
     fontWeight: '700',
   },
   settingDesc: {
+    ...typography.tokens.label,
+
     color: colors.textSecondary,
-    fontSize: 10,
+    
     lineHeight: 14,
   },
   devDashboardBtn: {
@@ -750,8 +778,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   devDashboardBtnText: {
-    color: colors.white,
+    ...typography.tokens.label,
     fontSize: 11,
+
+    color: colors.white,
+    
     fontWeight: '900',
   },
   settingItemBorder: {
@@ -769,18 +800,25 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   settingLabelStatic: {
+    ...typography.tokens.secondary,
+
     color: colors.textPrimary,
-    fontSize: 13,
+    
     fontWeight: '700',
   },
   settingValueStatic: {
-    color: colors.textSecondary,
+    ...typography.tokens.label,
     fontSize: 11,
+
+    color: colors.textSecondary,
+    
     fontWeight: '600',
   },
   settingValueActive: {
+    ...typography.tokens.caption,
+
     color: colors.primary,
-    fontSize: 12,
+    
     fontWeight: '800',
   },
   devHeader: {
@@ -802,13 +840,17 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   devBackBtnText: {
+    ...typography.tokens.label,
+
     color: colors.textSecondary,
-    fontSize: 10,
+    
     fontWeight: '900',
   },
   devHeaderTitle: {
+    ...typography.tokens.body,
+
     color: colors.textPrimary,
-    fontSize: 15,
+    
     fontWeight: '900',
     flex: 1,
     textAlign: 'center',
@@ -858,8 +900,10 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   loadingText: {
+    ...typography.tokens.label,
+
     color: colors.primary,
-    fontSize: 10,
+    
     fontWeight: '900',
     letterSpacing: 1.5,
   },

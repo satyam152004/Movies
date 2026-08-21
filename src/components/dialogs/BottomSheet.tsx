@@ -89,16 +89,20 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   title: {
+    ...typography.tokens.bodyMedium,
+
     color: colors.textPrimary,
-    fontSize: typography.sizes.sm,
+    
     fontWeight: typography.weights.bold,
   },
   closeBtn: {
     padding: 6,
   },
   closeText: {
+    ...typography.tokens.caption,
+
     color: colors.textMuted,
-    fontSize: 12,
+    
   },
   body: {
     padding: spacing.md,

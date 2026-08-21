@@ -18,6 +18,7 @@ import {
   sanitizeStoryline,
   isValidStoryline,
 } from '../../services/detail.parser';
+import {typography} from '../../theme';
 
 if (
   Platform.OS === 'android' &&
@@ -153,8 +154,10 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   title: {
+    ...typography.tokens.h2,
+
     color: movieTheme.colors.text,
-    fontSize: 22,
+    
     fontWeight: movieTheme.typography.weights.bold,
     lineHeight: 28,
     marginBottom: 6,
@@ -181,8 +184,10 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   storyText: {
+    ...typography.tokens.secondary,
+
     color: movieTheme.colors.secondary,
-    fontSize: 13,
+    
     lineHeight: 20,
     fontWeight: movieTheme.typography.weights.regular,
   },

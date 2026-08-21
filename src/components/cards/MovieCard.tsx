@@ -135,8 +135,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(9, 9, 11, 0.8)',
   },
   badgeText: {
-    color: colors.white,
+    ...typography.tokens.label,
     fontSize: 8,
+
+    color: colors.white,
+    
     fontWeight: typography.weights.bold,
   },
   badge4K: {
@@ -166,13 +169,18 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   cardTitle: {
-    fontSize: 12,
+    ...typography.tokens.caption,
+
+    
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
     lineHeight: 15,
   },
   cardSubtitle: {
+    ...typography.tokens.label,
     fontSize: 9,
+
+    
     color: colors.textSecondary,
     fontWeight: typography.weights.semibold,
   },

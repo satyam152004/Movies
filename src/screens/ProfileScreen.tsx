@@ -45,15 +45,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
     refreshProfile,
   } = useProfile();
   const {counts, refreshLibrary} = useLibrary();
-  const {
-    videoQuality,
-    downloadQuality,
-    wifiOnly,
-    updateVideoQuality,
-    updateDownloadQuality,
-    updateWifiOnly,
-    refreshPreferences,
-  } = usePreferences();
+  const {refreshPreferences} = usePreferences();
 
   // Edit Profile modal state
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -108,23 +100,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
     setIsEditModalVisible(false);
   };
 
-  const cycleVideoQuality = () => {
-    const nextMap: Record<typeof videoQuality, typeof videoQuality> = {
-      high: 'medium',
-      medium: 'low',
-      low: 'high',
-    };
-    updateVideoQuality(nextMap[videoQuality]);
-  };
-
-  const cycleDownloadQuality = () => {
-    const nextMap: Record<typeof downloadQuality, typeof downloadQuality> = {
-      '1080p': '720p',
-      '720p': '480p',
-      '480p': '1080p',
-    };
-    updateDownloadQuality(nextMap[downloadQuality]);
-  };
 
   const handleBackup = async () => {
     try {
@@ -317,51 +292,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
           </TouchableOpacity>
         </View>
 
-        {/* Playback settings */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>PLAYBACK</Text>
-
-          <TouchableOpacity
-            style={styles.settingItemBorder}
-            onPress={cycleVideoQuality}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Streaming Video Quality</Text>
-              <Text style={styles.settingDesc}>
-                Select preferred streaming resolution
-              </Text>
-            </View>
-            <Text style={styles.settingValueActive}>
-              {videoQuality.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingItemBorder}
-            onPress={cycleDownloadQuality}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Download Video Quality</Text>
-              <Text style={styles.settingDesc}>
-                Select default resolution for downloads
-              </Text>
-            </View>
-            <Text style={styles.settingValueActive}>{downloadQuality}</Text>
-          </TouchableOpacity>
-
-          <View style={styles.settingItemBorderLast}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Wi-Fi Only Downloads</Text>
-              <Text style={styles.settingDesc}>
-                Restrict data usage and only download on Wi-Fi
-              </Text>
-            </View>
-            <Switch
-              value={wifiOnly}
-              onValueChange={updateWifiOnly}
-              trackColor={{false: colors.elevated, true: colors.primary}}
-              thumbColor={colors.white}
-            />
-          </View>
-        </View>
 
         {/* Appearance */}
         <View style={styles.settingsCard}>
@@ -415,15 +345,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
           </TouchableOpacity>
         </View>
 
-        {/* About details */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>ABOUT</Text>
-          <View style={styles.settingItemBorderLast}>
-            <Text style={styles.settingLabelStatic}>App Version</Text>
-            <Text style={styles.settingValueStatic}>1.1.0</Text>
-          </View>
-        </View>
       </ScrollView>
+
+      <Text style={styles.bottomVersionText}>v1.1.0</Text>
 
       {/* Edit Profile Modal */}
       <Modal visible={isEditModalVisible} transparent animationType="slide">
@@ -501,8 +425,8 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '900',
+    ...typography.tokens.bodyMedium,
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
@@ -535,8 +459,7 @@ const styles = StyleSheet.create({
   },
   profileName: {
     color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '900',
+    ...typography.tokens.h3,
     marginBottom: 2,
   },
   profileSubtitle: {
@@ -554,7 +477,7 @@ const styles = StyleSheet.create({
   },
   editProfileBtnText: {
     color: colors.textPrimary,
-    fontSize: 13,
+    ...typography.tokens.secondary,
     fontWeight: '700',
   },
   settingsCard: {
@@ -566,8 +489,7 @@ const styles = StyleSheet.create({
   },
   settingsSectionTitle: {
     color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: '900',
+    ...typography.tokens.label,
     letterSpacing: 1,
     marginBottom: 12,
   },
@@ -591,7 +513,7 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     color: colors.textPrimary,
-    fontSize: 14,
+    ...typography.tokens.body,
     fontWeight: '700',
   },
   settingDesc: {
@@ -599,23 +521,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   settingValueActive: {
+    ...typography.tokens.secondary,
+
     color: colors.primary,
-    fontSize: 13,
+    
     fontWeight: '900',
   },
   settingValueStatic: {
     color: colors.textSecondary,
-    fontSize: 13,
+    ...typography.tokens.secondary,
     fontWeight: '700',
   },
   settingValueDestructive: {
+    ...typography.tokens.secondary,
+
     color: '#EF4444',
-    fontSize: 13,
+    
     fontWeight: '900',
   },
   settingLabelStatic: {
     color: colors.textPrimary,
-    fontSize: 14,
+    ...typography.tokens.body,
     fontWeight: '700',
   },
   modalOverlay: {
@@ -636,16 +562,17 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '900',
+    ...typography.tokens.h3,
   },
   nameInput: {
+    ...typography.tokens.body,
+
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.sm,
     padding: spacing.sm,
     color: colors.textPrimary,
-    fontSize: 15,
+    
   },
   modalBtnRow: {
     flexDirection: 'row',
@@ -658,7 +585,7 @@ const styles = StyleSheet.create({
   },
   modalCancelBtnText: {
     color: colors.textSecondary,
-    fontSize: 14,
+    ...typography.tokens.body,
     fontWeight: '700',
   },
   modalSaveBtn: {
@@ -669,15 +596,17 @@ const styles = StyleSheet.create({
   },
   modalSaveBtnText: {
     color: colors.white,
-    fontSize: 14,
+    ...typography.tokens.body,
     fontWeight: '700',
   },
   avatarEmoji: {
     fontSize: 38,
   },
   modalSubTitle: {
+    ...typography.tokens.caption,
+
     color: colors.textSecondary,
-    fontSize: 12,
+    
     fontWeight: '700',
     marginTop: 8,
   },
@@ -707,7 +636,15 @@ const styles = StyleSheet.create({
   },
   avatarPickInitialsText: {
     color: colors.textPrimary,
-    fontSize: 13,
+    ...typography.tokens.secondary,
     fontWeight: '700',
+  },
+  bottomVersionText: {
+    ...typography.tokens.caption,
+
+    color: colors.textSecondary,
+    
+    textAlign: 'center',
+    paddingVertical: spacing.md,
   },
 });

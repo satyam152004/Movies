@@ -98,8 +98,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   text: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.bold,
+    ...typography.tokens.button,
   },
   textPrimary: {
     color: colors.white,
