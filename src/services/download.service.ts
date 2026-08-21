@@ -112,10 +112,6 @@ export class DownloadService {
     }
   }
 
-  public getDownloads(): DownloadRecord[] {
-    return [...this.downloads];
-  }
-
   public getDownloadByUrl(url: string): DownloadRecord | undefined {
     return this.downloads.find(d => d.downloadUrl === url);
   }
@@ -169,14 +165,10 @@ export class DownloadService {
     }
 
     // 4. Trigger native enqueue with persistent ID
-    const id = Date.now().toString() + '_' + Math.floor(Math.random() * 1000).toString();
+    const id =
+      Date.now().toString() + '_' + Math.floor(Math.random() * 1000).toString();
     try {
-      await DownloadModule.enqueueDownload(
-        id,
-        finalUrl,
-        movieTitle,
-        fileName,
-      );
+      await DownloadModule.enqueueDownload(id, finalUrl, movieTitle, fileName);
       const newRecord: DownloadRecord = {
         id,
         movieTitle,
@@ -257,7 +249,9 @@ export class DownloadService {
       record.lastBytesDownloaded = 0;
       record.lastUpdated = Date.now();
       record.logs.unshift(
-        `[${new Date().toLocaleTimeString()}] ${actionText} download. Resumed task (ID: ${record.id})`,
+        `[${new Date().toLocaleTimeString()}] ${actionText} download. Resumed task (ID: ${
+          record.id
+        })`,
       );
 
       await this.persist();
@@ -361,7 +355,10 @@ export class DownloadService {
 
           // Calculate speed
           if (timeDiffSec > 0.5) {
-            if (record.lastBytesDownloaded === 0 || record.lastBytesDownloaded > currentBytes) {
+            if (
+              record.lastBytesDownloaded === 0 ||
+              record.lastBytesDownloaded > currentBytes
+            ) {
               record.lastBytesDownloaded = currentBytes;
             }
             const bytesDiff = Math.max(

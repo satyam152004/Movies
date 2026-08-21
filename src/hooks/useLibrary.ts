@@ -17,7 +17,7 @@ export function useLibrary() {
       const fav = await LibraryStorage.getFavorites();
       const hist = await LibraryStorage.getWatchHistory();
       const cont = await LibraryStorage.getContinueWatching();
-      
+
       setWatchlist(wl);
       setFavorites(fav);
       setHistory(hist);

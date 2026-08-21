@@ -305,7 +305,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
 
   const saveRecentSearch = async (term: string) => {
     const clean = term.trim();
-    if (!clean) return;
+    if (!clean) {
+      return;
+    }
     try {
       const filtered = recentSearches.filter(
         s => s.toLowerCase() !== clean.toLowerCase(),
@@ -342,12 +344,16 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   const filteredItems = displayItems;
 
   const topMatchItem = useMemo(() => {
-    if (!search.trim() || filteredItems.length === 0) return null;
+    if (!search.trim() || filteredItems.length === 0) {
+      return null;
+    }
     return filteredItems[0];
   }, [search, filteredItems]);
 
   const gridResults = useMemo(() => {
-    if (!search.trim() || filteredItems.length === 0) return filteredItems;
+    if (!search.trim() || filteredItems.length === 0) {
+      return filteredItems;
+    }
     return filteredItems.slice(1);
   }, [search, filteredItems]);
 
@@ -365,7 +371,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   );
 
   const highlightText = (text: string, query: string) => {
-    if (!query) return <Text>{text}</Text>;
+    if (!query) {
+      return <Text>{text}</Text>;
+    }
     const parts = text.split(new RegExp(`(${query})`, 'gi'));
     return (
       <Text style={styles.suggestionTitleText}>
@@ -534,7 +542,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
           <View style={styles.sectionHeaderRow}>
             <View style={styles.titleWithSubtitle}>
               <Text style={styles.sectionTitle}>Browse</Text>
-              <Text style={styles.sectionSubtitle}>Discover movies by genre</Text>
+              <Text style={styles.sectionSubtitle}>
+                Discover movies by genre
+              </Text>
             </View>
             {onViewAllPress && (
               <TouchableOpacity
@@ -622,7 +632,9 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   };
 
   const renderTopMatch = () => {
-    if (!topMatchItem) return null;
+    if (!topMatchItem) {
+      return null;
+    }
     const title = formatDisplayTitle(topMatchItem.title);
     return (
       <View style={styles.topMatchSection}>
@@ -758,7 +770,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* 
+      {/*
         PREMIUM STICKY HEADER CONTAINER (Fixed top vertical block)
         Keeps Header and Search Bar strictly sticky and fixed.
         Opaque background (#050506) completely covers background content.

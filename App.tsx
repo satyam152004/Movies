@@ -50,8 +50,12 @@ function App(): React.JSX.Element {
   const [isConsoleVisible, setIsConsoleVisible] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [watchlist, setWatchlist] = useState<CatalogItem[]>([]);
-  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high');
-  const [downloadQuality, setDownloadQuality] = useState<'1080p' | '720p' | '480p'>('1080p');
+  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>(
+    'high',
+  );
+  const [downloadQuality, setDownloadQuality] = useState<
+    '1080p' | '720p' | '480p'
+  >('1080p');
   const [wifiOnly, setWifiOnly] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -119,7 +123,9 @@ function App(): React.JSX.Element {
     await PreferencesStorage.saveVideoQuality(val);
   };
 
-  const handleUpdateDownloadQuality = async (val: '1080p' | '720p' | '480p') => {
+  const handleUpdateDownloadQuality = async (
+    val: '1080p' | '720p' | '480p',
+  ) => {
     setDownloadQuality(val);
     await PreferencesStorage.saveDownloadQuality(val);
   };
@@ -189,7 +195,7 @@ function App(): React.JSX.Element {
       TmdbService.getInstance()
         .enrichMovie(detail)
         .then(enrichedDetail => {
-          console.info(`[App Debug] After enrichment. Enriched properties:`, {
+          console.info('[App Debug] After enrichment. Enriched properties:', {
             backdropUrl: enrichedDetail.backdropUrl,
             castCount: enrichedDetail.enrichedCast?.length,
             crewCount: enrichedDetail.enrichedCrew?.length,
@@ -306,7 +312,11 @@ function App(): React.JSX.Element {
       Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4;
     return (
       <View style={styles.tabContainer}>
-        <View style={[styles.screenHeader, { paddingTop: safeAreaTop, height: 56 + safeAreaTop }]}>
+        <View
+          style={[
+            styles.screenHeader,
+            {paddingTop: safeAreaTop, height: 56 + safeAreaTop},
+          ]}>
           <Text style={styles.screenTitle}>My Watchlist</Text>
           <View style={styles.countBadge}>
             <Text style={styles.countText}>{watchlist.length} ITEMS</Text>
@@ -390,7 +400,7 @@ function App(): React.JSX.Element {
     if (screen === 'collection' && collectionParams) {
       const handleLoadMoreCollection = () => {
         if (collectionParams.type === 'latest') {
-          loadMoreCatalog();
+          loadMoreCatalogHook();
         }
       };
 
@@ -409,7 +419,7 @@ function App(): React.JSX.Element {
             setCollectionParams(null);
           }}
           onLoadMore={handleLoadMoreCollection}
-          isLoadingMore={isCatalogLoadingMore}
+          isLoadingMore={catalogStatus === 'loading' && catalogPage > 1}
         />
       );
     }
@@ -463,7 +473,11 @@ function App(): React.JSX.Element {
                 setActiveTab(tab);
               }}
               activeOpacity={0.85}>
-              <View style={[styles.iconContainer, isActive && styles.iconContainerActive]}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  isActive && styles.iconContainerActive,
+                ]}>
                 <Icon
                   name={
                     tab === 'home'
@@ -814,7 +828,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 8,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: {width: 0, height: 8},
     shadowOpacity: 0.45,
     shadowRadius: 16,
     elevation: 8,

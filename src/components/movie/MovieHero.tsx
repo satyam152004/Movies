@@ -4,7 +4,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {MovieDetail} from '../../data/models';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
-const HERO_HEIGHT = SCREEN_HEIGHT * 0.50;
+const HERO_HEIGHT = SCREEN_HEIGHT * 0.5;
 
 interface MovieHeroProps {
   movie: MovieDetail;

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {CacheStorage} from './storage/cache.storage';
 import {parseCatalog} from './catalog.parser';
 import {
   parseMovieDetail,
@@ -970,7 +971,7 @@ export class ScraperService {
 
     let activeDomain = 'https://new1.hdhub4u.af/';
     try {
-      const cached = await AsyncStorage.getItem('@hdhub4u_discovered_url');
+      const cached = await CacheStorage.getDiscoveredUrl();
       if (cached) {
         activeDomain = cached;
       }

@@ -43,12 +43,16 @@ export const MovieRecommendations: React.FC<MovieRecommendationsProps> = ({
 
         // Match genres in title
         currentGenres.forEach(genre => {
-          if (itemTitle.includes(genre)) score += 3;
+          if (itemTitle.includes(genre)) {
+            score += 3;
+          }
         });
 
         // Match categories in title
         currentCats.forEach(cat => {
-          if (itemTitle.includes(cat)) score += 2;
+          if (itemTitle.includes(cat)) {
+            score += 2;
+          }
         });
 
         return {item, score};

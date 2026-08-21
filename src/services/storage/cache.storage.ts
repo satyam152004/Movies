@@ -63,7 +63,11 @@ export class CacheStorage {
     return null;
   }
 
-  public static async saveTmdbCache(movieUrl: string, data: any, ttlMs: number): Promise<void> {
+  public static async saveTmdbCache(
+    movieUrl: string,
+    data: any,
+    ttlMs: number,
+  ): Promise<void> {
     try {
       const cacheKey = this.TMDB_PREFIX + encodeURIComponent(movieUrl);
       const cacheObject: TmdbCacheObject = {
@@ -88,7 +92,10 @@ export class CacheStorage {
 
   public static async saveSearchRecents(recents: string[]): Promise<void> {
     try {
-      await AsyncStorage.setItem(this.SEARCH_RECENTS_KEY, JSON.stringify(recents));
+      await AsyncStorage.setItem(
+        this.SEARCH_RECENTS_KEY,
+        JSON.stringify(recents),
+      );
     } catch (e) {
       console.error('Failed to save search recents', e);
     }

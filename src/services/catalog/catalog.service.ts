@@ -10,7 +10,7 @@ export class CatalogService {
   private scraper = ScraperService.getInstance();
   private activeRequests: Map<string, Promise<CatalogItem[]>> = new Map();
   private listeners: Set<CatalogListener> = new Set();
-  
+
   // Stale threshold is 10 minutes
   private static readonly STALE_THRESHOLD_MS = 10 * 60 * 1000;
 
@@ -67,21 +67,24 @@ export class CatalogService {
   public async fetchCatalog(
     categoryPath: string | null,
     pageNum: number,
-    forceRefresh: boolean = false
+    forceRefresh: boolean = false,
   ): Promise<CatalogItem[]> {
     const requestKey = this.getRequestKey(categoryPath, pageNum);
 
     // 1. Check for existing active promise (Deduplication)
     const activePromise = this.activeRequests.get(requestKey);
     if (activePromise) {
-      console.info(`[CatalogService] Returning existing active request for: ${requestKey}`);
+      console.info(
+        `[CatalogService] Returning existing active request for: ${requestKey}`,
+      );
       return activePromise;
     }
 
     // 2. Perform network request
     const promise = (async () => {
       try {
-        const activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
+        const activeUrl =
+          await UrlDiscoveryService.getInstance().getActiveUrl();
         if (!activeUrl) {
           throw new Error('No active scraper URL discovered');
         }
@@ -92,15 +95,21 @@ export class CatalogService {
 
         this.scraper.log(
           `[CatalogService] Scraping path: ${targetUrl} (page ${pageNum})...`,
-          'info'
+          'info',
         );
 
-        const result = await this.scraper.scrapeCatalogPage(targetUrl, false, pageNum);
-        
+        const result = await this.scraper.scrapeCatalogPage(
+          targetUrl,
+          false,
+          pageNum,
+        );
+
         // 3. Cache Validation
         if (result && Array.isArray(result.items) && result.items.length > 0) {
           // Verify items have basic valid structures
-          const validItems = result.items.filter(item => item && item.title && item.url);
+          const validItems = result.items.filter(
+            item => item && item.title && item.url,
+          );
           if (validItems.length > 0) {
             // Write to cache only on page 1 of 'All' / category-less fetches
             // to keep the main offline landing page correct without mixing pagination pages
@@ -116,7 +125,10 @@ export class CatalogService {
         }
         throw new Error('Scraped response is empty or invalid');
       } catch (err) {
-        this.scraper.log(`[CatalogService] Scrape failed: ${(err as any).message}`, 'error');
+        this.scraper.log(
+          `[CatalogService] Scrape failed: ${(err as any).message}`,
+          'error',
+        );
         throw err;
       } finally {
         // Clear active request tracker when request resolves or fails

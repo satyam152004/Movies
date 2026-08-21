@@ -2,8 +2,12 @@ import {useState, useEffect, useCallback} from 'react';
 import {PreferencesStorage} from '../services/storage/preferences.storage';
 
 export function usePreferences() {
-  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high');
-  const [downloadQuality, setDownloadQuality] = useState<'1080p' | '720p' | '480p'>('1080p');
+  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>(
+    'high',
+  );
+  const [downloadQuality, setDownloadQuality] = useState<
+    '1080p' | '720p' | '480p'
+  >('1080p');
   const [wifiOnly, setWifiOnly] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 

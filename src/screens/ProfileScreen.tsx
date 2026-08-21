@@ -21,20 +21,28 @@ import {LibraryStorage} from '../services/storage/library.storage';
 import {CacheStorage} from '../services/storage/cache.storage';
 
 const BUILTIN_AVATARS = [
-  { id: 'avatar_popcorn', emoji: '🍿' },
-  { id: 'avatar_director', emoji: '🎬' },
-  { id: 'avatar_camera', emoji: '🎥' },
-  { id: 'avatar_theater', emoji: '🎭' },
-  { id: 'avatar_superhero', emoji: '🦸' },
-  { id: 'avatar_cool', emoji: '🕶️' },
+  {id: 'avatar_popcorn', emoji: '🍿'},
+  {id: 'avatar_director', emoji: '🎬'},
+  {id: 'avatar_camera', emoji: '🎥'},
+  {id: 'avatar_theater', emoji: '🎭'},
+  {id: 'avatar_superhero', emoji: '🦸'},
+  {id: 'avatar_cool', emoji: '🕶️'},
 ];
 
 interface ProfileScreenProps {
-  onSwitchTab: (tabName: 'home' | 'search' | 'downloads' | 'watchlist' | 'profile') => void;
+  onSwitchTab: (
+    tabName: 'home' | 'search' | 'downloads' | 'watchlist' | 'profile',
+  ) => void;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
-  const {profile, updateProfileName, updateAvatarId, getInitials, refreshProfile} = useProfile();
+  const {
+    profile,
+    updateProfileName,
+    updateAvatarId,
+    getInitials,
+    refreshProfile,
+  } = useProfile();
   const {counts, refreshLibrary} = useLibrary();
   const {
     videoQuality,
@@ -49,7 +57,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
   // Edit Profile modal state
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
-  const [selectedAvatarId, setSelectedAvatarId] = useState<string | undefined>(undefined);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | undefined>(
+    undefined,
+  );
   const [lastBackupStr, setLastBackupStr] = useState<string>('Never');
 
   // Load last backup timestamp on mount
@@ -60,7 +70,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
       try {
         const time = await CacheStorage.getTmdbCache('last_backup_time');
         if (time) {
-          setLastBackupStr(new Date(time).toLocaleDateString() + ' ' + new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          setLastBackupStr(
+            new Date(time).toLocaleDateString() +
+              ' ' +
+              new Date(time).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+          );
         }
       } catch (e) {}
     };
@@ -112,9 +129,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
     try {
       const backupStr = await LibraryStorage.exportBackup();
       const now = Date.now();
-      await CacheStorage.saveTmdbCache('last_backup_time', now, 365 * 24 * 60 * 60 * 1000);
-      setLastBackupStr(new Date(now).toLocaleDateString() + ' ' + new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      Alert.alert('Backup Exported', 'Watchlist, favorites, and settings backup has been generated and saved locally.');
+      await CacheStorage.saveTmdbCache(
+        'last_backup_time',
+        now,
+        365 * 24 * 60 * 60 * 1000,
+      );
+      setLastBackupStr(
+        new Date(now).toLocaleDateString() +
+          ' ' +
+          new Date(now).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+      );
+      Alert.alert(
+        'Backup Exported',
+        'Watchlist, favorites, and settings backup has been generated and saved locally.',
+      );
     } catch (e) {
       Alert.alert('Backup Error', 'Failed to generate backup.');
     }
@@ -132,16 +163,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
             onPress: async () => {
               const backup = await LibraryStorage.exportBackup(); // loopback for testing
               await LibraryStorage.importBackup(backup);
-              
+
               // Refresh all hooks reactively
               await refreshProfile();
               await refreshLibrary();
               await refreshPreferences();
-              
+
               Alert.alert('Success', 'Library backup restored successfully!');
             },
           },
-        ]
+        ],
       );
     } catch (e) {
       Alert.alert('Restore Error', 'Failed to restore backup.');
@@ -163,30 +194,38 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
             Alert.alert('Success', 'Cache cleared successfully.');
           },
         },
-      ]
+      ],
     );
   };
 
-  const safeAreaTop = Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4;
+  const safeAreaTop =
+    Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4;
   const bottomInset = 60 + (Platform.OS === 'ios' ? 34 : 16) + 12;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.screenHeader, {paddingTop: safeAreaTop, height: 56 + safeAreaTop}]}>
+      <View
+        style={[
+          styles.screenHeader,
+          {paddingTop: safeAreaTop, height: 56 + safeAreaTop},
+        ]}>
         <Text style={styles.screenTitle}>Profile & Settings</Text>
       </View>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, {paddingBottom: bottomInset}]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {paddingBottom: bottomInset},
+        ]}
         showsVerticalScrollIndicator={false}>
-        
         {/* Profile Card Header */}
         <View style={styles.profileHeaderCard}>
           <View style={styles.avatarCircle}>
             {profile?.avatarId ? (
               <Text style={styles.avatarEmoji}>
-                {BUILTIN_AVATARS.find(a => a.id === profile.avatarId)?.emoji || '🍿'}
+                {BUILTIN_AVATARS.find(a => a.id === profile.avatarId)?.emoji ||
+                  '🍿'}
               </Text>
             ) : (
               <Text style={styles.avatarText}>{getInitials()}</Text>
@@ -194,7 +233,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
           </View>
           <Text style={styles.profileName}>{profile?.name || 'Movie Fan'}</Text>
           <Text style={styles.profileSubtitle}>Local Profile</Text>
-          <TouchableOpacity style={styles.editProfileBtn} onPress={openEditModal} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            onPress={openEditModal}
+            activeOpacity={0.8}>
             <Text style={styles.editProfileBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -203,39 +245,60 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
         <View style={styles.settingsCard}>
           <Text style={styles.settingsSectionTitle}>MY LIBRARY</Text>
 
-          <TouchableOpacity style={styles.settingItemBorder} onPress={() => onSwitchTab('watchlist')}>
+          <TouchableOpacity
+            style={styles.settingItemBorder}
+            onPress={() => onSwitchTab('watchlist')}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>❤️ Favorites</Text>
             </View>
-            <Text style={styles.settingValueStatic}>{`${counts.favorites} >`}</Text>
+            <Text
+              style={styles.settingValueStatic}>{`${counts.favorites} >`}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItemBorder} onPress={() => onSwitchTab('watchlist')}>
+          <TouchableOpacity
+            style={styles.settingItemBorder}
+            onPress={() => onSwitchTab('watchlist')}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>🔖 Watchlist</Text>
             </View>
-            <Text style={styles.settingValueStatic}>{`${counts.watchlist} >`}</Text>
+            <Text
+              style={styles.settingValueStatic}>{`${counts.watchlist} >`}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItemBorder} onPress={() => Alert.alert('History', 'History tracking is active.')}>
+          <TouchableOpacity
+            style={styles.settingItemBorder}
+            onPress={() =>
+              Alert.alert('History', 'History tracking is active.')
+            }>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>🕘 Watch History</Text>
             </View>
-            <Text style={styles.settingValueStatic}>{`${counts.history} >`}</Text>
+            <Text
+              style={styles.settingValueStatic}>{`${counts.history} >`}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItemBorder} onPress={() => Alert.alert('Continue Watching', 'Continue watching items.')}>
+          <TouchableOpacity
+            style={styles.settingItemBorder}
+            onPress={() =>
+              Alert.alert('Continue Watching', 'Continue watching items.')
+            }>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>▶ Continue Watching</Text>
             </View>
-            <Text style={styles.settingValueStatic}>{`${counts.continueWatching} >`}</Text>
+            <Text
+              style={
+                styles.settingValueStatic
+              }>{`${counts.continueWatching} >`}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItemBorderLast} onPress={() => onSwitchTab('downloads')}>
+          <TouchableOpacity
+            style={styles.settingItemBorderLast}
+            onPress={() => onSwitchTab('downloads')}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>⬇ Downloads</Text>
             </View>
-            <Text style={styles.settingValueStatic}>{`${counts.downloads} >`}</Text>
+            <Text
+              style={styles.settingValueStatic}>{`${counts.downloads} >`}</Text>
           </TouchableOpacity>
         </View>
 
@@ -243,18 +306,28 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
         <View style={styles.settingsCard}>
           <Text style={styles.settingsSectionTitle}>PLAYBACK</Text>
 
-          <TouchableOpacity style={styles.settingItemBorder} onPress={cycleVideoQuality}>
+          <TouchableOpacity
+            style={styles.settingItemBorder}
+            onPress={cycleVideoQuality}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>Streaming Video Quality</Text>
-              <Text style={styles.settingDesc}>Select preferred streaming resolution</Text>
+              <Text style={styles.settingDesc}>
+                Select preferred streaming resolution
+              </Text>
             </View>
-            <Text style={styles.settingValueActive}>{videoQuality.toUpperCase()}</Text>
+            <Text style={styles.settingValueActive}>
+              {videoQuality.toUpperCase()}
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItemBorder} onPress={cycleDownloadQuality}>
+          <TouchableOpacity
+            style={styles.settingItemBorder}
+            onPress={cycleDownloadQuality}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>Download Video Quality</Text>
-              <Text style={styles.settingDesc}>Select default resolution for downloads</Text>
+              <Text style={styles.settingDesc}>
+                Select default resolution for downloads
+              </Text>
             </View>
             <Text style={styles.settingValueActive}>{downloadQuality}</Text>
           </TouchableOpacity>
@@ -262,7 +335,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
           <View style={styles.settingItemBorderLast}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>Wi-Fi Only Downloads</Text>
-              <Text style={styles.settingDesc}>Restrict data usage and only download on Wi-Fi</Text>
+              <Text style={styles.settingDesc}>
+                Restrict data usage and only download on Wi-Fi
+              </Text>
             </View>
             <Switch
               value={wifiOnly}
@@ -288,26 +363,38 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
         <View style={styles.settingsCard}>
           <Text style={styles.settingsSectionTitle}>DATA & STORAGE</Text>
 
-          <TouchableOpacity style={styles.settingItemBorder} onPress={handleBackup}>
+          <TouchableOpacity
+            style={styles.settingItemBorder}
+            onPress={handleBackup}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>Backup & Restore</Text>
-              <Text style={styles.settingDesc}>Last backup: {lastBackupStr}</Text>
+              <Text style={styles.settingDesc}>
+                Last backup: {lastBackupStr}
+              </Text>
             </View>
             <Text style={styles.settingValueActive}>BACKUP</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItemBorder} onPress={handleRestore}>
+          <TouchableOpacity
+            style={styles.settingItemBorder}
+            onPress={handleRestore}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>Restore Library Backup</Text>
-              <Text style={styles.settingDesc}>Restore watchlist and settings from storage</Text>
+              <Text style={styles.settingDesc}>
+                Restore watchlist and settings from storage
+              </Text>
             </View>
             <Text style={styles.settingValueActive}>RESTORE</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItemBorderLast} onPress={handleClearCache}>
+          <TouchableOpacity
+            style={styles.settingItemBorderLast}
+            onPress={handleClearCache}>
             <View style={styles.settingTextGroup}>
               <Text style={styles.settingLabel}>Storage Manager</Text>
-              <Text style={styles.settingDesc}>Clear temporary scraping caches</Text>
+              <Text style={styles.settingDesc}>
+                Clear temporary scraping caches
+              </Text>
             </View>
             <Text style={styles.settingValueDestructive}>CLEAR</Text>
           </TouchableOpacity>
@@ -366,10 +453,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
             </View>
 
             <View style={styles.modalBtnRow}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setIsEditModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setIsEditModalVisible(false)}>
                 <Text style={styles.modalCancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalSaveBtn} onPress={handleSaveProfile}>
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={handleSaveProfile}>
                 <Text style={styles.modalSaveBtnText}>Save</Text>
               </TouchableOpacity>
             </View>

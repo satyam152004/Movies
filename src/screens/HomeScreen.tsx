@@ -187,9 +187,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     if (isOffline || error) {
       return (
         <EmptyState
-          icon={<Icon name="cloud-offline-outline" size={54} color={colors.primary} />}
-          title={isOffline ? "Connection Offline" : "Couldn't load movies"}
-          description={isOffline ? "Check your connection and try again" : (error || "An error occurred while loading catalog.")}
+          icon={
+            <Icon
+              name="cloud-offline-outline"
+              size={54}
+              color={colors.primary}
+            />
+          }
+          title={isOffline ? 'Connection Offline' : "Couldn't load movies"}
+          description={
+            isOffline
+              ? 'Check your connection and try again'
+              : error || 'An error occurred while loading catalog.'
+          }
           onAction={onRefresh}
           actionTitle="Retry"
         />

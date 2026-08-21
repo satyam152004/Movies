@@ -47,8 +47,7 @@ const DownloadedMovieCard: React.FC<DownloadedMovieCardProps> = ({
       <TouchableOpacity
         onPress={onPress}
         activeOpacity={0.8}
-        style={styles.cardMainClickable}
-      >
+        style={styles.cardMainClickable}>
         {/* Left: Image Thumbnail */}
         <View style={styles.thumbnailContainer}>
           {task.imageUrl ? (
@@ -59,7 +58,11 @@ const DownloadedMovieCard: React.FC<DownloadedMovieCardProps> = ({
             />
           ) : (
             <View style={styles.thumbnailPlaceholder}>
-              <Icon name="film-outline" size={24} color={colors.textSecondary} />
+              <Icon
+                name="film-outline"
+                size={24}
+                color={colors.textSecondary}
+              />
             </View>
           )}
           {/* Small check overlay in corner */}
@@ -87,8 +90,7 @@ const DownloadedMovieCard: React.FC<DownloadedMovieCardProps> = ({
         <TouchableOpacity
           onPress={onPress}
           style={styles.playButton}
-          activeOpacity={0.7}
-        >
+          activeOpacity={0.7}>
           <Icon name="play-circle-outline" size={30} color="#00F5FF" />
         </TouchableOpacity>
 
@@ -97,8 +99,7 @@ const DownloadedMovieCard: React.FC<DownloadedMovieCardProps> = ({
           style={styles.deleteButton}
           activeOpacity={0.7}
           accessibilityLabel="Delete download"
-          accessibilityRole="button"
-        >
+          accessibilityRole="button">
           <Icon name="trash-outline" size={16} color="rgba(255,255,255,0.4)" />
         </TouchableOpacity>
       </View>
@@ -226,8 +227,14 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
   // Map Service Record to Domain Task type
   const mapRecordToTask = (record: DownloadRecord) => {
     const matchedItem = catalogCache.find(item => {
-      const cleanRecordTitle = record.movieTitle.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
-      const cleanItemTitle = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+      const cleanRecordTitle = record.movieTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
+      const cleanItemTitle = item.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .trim();
       return (
         cleanRecordTitle.startsWith(cleanItemTitle) ||
         cleanItemTitle.startsWith(cleanRecordTitle)
@@ -327,7 +334,11 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
                     style={styles.viewAllBtn}
                     activeOpacity={0.7}>
                     <Text style={styles.viewAllText}>View All</Text>
-                    <Icon name="chevron-forward" size={14} color={colors.primary} />
+                    <Icon
+                      name="chevron-forward"
+                      size={14}
+                      color={colors.primary}
+                    />
                   </TouchableOpacity>
                 )}
               </View>
@@ -435,7 +446,10 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
               onPress={() => {
                 setActiveTab(tab);
                 const clickTime = new Date().toLocaleTimeString();
-                ScraperService.getInstance().log(`Download Tab clicked: "${tab}" at ${clickTime}`, 'info');
+                ScraperService.getInstance().log(
+                  `Download Tab clicked: "${tab}" at ${clickTime}`,
+                  'info',
+                );
               }}
               activeOpacity={0.7}
               accessibilityLabel={`${tab} filter`}
@@ -445,7 +459,8 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
                   styles.tabText,
                   activeTab === tab && styles.tabTextActive,
                 ]}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)} ({counts[tab] || 0})
+                {tab.charAt(0).toUpperCase() + tab.slice(1)} ({counts[tab] || 0}
+                )
               </Text>
             </TouchableOpacity>
           ),
@@ -461,7 +476,9 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmptyState('You do not have any active downloads right now.')}
+          ListEmptyComponent={renderEmptyState(
+            'You do not have any active downloads right now.',
+          )}
           renderItem={({item}) => (
             <DownloadCard
               task={item}
@@ -484,7 +501,9 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmptyState('No failed or cancelled downloads found.')}
+          ListEmptyComponent={renderEmptyState(
+            'No failed or cancelled downloads found.',
+          )}
           renderItem={({item}) => (
             <DownloadCard
               task={item}
@@ -507,7 +526,9 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmptyState('Download movies and shows to watch them offline.')}
+          ListEmptyComponent={renderEmptyState(
+            'Download movies and shows to watch them offline.',
+          )}
           renderItem={({item}) => (
             <DownloadedMovieCard
               task={item}
@@ -527,7 +548,9 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           ListHeaderComponent={renderListHeader}
           ListEmptyComponent={
             downloadingTasks.length === 0
-              ? renderEmptyState('Download movies and shows to watch them offline.')
+              ? renderEmptyState(
+                  'Download movies and shows to watch them offline.',
+                )
               : null
           }
           renderItem={({item}) => (

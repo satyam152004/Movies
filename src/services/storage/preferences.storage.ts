@@ -19,7 +19,9 @@ export class PreferencesStorage {
     }
   }
 
-  public static async saveVideoQuality(quality: 'high' | 'medium' | 'low'): Promise<void> {
+  public static async saveVideoQuality(
+    quality: 'high' | 'medium' | 'low',
+  ): Promise<void> {
     try {
       await AsyncStorage.setItem('@pref_video_quality', quality);
     } catch (e) {
@@ -37,7 +39,9 @@ export class PreferencesStorage {
     }
   }
 
-  public static async saveDownloadQuality(quality: '1080p' | '720p' | '480p'): Promise<void> {
+  public static async saveDownloadQuality(
+    quality: '1080p' | '720p' | '480p',
+  ): Promise<void> {
     try {
       await AsyncStorage.setItem('@pref_download_quality', quality);
     } catch (e) {

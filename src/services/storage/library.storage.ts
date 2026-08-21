@@ -18,7 +18,11 @@ export class LibraryStorage {
   private static readonly CONTINUE_WATCHING_KEY = '@continue_watching';
 
   private static generateId(): string {
-    return 'profile_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+    return (
+      'profile_' +
+      Date.now().toString(36) +
+      Math.random().toString(36).substring(2, 7)
+    );
   }
 
   public static async getProfile(): Promise<UserProfile> {
@@ -127,9 +131,14 @@ export class LibraryStorage {
     }
   }
 
-  public static async saveContinueWatching(continueWatching: any[]): Promise<void> {
+  public static async saveContinueWatching(
+    continueWatching: any[],
+  ): Promise<void> {
     try {
-      await AsyncStorage.setItem(this.CONTINUE_WATCHING_KEY, JSON.stringify(continueWatching));
+      await AsyncStorage.setItem(
+        this.CONTINUE_WATCHING_KEY,
+        JSON.stringify(continueWatching),
+      );
     } catch (e) {
       console.error('Failed to save continue watching', e);
     }
@@ -170,11 +179,21 @@ export class LibraryStorage {
     try {
       const backup = JSON.parse(backupStr);
       if (backup && backup.version === 1) {
-        if (backup.profile) await this.saveProfile(backup.profile);
-        if (backup.watchlist) await this.saveWatchlist(backup.watchlist);
-        if (backup.favorites) await this.saveFavorites(backup.favorites);
-        if (backup.history) await this.saveWatchHistory(backup.history);
-        if (backup.continueWatching) await this.saveContinueWatching(backup.continueWatching);
+        if (backup.profile) {
+          await this.saveProfile(backup.profile);
+        }
+        if (backup.watchlist) {
+          await this.saveWatchlist(backup.watchlist);
+        }
+        if (backup.favorites) {
+          await this.saveFavorites(backup.favorites);
+        }
+        if (backup.history) {
+          await this.saveWatchHistory(backup.history);
+        }
+        if (backup.continueWatching) {
+          await this.saveContinueWatching(backup.continueWatching);
+        }
       } else {
         throw new Error('Invalid backup version');
       }

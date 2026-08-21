@@ -46,8 +46,6 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
   onToggleLogs,
   isLogsExpanded,
 }) => {
-
-
   const getStatusLabel = () => {
     switch (task.status) {
       case 'completed':
@@ -113,8 +111,12 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               {task.movieTitle}
             </Text>
             <View style={styles.statusAndMenuRow}>
-              <View style={[styles.statusBadge, { backgroundColor: `${statusColor}1A` }]}>
-                <Text style={[styles.statusBadgeText, { color: statusColor }]}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {backgroundColor: `${statusColor}1A`},
+                ]}>
+                <Text style={[styles.statusBadgeText, {color: statusColor}]}>
                   {getStatusLabel()}
                 </Text>
               </View>
@@ -130,7 +132,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
             <View style={styles.progressColumn}>
               {task.status === 'downloading' && (
                 <>
-                  <Text style={[styles.percentText, { color: colors.primary }]}>
+                  <Text style={[styles.percentText, {color: colors.primary}]}>
                     {Math.floor(task.progress)}%
                   </Text>
                   <View style={styles.progressBarBg}>
@@ -145,14 +147,15 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
                     />
                   </View>
                   <Text style={styles.progressText}>
-                    {task.downloadedSize} / {task.fileSize} • {task.eta || 'calculating...'}
+                    {task.downloadedSize} / {task.fileSize} •{' '}
+                    {task.eta || 'calculating...'}
                   </Text>
                 </>
               )}
 
               {task.status === 'paused' && (
                 <>
-                  <Text style={[styles.percentText, { color: colors.warning }]}>
+                  <Text style={[styles.percentText, {color: colors.warning}]}>
                     {Math.floor(task.progress)}% (Paused)
                   </Text>
                   <View style={styles.progressBarBg}>
@@ -174,7 +177,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
 
               {task.status === 'pending' && (
                 <>
-                  <Text style={[styles.percentText, { color: colors.secondary }]}>
+                  <Text style={[styles.percentText, {color: colors.secondary}]}>
                     Queued...
                   </Text>
                   <View style={styles.progressBarBg}>
@@ -194,15 +197,25 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
 
               {task.status === 'completed' && (
                 <View style={styles.completedStatusWrapper}>
-                  <Icon name="checkmark-circle" size={16} color={colors.success} />
-                  <Text style={styles.completedStatusText}>Downloaded successfully</Text>
+                  <Icon
+                    name="checkmark-circle"
+                    size={16}
+                    color={colors.success}
+                  />
+                  <Text style={styles.completedStatusText}>
+                    Downloaded successfully
+                  </Text>
                 </View>
               )}
 
               {(task.status === 'failed' || task.status === 'cancelled') && (
                 <View style={styles.completedStatusWrapper}>
                   <Icon name="alert-circle" size={16} color={colors.danger} />
-                  <Text style={[styles.completedStatusText, { color: colors.danger }]}>
+                  <Text
+                    style={[
+                      styles.completedStatusText,
+                      {color: colors.danger},
+                    ]}>
                     Download {task.status}
                   </Text>
                 </View>
@@ -215,14 +228,20 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
                 <>
                   <TouchableOpacity
                     onPress={onPause}
-                    style={[styles.circleButton, { borderColor: `${colors.primary}40` }]}
+                    style={[
+                      styles.circleButton,
+                      {borderColor: `${colors.primary}40`},
+                    ]}
                     accessibilityLabel="Pause download"
                     accessibilityRole="button">
                     <Icon name="pause" size={16} color={colors.primary} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={onCancel}
-                    style={[styles.circleButton, { borderColor: `${colors.primary}40` }]}
+                    style={[
+                      styles.circleButton,
+                      {borderColor: `${colors.primary}40`},
+                    ]}
                     accessibilityLabel="Cancel download"
                     accessibilityRole="button">
                     <Icon name="close" size={16} color={colors.primary} />
@@ -234,14 +253,20 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
                 <>
                   <TouchableOpacity
                     onPress={onResume}
-                    style={[styles.circleButton, { borderColor: `${colors.warning}40` }]}
+                    style={[
+                      styles.circleButton,
+                      {borderColor: `${colors.warning}40`},
+                    ]}
                     accessibilityLabel="Resume download"
                     accessibilityRole="button">
                     <Icon name="play" size={16} color={colors.warning} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={onCancel}
-                    style={[styles.circleButton, { borderColor: `${colors.warning}40` }]}
+                    style={[
+                      styles.circleButton,
+                      {borderColor: `${colors.warning}40`},
+                    ]}
                     accessibilityLabel="Cancel download"
                     accessibilityRole="button">
                     <Icon name="close" size={16} color={colors.warning} />
@@ -252,7 +277,10 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               {task.status === 'pending' && (
                 <TouchableOpacity
                   onPress={onCancel}
-                  style={[styles.circleButton, { borderColor: `${colors.secondary}40` }]}
+                  style={[
+                    styles.circleButton,
+                    {borderColor: `${colors.secondary}40`},
+                  ]}
                   accessibilityLabel="Cancel download"
                   accessibilityRole="button">
                   <Icon name="close" size={16} color={colors.secondary} />
@@ -262,17 +290,27 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
               {task.status === 'completed' && (
                 <>
                   <TouchableOpacity
-                    style={[styles.circleButton, { borderColor: `${colors.success}40` }]}
+                    style={[
+                      styles.circleButton,
+                      {borderColor: `${colors.success}40`},
+                    ]}
                     accessibilityLabel="Play download"
                     accessibilityRole="button">
                     <Icon name="play" size={16} color={colors.success} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={onRemove}
-                    style={[styles.circleButton, { borderColor: `${colors.danger}40` }]}
+                    style={[
+                      styles.circleButton,
+                      {borderColor: `${colors.danger}40`},
+                    ]}
                     accessibilityLabel="Delete download"
                     accessibilityRole="button">
-                    <Icon name="trash-outline" size={16} color={colors.danger} />
+                    <Icon
+                      name="trash-outline"
+                      size={16}
+                      color={colors.danger}
+                    />
                   </TouchableOpacity>
                 </>
               )}
@@ -281,17 +319,27 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
                 <>
                   <TouchableOpacity
                     onPress={onResume}
-                    style={[styles.circleButton, { borderColor: `${colors.primary}40` }]}
+                    style={[
+                      styles.circleButton,
+                      {borderColor: `${colors.primary}40`},
+                    ]}
                     accessibilityLabel="Retry download"
                     accessibilityRole="button">
                     <Icon name="refresh" size={16} color={colors.primary} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={onRemove}
-                    style={[styles.circleButton, { borderColor: `${colors.danger}40` }]}
+                    style={[
+                      styles.circleButton,
+                      {borderColor: `${colors.danger}40`},
+                    ]}
                     accessibilityLabel="Delete download"
                     accessibilityRole="button">
-                    <Icon name="trash-outline" size={16} color={colors.danger} />
+                    <Icon
+                      name="trash-outline"
+                      size={16}
+                      color={colors.danger}
+                    />
                   </TouchableOpacity>
                 </>
               )}
@@ -299,8 +347,6 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
           </View>
         </View>
       </View>
-
-
 
       {/* Collapsible Scraper Logs */}
       {isLogsExpanded && (
