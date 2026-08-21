@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CatalogItem} from '../../data/models';
+import {PreferencesStorage} from './preferences.storage';
 
 export interface UserProfile {
   id: string;
@@ -154,6 +155,10 @@ export class LibraryStorage {
       const favorites = await this.getFavorites();
       const history = await this.getWatchHistory();
       const continueWatching = await this.getContinueWatching();
+      
+      const videoQuality = await PreferencesStorage.getVideoQuality();
+      const downloadQuality = await PreferencesStorage.getDownloadQuality();
+      const wifiOnly = await PreferencesStorage.getWifiOnly();
 
       const backup = {
         version: 1,
@@ -162,6 +167,11 @@ export class LibraryStorage {
         favorites,
         history,
         continueWatching,
+        preferences: {
+          videoQuality,
+          downloadQuality,
+          wifiOnly,
+        },
         timestamp: Date.now(),
       };
 
@@ -193,6 +203,17 @@ export class LibraryStorage {
         }
         if (backup.continueWatching) {
           await this.saveContinueWatching(backup.continueWatching);
+        }
+        if (backup.preferences) {
+          if (backup.preferences.videoQuality) {
+            await PreferencesStorage.saveVideoQuality(backup.preferences.videoQuality);
+          }
+          if (backup.preferences.downloadQuality) {
+            await PreferencesStorage.saveDownloadQuality(backup.preferences.downloadQuality);
+          }
+          if (backup.preferences.wifiOnly !== undefined) {
+            await PreferencesStorage.saveWifiOnly(backup.preferences.wifiOnly);
+          }
         }
       } else {
         throw new Error('Invalid backup version');

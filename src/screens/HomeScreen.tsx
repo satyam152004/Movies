@@ -274,7 +274,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </View>
 
       {/* SWR Status Banner */}
-      {(isOffline || lastUpdatedMessage.length > 0 || error) && (
+      {(isOffline || error) && (
         <View style={styles.statusBanner}>
           <View style={styles.statusDotRow}>
             <View

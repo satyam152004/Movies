@@ -11,14 +11,15 @@ import {
   TextInput,
   Platform,
   StatusBar,
+  Share,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useProfile} from '../hooks/useProfile';
 import {useLibrary} from '../hooks/useLibrary';
 import {usePreferences} from '../hooks/usePreferences';
 import {colors, radius, spacing, typography} from '../theme';
-import {LibraryStorage} from '../services/storage/library.storage';
 import {CacheStorage} from '../services/storage/cache.storage';
+import {BackupService} from '../services/backup.service';
 
 const BUILTIN_AVATARS = [
   {id: 'avatar_popcorn', emoji: '🍿'},
@@ -127,7 +128,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
 
   const handleBackup = async () => {
     try {
-      const backupStr = await LibraryStorage.exportBackup();
+      // Orchestrated Native File Export
+      const success = await BackupService.runExport();
+      if (!success) return;
+
       const now = Date.now();
       await CacheStorage.saveTmdbCache(
         'last_backup_time',
@@ -142,40 +146,51 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
             minute: '2-digit',
           }),
       );
-      Alert.alert(
-        'Backup Exported',
-        'Watchlist, favorites, and settings backup has been generated and saved locally.',
-      );
-    } catch (e) {
-      Alert.alert('Backup Error', 'Failed to generate backup.');
+      Alert.alert('Success', 'Backup file saved successfully!');
+    } catch (e: any) {
+      if (e.message && e.message.includes('cancelled')) return;
+      Alert.alert('Backup Error', 'Failed to generate and save backup file.');
     }
   };
 
   const handleRestore = async () => {
     try {
+      // Orchestrated Native File Import
+      const importResult = await BackupService.runImport();
+      if (!importResult) return;
+
+      const {backupStr, timestamp} = importResult;
+      const backupDate = timestamp 
+        ? new Date(timestamp).toLocaleDateString() 
+        : 'Unknown Date';
+
       Alert.alert(
-        'Restore Backup',
-        'This will replace your current Watchlist, History, Favorites, and preferences. Continue?',
+        'Confirm Restore',
+        `Restore backup generated on ${backupDate}?\n\nThis will overwrite your current Watchlist, History, Favorites, and Playback Preferences.`,
         [
           {text: 'Cancel', style: 'cancel'},
           {
             text: 'Restore',
             onPress: async () => {
-              const backup = await LibraryStorage.exportBackup(); // loopback for testing
-              await LibraryStorage.importBackup(backup);
-
-              // Refresh all hooks reactively
-              await refreshProfile();
-              await refreshLibrary();
-              await refreshPreferences();
-
-              Alert.alert('Success', 'Library backup restored successfully!');
+              try {
+                await BackupService.applyImport(backupStr);
+                
+                // Refresh all hooks reactively
+                await refreshProfile();
+                await refreshLibrary();
+                await refreshPreferences();
+                
+                Alert.alert('Success', 'Library backup restored successfully!');
+              } catch (err) {
+                Alert.alert('Error', 'Failed to apply restore.');
+              }
             },
           },
         ],
       );
-    } catch (e) {
-      Alert.alert('Restore Error', 'Failed to restore backup.');
+    } catch (e: any) {
+      if (e.message && e.message.includes('cancelled')) return;
+      Alert.alert('Restore Error', 'Failed to read or parse backup file.');
     }
   };
 

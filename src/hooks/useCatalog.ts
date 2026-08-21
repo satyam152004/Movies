@@ -27,7 +27,6 @@ export function useCatalog(categoryPath: string | null) {
   const categoryPathRef = useRef(categoryPath);
   categoryPathRef.current = categoryPath;
 
-  // Format dynamic 'last updated' message
   const updateLastUpdatedMessage = useCallback((timestamp: number | null) => {
     if (!timestamp) {
       setLastUpdatedMessage('');
@@ -35,16 +34,14 @@ export function useCatalog(categoryPath: string | null) {
     }
     const diffMins = Math.floor((Date.now() - timestamp) / 60000);
     if (diffMins < 1) {
-      setLastUpdatedMessage('Updated just now');
+      setLastUpdatedMessage('');
     } else if (diffMins === 1) {
       setLastUpdatedMessage('Updated 1 min ago');
     } else if (diffMins < 60) {
       setLastUpdatedMessage(`Updated ${diffMins} min ago`);
     } else {
       const diffHours = Math.floor(diffMins / 60);
-      setLastUpdatedMessage(
-        `Updated ${diffHours} hour${diffHours > 1 ? 's' : ''} ago`,
-      );
+      setLastUpdatedMessage(`Updated ${diffHours} hour${diffHours > 1 ? 's' : ''} ago`);
     }
   }, []);
 
