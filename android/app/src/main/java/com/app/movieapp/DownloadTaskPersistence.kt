@@ -1,4 +1,4 @@
-package com.movieapp
+package com.app.movieapp
 
 import android.content.Context
 import android.util.Log

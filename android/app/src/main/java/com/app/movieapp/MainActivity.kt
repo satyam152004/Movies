@@ -1,4 +1,4 @@
-package com.movieapp
+package com.app.movieapp
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
