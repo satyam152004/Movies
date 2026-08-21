@@ -15,13 +15,16 @@ import {
   BackHandler,
   Platform,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {PreferencesStorage} from './src/services/storage/preferences.storage';
+import {LibraryStorage} from './src/services/storage/library.storage';
+import {useCatalog} from './src/hooks/useCatalog';
 import {HomeScreen} from './src/screens/HomeScreen';
 import {SearchScreen} from './src/screens/SearchScreen';
 import {MovieDetailScreen} from './src/screens/MovieDetail';
 import {CollectionScreen} from './src/screens/CollectionScreen';
 import {DownloadManagerScreen} from './src/screens/DownloadManager';
+import {ProfileScreen} from './src/screens/ProfileScreen';
 import {HiddenWebView} from './src/components/HiddenWebView';
 import {CatalogItem, MovieDetail} from './src/data/models';
 import {ScraperService} from './src/services/scraper.service';
@@ -38,7 +41,6 @@ type ActiveScreen = 'main' | 'detail' | 'collection';
 function App(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [screen, setScreen] = useState<ActiveScreen>('main');
-  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<MovieDetail | null>(null);
   const [collectionParams, setCollectionParams] = useState<{
     title: string;
@@ -47,14 +49,45 @@ function App(): React.JSX.Element {
   } | null>(null);
   const [isConsoleVisible, setIsConsoleVisible] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
-  const [isCatalogLoading, setIsCatalogLoading] = useState(false);
-  const [isDomainResolving, setIsDomainResolving] = useState(true);
-  const [catalogPage, setCatalogPage] = useState(1);
-  const [isCatalogLoadingMore, setIsCatalogLoadingMore] = useState(false);
   const [watchlist, setWatchlist] = useState<CatalogItem[]>([]);
   const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high');
   const [downloadQuality, setDownloadQuality] = useState<'1080p' | '720p' | '480p'>('1080p');
   const [wifiOnly, setWifiOnly] = useState<boolean>(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // useCatalog SWR hook
+  const {
+    movies: catalogItems,
+    status: catalogStatus,
+    isRefreshing: isCatalogRefreshing,
+    error: catalogError,
+    isOffline: isCatalogOffline,
+    lastUpdatedMessage,
+    refresh: refreshCatalog,
+    loadMore: loadMoreCatalog,
+  } = useCatalog(selectedCategory);
+
+  const [isDomainResolving, setIsDomainResolving] = useState(true);
+  useEffect(() => {
+    if (catalogStatus !== 'idle' && catalogStatus !== 'loading') {
+      setIsDomainResolving(false);
+    }
+  }, [catalogStatus]);
+
+  // Track catalog page locally for loadMoreCatalogHook pagination
+  const [catalogPage, setCatalogPage] = useState(1);
+  useEffect(() => {
+    setCatalogPage(1);
+  }, [selectedCategory]);
+
+  const loadMoreCatalogHook = async () => {
+    if (catalogStatus === 'loading' || isCatalogRefreshing) {
+      return;
+    }
+    const nextPage = catalogPage + 1;
+    await loadMoreCatalog(nextPage);
+    setCatalogPage(nextPage);
+  };
 
   // Initialize download service
   DownloadService.getInstance();
@@ -63,19 +96,17 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const storedWatchlist = await AsyncStorage.getItem('@watchlist');
-        if (storedWatchlist !== null) {
-          setWatchlist(JSON.parse(storedWatchlist));
-        }
+        const storedWatchlist = await LibraryStorage.getWatchlist();
+        setWatchlist(storedWatchlist);
 
-        const storedVideo = await AsyncStorage.getItem('@pref_video_quality');
-        if (storedVideo) setVideoQuality(storedVideo as any);
+        const storedVideo = await PreferencesStorage.getVideoQuality();
+        setVideoQuality(storedVideo);
 
-        const storedDownload = await AsyncStorage.getItem('@pref_download_quality');
-        if (storedDownload) setDownloadQuality(storedDownload as any);
+        const storedDownload = await PreferencesStorage.getDownloadQuality();
+        setDownloadQuality(storedDownload);
 
-        const storedWifi = await AsyncStorage.getItem('@pref_wifi_only');
-        if (storedWifi !== null) setWifiOnly(JSON.parse(storedWifi));
+        const storedWifi = await PreferencesStorage.getWifiOnly();
+        setWifiOnly(storedWifi);
       } catch (e) {
         console.error('Failed to load initial settings', e);
       }
@@ -85,17 +116,17 @@ function App(): React.JSX.Element {
 
   const handleUpdateVideoQuality = async (val: 'high' | 'medium' | 'low') => {
     setVideoQuality(val);
-    await AsyncStorage.setItem('@pref_video_quality', val);
+    await PreferencesStorage.saveVideoQuality(val);
   };
 
   const handleUpdateDownloadQuality = async (val: '1080p' | '720p' | '480p') => {
     setDownloadQuality(val);
-    await AsyncStorage.setItem('@pref_download_quality', val);
+    await PreferencesStorage.saveDownloadQuality(val);
   };
 
   const handleToggleWifiOnly = async (val: boolean) => {
     setWifiOnly(val);
-    await AsyncStorage.setItem('@pref_wifi_only', JSON.stringify(val));
+    await PreferencesStorage.saveWifiOnly(val);
   };
 
   useEffect(() => {
@@ -119,69 +150,6 @@ function App(): React.JSX.Element {
 
     return () => backHandler.remove();
   }, [screen]);
-
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  const fetchCatalog = async (
-    categoryPath: string | null,
-    pageNum: number,
-    append: boolean,
-  ) => {
-    if (pageNum === 1) {
-      setIsCatalogLoading(true);
-    } else {
-      setIsCatalogLoadingMore(true);
-    }
-    try {
-      const activeUrl = await UrlDiscoveryService.getInstance().getActiveUrl();
-      if (activeUrl) {
-        const targetUrl = categoryPath
-          ? `${activeUrl.replace(/\/$/, '')}/${categoryPath.replace(/^\//, '')}`
-          : activeUrl;
-        scraper.log(
-          `Scraping catalog from targetUrl: ${targetUrl} (page ${pageNum})...`,
-          'info',
-        );
-        const result = await scraper.scrapeCatalogPage(
-          targetUrl,
-          false,
-          pageNum,
-        );
-        if (append) {
-          setCatalogItems(prev => [...prev, ...result.items]);
-        } else {
-          setCatalogItems(result.items);
-        }
-        scraper.log(
-          `Successfully loaded ${result.items.length} items from page ${pageNum}.`,
-          'success',
-        );
-      }
-    } catch (err: any) {
-      scraper.log(`Catalog scraping failed: ${err.message}`, 'error');
-    } finally {
-      setIsCatalogLoading(false);
-      setIsCatalogLoadingMore(false);
-      // Dismiss splash screen after the initial load (page 1) regardless of success/failure
-      if (pageNum === 1 && !append) {
-        setIsDomainResolving(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    setCatalogPage(1);
-    fetchCatalog(selectedCategory, 1, false);
-  }, [selectedCategory]);
-
-  const loadMoreCatalog = async () => {
-    if (isCatalogLoading || isCatalogLoadingMore) {
-      return;
-    }
-    const nextPage = catalogPage + 1;
-    await fetchCatalog(selectedCategory, nextPage, true);
-    setCatalogPage(nextPage);
-  };
 
   const handleSelectItem = async (item: CatalogItem) => {
     scraper.log(
@@ -210,6 +178,9 @@ function App(): React.JSX.Element {
     setIsDetailLoading(true);
     try {
       const detail = await scraper.scrapeMovieDetail(item.url);
+      if (!detail.imageUrl && item.imageUrl) {
+        detail.imageUrl = item.imageUrl;
+      }
       // Keep watchlist/active state representation valid but update details
       setSelectedMovie(detail);
 
@@ -226,6 +197,10 @@ function App(): React.JSX.Element {
           console.info('[App Debug] Before setMovie() state update');
           setSelectedMovie(prev => {
             if (prev && prev.url === item.url) {
+              // Preserve working imageUrl if enriched response doesn't have it
+              if (!enrichedDetail.imageUrl && prev.imageUrl) {
+                enrichedDetail.imageUrl = prev.imageUrl;
+              }
               return enrichedDetail;
             }
             return prev;
@@ -258,10 +233,7 @@ function App(): React.JSX.Element {
       }
 
       setWatchlist(updatedWatchlist);
-      await AsyncStorage.setItem(
-        '@watchlist',
-        JSON.stringify(updatedWatchlist),
-      );
+      await LibraryStorage.saveWatchlist(updatedWatchlist);
       scraper.log(
         `${isAlreadyAdded ? 'Removed from' : 'Added to'} watchlist: ${
           item.title
@@ -281,9 +253,8 @@ function App(): React.JSX.Element {
             items={catalogItems}
             onSelectItem={handleSelectItem}
             onExplorePress={() => setActiveTab('search')}
-            onLoadMore={loadMoreCatalog}
-            isLoadingMore={isCatalogLoadingMore}
-            isLoading={isCatalogLoading}
+            onLoadMore={loadMoreCatalogHook}
+            isLoading={catalogStatus === 'loading'}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
             onSearchPress={() => setActiveTab('search')}
@@ -294,6 +265,11 @@ function App(): React.JSX.Element {
               setCollectionParams({title, items, type});
               setScreen('collection');
             }}
+            isRefreshing={isCatalogRefreshing}
+            onRefresh={refreshCatalog}
+            lastUpdatedMessage={lastUpdatedMessage}
+            isOffline={isCatalogOffline}
+            error={catalogError}
           />
         );
       case 'search':
@@ -344,8 +320,6 @@ function App(): React.JSX.Element {
             }
             title="Your watchlist is empty"
             description="Save movies and shows you want to watch later."
-            onAction={() => setActiveTab('home')}
-            actionTitle="Browse Movies"
           />
         ) : (
           <FlatList
@@ -367,104 +341,7 @@ function App(): React.JSX.Element {
   };
 
   const renderProfileScreen = () => {
-    const safeAreaTop =
-      Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) + 4;
-
-    const cycleVideoQuality = () => {
-      const nextMap: Record<typeof videoQuality, typeof videoQuality> = {
-        high: 'medium',
-        medium: 'low',
-        low: 'high',
-      };
-      handleUpdateVideoQuality(nextMap[videoQuality]);
-    };
-
-    const cycleDownloadQuality = () => {
-      const nextMap: Record<typeof downloadQuality, typeof downloadQuality> = {
-        '1080p': '720p',
-        '720p': '480p',
-        '480p': '1080p',
-      };
-      handleUpdateDownloadQuality(nextMap[downloadQuality]);
-    };
-
-    return (
-      <View style={styles.tabContainer}>
-        <View style={[styles.screenHeader, { paddingTop: safeAreaTop, height: 56 + safeAreaTop }]}>
-          <Text style={styles.screenTitle}>Profile & Settings</Text>
-        </View>
-        <ScrollView
-          style={styles.flexOne}
-          contentContainerStyle={styles.profileScroll}
-          showsVerticalScrollIndicator={false}>
-          
-          {/* Profile Card */}
-          <View style={styles.profileCard}>
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>C</Text>
-            </View>
-            <View style={styles.profileMeta}>
-              <Text style={styles.profileName}>Cine Guest</Text>
-              <Text style={styles.profileTier}>PREMIUM MEMBER</Text>
-            </View>
-          </View>
-
-          {/* App Preferences */}
-          <View style={styles.settingsCard}>
-            <Text style={styles.settingsSectionTitle}>Playback Preferences</Text>
-
-            <TouchableOpacity style={styles.settingItemBorder} onPress={cycleVideoQuality}>
-              <View style={styles.settingTextGroup}>
-                <Text style={styles.settingLabel}>Streaming Video Quality</Text>
-                <Text style={styles.settingDesc}>Select preferred default streaming resolution</Text>
-              </View>
-              <Text style={styles.settingValueActive}>{videoQuality.toUpperCase()}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingItemBorderLast} onPress={cycleDownloadQuality}>
-              <View style={styles.settingTextGroup}>
-                <Text style={styles.settingLabel}>Download Video Quality</Text>
-                <Text style={styles.settingDesc}>Select default resolution for offline downloads</Text>
-              </View>
-              <Text style={styles.settingValueActive}>{downloadQuality}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Download Rules */}
-          <View style={styles.settingsCard}>
-            <Text style={styles.settingsSectionTitle}>Network Settings</Text>
-
-            <View style={styles.settingItemBorderLast}>
-              <View style={styles.settingTextGroup}>
-                <Text style={styles.settingLabel}>Download Over Wi-Fi Only</Text>
-                <Text style={styles.settingDesc}>Restrict data usage and only download on Wi-Fi</Text>
-              </View>
-              <Switch
-                value={wifiOnly}
-                onValueChange={handleToggleWifiOnly}
-                trackColor={{ false: colors.elevated, true: colors.primary }}
-                thumbColor={colors.white}
-              />
-            </View>
-          </View>
-
-          {/* App Settings */}
-          <View style={styles.settingsCard}>
-            <Text style={styles.settingsSectionTitle}>Application Settings</Text>
-
-            <View style={styles.settingItemBorder}>
-              <Text style={styles.settingLabelStatic}>Appearance</Text>
-              <Text style={styles.settingValueStatic}>Dark Theme (Default)</Text>
-            </View>
-
-            <View style={styles.settingItemBorderLast}>
-              <Text style={styles.settingLabelStatic}>App Version</Text>
-              <Text style={styles.settingValueStatic}>v1.1.0 (Production)</Text>
-            </View>
-          </View>
-        </ScrollView>
-      </View>
-    );
+    return <ProfileScreen onSwitchTab={setActiveTab} />;
   };
 
   const renderContent = () => {
@@ -490,6 +367,7 @@ function App(): React.JSX.Element {
                 title,
                 size,
                 url,
+                selectedMovie.imageUrl,
               );
               setActiveTab('downloads');
               setScreen('main');

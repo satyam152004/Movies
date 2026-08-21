@@ -419,4 +419,38 @@ class DownloadModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             promise.reject("LOAD_ERROR", e.message, e)
         }
     }
+
+    @ReactMethod
+    fun playVideo(filename: String, promise: Promise) {
+        try {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val cineAppDir = File(downloadsDir, "CineApp")
+            val file = File(cineAppDir, filename)
+            
+            if (!file.exists()) {
+                promise.reject("FILE_NOT_FOUND", "File does not exist: ${file.absolutePath}")
+                return
+            }
+
+            // Disable strict mode file URI exposure check
+            try {
+                val m = android.os.StrictMode::class.java.getMethod("disableDeathOnFileUriExposure")
+                m.invoke(null)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to disable StrictMode file exposure check: ${e.message}")
+            }
+
+            val uri = android.net.Uri.fromFile(file)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "video/*")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            
+            reactApplicationContext.startActivity(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("PLAY_ERROR", e.message, e)
+        }
+    }
 }

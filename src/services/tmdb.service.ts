@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {CacheStorage} from './storage/cache.storage';
 import {Image} from 'react-native';
 import {MovieDetail} from '../data/models';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
@@ -18,7 +19,6 @@ function mergeStoryline(
   return undefined;
 }
 
-const CACHE_PREFIX = 'movie_enrichment_';
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -65,35 +65,14 @@ export class TmdbService {
    * Checks local AsyncStorage cache for enriched movie data
    */
   private async getCachedData(movieUrl: string): Promise<any | null> {
-    try {
-      const cacheKey = CACHE_PREFIX + encodeURIComponent(movieUrl);
-      const json = await AsyncStorage.getItem(cacheKey);
-      if (json) {
-        const cached = JSON.parse(json);
-        if (cached.expiresAt && Date.now() < cached.expiresAt) {
-          return cached.data;
-        }
-      }
-    } catch (e) {
-      console.warn('Cache read error', e);
-    }
-    return null;
+    return await CacheStorage.getTmdbCache(movieUrl);
   }
 
   /**
    * Saves enriched movie details to cache
    */
   private async setCachedData(movieUrl: string, data: any): Promise<void> {
-    try {
-      const cacheKey = CACHE_PREFIX + encodeURIComponent(movieUrl);
-      const cacheObject = {
-        expiresAt: Date.now() + CACHE_TTL_MS,
-        data,
-      };
-      await AsyncStorage.setItem(cacheKey, JSON.stringify(cacheObject));
-    } catch (e) {
-      console.warn('Cache write error', e);
-    }
+    await CacheStorage.saveTmdbCache(movieUrl, data, CACHE_TTL_MS);
   }
 
   /**

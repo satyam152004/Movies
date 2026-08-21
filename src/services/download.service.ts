@@ -24,6 +24,7 @@ export interface DownloadRecord {
   addedAt: number;
   lastBytesDownloaded: number;
   lastUpdated: number;
+  imageUrl?: string;
 }
 
 type DownloadListener = (records: DownloadRecord[]) => void;
@@ -82,6 +83,10 @@ export class DownloadService {
     this.listeners.delete(listener);
   }
 
+  public getDownloads(): DownloadRecord[] {
+    return [...this.downloads];
+  }
+
   private notifyListeners() {
     this.listeners.forEach(listener => {
       try {
@@ -119,6 +124,7 @@ export class DownloadService {
     movieTitle: string,
     fileSize: string,
     downloadUrl: string,
+    imageUrl?: string,
   ): Promise<string> {
     // 1. Prevent duplicates for active tasks
     const existing = this.downloads.find(d => d.downloadUrl === downloadUrl);
@@ -188,6 +194,7 @@ export class DownloadService {
         addedAt: Date.now(),
         lastBytesDownloaded: 0,
         lastUpdated: Date.now(),
+        imageUrl,
       };
 
       this.downloads = [newRecord, ...this.downloads];

@@ -13,7 +13,7 @@ import {
   StatusBar,
   ImageStyle,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {CacheStorage} from '../services/storage/cache.storage';
 import {CatalogItem} from '../data/models';
 import {
   colors as themeColors,
@@ -223,10 +223,8 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   useEffect(() => {
     const loadRecents = async () => {
       try {
-        const stored = await AsyncStorage.getItem('@search_recents');
-        if (stored) {
-          setRecentSearches(JSON.parse(stored));
-        }
+        const stored = await CacheStorage.getSearchRecents();
+        setRecentSearches(stored);
       } catch (e) {
         console.error('Failed to load recent searches', e);
       }
@@ -314,7 +312,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
       );
       const updated = [clean, ...filtered].slice(0, 10);
       setRecentSearches(updated);
-      await AsyncStorage.setItem('@search_recents', JSON.stringify(updated));
+      await CacheStorage.saveSearchRecents(updated);
     } catch (e) {
       console.error('Failed to save search term', e);
     }
@@ -324,7 +322,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
     try {
       const updated = recentSearches.filter(s => s !== term);
       setRecentSearches(updated);
-      await AsyncStorage.setItem('@search_recents', JSON.stringify(updated));
+      await CacheStorage.saveSearchRecents(updated);
     } catch (e) {
       console.error('Failed to delete search term', e);
     }
@@ -333,7 +331,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   const clearAllRecentSearches = async () => {
     try {
       setRecentSearches([]);
-      await AsyncStorage.removeItem('@search_recents');
+      await CacheStorage.removeSearchRecents();
     } catch (e) {
       console.error('Failed to clear recent searches', e);
     }

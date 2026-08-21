@@ -46,7 +46,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
   onToggleLogs,
   isLogsExpanded,
 }) => {
-  const [showMenu, setShowMenu] = useState(false);
+
 
   const getStatusLabel = () => {
     switch (task.status) {
@@ -118,19 +118,6 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
                   {getStatusLabel()}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={() => setShowMenu(!showMenu)}
-                activeOpacity={0.7}
-                style={styles.moreBtn}
-                hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-                accessibilityLabel="More options"
-                accessibilityRole="button">
-                <Icon
-                  name="ellipsis-vertical"
-                  size={18}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -313,31 +300,7 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
         </View>
       </View>
 
-      {/* Overflow Menu Modal Overlay */}
-      {showMenu && (
-        <View style={styles.menuOverlay}>
-          <TouchableOpacity
-            onPress={() => {
-              setShowMenu(false);
-              onRemove();
-            }}
-            style={styles.menuItem}
-            accessibilityLabel="Delete download"
-            accessibilityRole="button">
-            <Icon name="trash-outline" size={16} color={colors.danger} />
-            <Text style={[styles.menuItemText, {color: colors.danger}]}>
-              Delete Download
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowMenu(false)}
-            style={styles.menuItemClose}
-            accessibilityLabel="Cancel menu"
-            accessibilityRole="button">
-            <Text style={styles.menuItemCloseText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+
 
       {/* Collapsible Scraper Logs */}
       {isLogsExpanded && (

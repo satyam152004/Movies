@@ -10,6 +10,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import {CatalogItem} from '../data/models';
 import {colors, radius, spacing, typography} from '../theme';
@@ -56,6 +57,12 @@ interface HomeScreenProps {
   watchlist?: CatalogItem[];
   onToggleWatchlist?: (item: CatalogItem) => void;
   onViewAllPress?: (title: string, items: CatalogItem[], type: string) => void;
+  // SWR fields:
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
+  lastUpdatedMessage?: string;
+  isOffline?: boolean;
+  error?: string | null;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -72,6 +79,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   watchlist = [],
   onToggleWatchlist,
   onViewAllPress,
+  isRefreshing = false,
+  onRefresh,
+  lastUpdatedMessage = '',
+  isOffline = false,
+  error = null,
 }) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -121,8 +133,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     ].filter(s => s.data.length > 0);
   }, [trendingList, hdList, dualAudioList]);
 
-  // Render Skeleton Loading UI when fetching page 1
-  if (isLoading) {
+  // Render Skeleton Loading UI when fetching page 1 and no cached content exists
+  if (isLoading && items.length === 0) {
     return (
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Banner Skeleton */}
@@ -172,6 +184,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   }
 
   if (items.length === 0) {
+    if (isOffline || error) {
+      return (
+        <EmptyState
+          icon={<Icon name="cloud-offline-outline" size={54} color={colors.primary} />}
+          title={isOffline ? "Connection Offline" : "Couldn't load movies"}
+          description={isOffline ? "Check your connection and try again" : (error || "An error occurred while loading catalog.")}
+          onAction={onRefresh}
+          actionTitle="Retry"
+        />
+      );
+    }
+
     return (
       <EmptyState
         icon={<Icon name="film-outline" size={54} color={colors.primary} />}
@@ -238,6 +262,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           ))}
         </ScrollView>
       </View>
+
+      {/* SWR Status Banner */}
+      {(isOffline || lastUpdatedMessage.length > 0 || error) && (
+        <View style={styles.statusBanner}>
+          <View style={styles.statusDotRow}>
+            <View
+              style={[
+                styles.statusDot,
+                {
+                  backgroundColor: isOffline
+                    ? '#EF4444'
+                    : error
+                    ? '#F59E0B'
+                    : '#10B981',
+                },
+              ]}
+            />
+            <Text style={styles.statusText}>
+              {isOffline
+                ? 'Offline Mode'
+                : error
+                ? "Couldn't refresh. Showing saved movies."
+                : lastUpdatedMessage}
+            </Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.content}>
         {!selectedCategory &&
@@ -332,6 +383,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           [{nativeEvent: {contentOffset: {y: scrollY}}}],
           {useNativeDriver: true},
         )}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          ) : undefined
+        }
       />
 
       {/* Floating Header */}
@@ -562,5 +623,31 @@ const styles = StyleSheet.create({
     height: 240,
     backgroundColor: '#1E1E24',
     borderRadius: 12,
+  },
+  statusBanner: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 8,
+    marginHorizontal: spacing.md,
+    marginTop: 8,
+    marginBottom: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  statusDotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

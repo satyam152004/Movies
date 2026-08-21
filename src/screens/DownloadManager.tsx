@@ -13,8 +13,9 @@ import {
   Image,
   TextInput,
   Linking,
+  NativeModules,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {CacheStorage} from '../services/storage/cache.storage';
 import {DownloadService, DownloadRecord} from '../services/download.service';
 import {ScraperService} from '../services/scraper.service';
 import {colors, radius, spacing, typography} from '../theme';
@@ -42,44 +43,64 @@ const DownloadedMovieCard: React.FC<DownloadedMovieCardProps> = ({
   onRemove,
 }) => {
   return (
-    <View style={styles.gridCard}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
-        <View style={styles.gridPosterWrapper}>
+    <View style={styles.horizontalCard}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        style={styles.cardMainClickable}
+      >
+        {/* Left: Image Thumbnail */}
+        <View style={styles.thumbnailContainer}>
           {task.imageUrl ? (
             <Image
               source={{uri: task.imageUrl}}
-              style={styles.gridPoster}
+              style={styles.thumbnailImage}
               resizeMode="cover"
             />
           ) : (
-            <View style={styles.gridPosterPlaceholder}>
-              <Icon name="film-outline" size={32} color={colors.textMuted} />
+            <View style={styles.thumbnailPlaceholder}>
+              <Icon name="film-outline" size={24} color={colors.textSecondary} />
             </View>
           )}
-          {/* Downloaded Check Indicator Overlay */}
-          <View style={styles.checkIndicator}>
-            <Icon name="checkmark-circle" size={18} color={colors.success} />
+          {/* Small check overlay in corner */}
+          <View style={styles.thumbnailCheckBadge}>
+            <Icon name="checkmark" size={10} color="#FFFFFF" />
           </View>
+        </View>
+
+        {/* Middle: Info Content */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {task.movieTitle}
+          </Text>
+          <Text style={styles.cardSubtitle} numberOfLines={1}>
+            {task.resolution} • {task.fileSize}
+          </Text>
+          <Text style={styles.cardDetails}>
+            Offline Library • {task.year || '2024'}
+          </Text>
         </View>
       </TouchableOpacity>
 
-      <View style={styles.gridInfo}>
-        <View style={styles.gridTitleRow}>
-          <Text style={styles.gridMovieTitle} numberOfLines={1}>
-            {task.movieTitle}
-          </Text>
-          <TouchableOpacity
-            onPress={onRemove}
-            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-            style={styles.gridMoreBtn}
-            accessibilityLabel="Delete download"
-            accessibilityRole="button">
-            <Icon name="trash-outline" size={13} color={colors.danger} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.gridMetaText}>
-          {task.resolution} • {task.fileSize}
-        </Text>
+      {/* Right: Actions */}
+      <View style={styles.rightActions}>
+        <TouchableOpacity
+          onPress={onPress}
+          style={styles.playButton}
+          activeOpacity={0.7}
+        >
+          <Icon name="play-circle-outline" size={30} color="#00F5FF" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onRemove}
+          style={styles.deleteButton}
+          activeOpacity={0.7}
+          accessibilityLabel="Delete download"
+          accessibilityRole="button"
+        >
+          <Icon name="trash-outline" size={16} color="rgba(255,255,255,0.4)" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -106,9 +127,9 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
 
     const loadCatalogCache = async () => {
       try {
-        const stored = await AsyncStorage.getItem('@catalog_cache');
-        if (stored) {
-          setCatalogCache(JSON.parse(stored));
+        const cache = await CacheStorage.getCatalogCache();
+        if (cache && cache.data) {
+          setCatalogCache(cache.data);
         }
       } catch (e) {
         console.log('Failed to load catalog cache in downloads screen', e);
@@ -174,16 +195,31 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
   };
 
   const handlePlayOffline = async (task: any) => {
-    const localUrl = `file:///storage/emulated/0/Download/CineApp/${task.fileName}`;
     try {
-      const canOpen = await Linking.canOpenURL(localUrl);
-      if (canOpen) {
-        await Linking.openURL(localUrl);
+      if (Platform.OS === 'android') {
+        const {DownloadModule} = NativeModules;
+        await DownloadModule.playVideo(task.fileName);
       } else {
-        await Linking.openURL(task.downloadUrl);
+        const localUrl = `file:///storage/emulated/0/Download/CineApp/${task.fileName}`;
+        await Linking.openURL(localUrl);
       }
-    } catch (e) {
-      await Linking.openURL(task.downloadUrl);
+    } catch (e: any) {
+      console.log('Error opening local video:', e);
+      Alert.alert(
+        'Playback Error',
+        'Could not open the local file with any video player. Would you like to stream/download it online instead?',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Stream Online',
+            onPress: () => {
+              Linking.openURL(task.downloadUrl).catch(err =>
+                console.error('Failed to open URL:', err),
+              );
+            },
+          },
+        ],
+      );
     }
   };
 
@@ -210,7 +246,7 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
       downloadedSize: record.downloadedSize,
       eta: record.eta,
       logs: record.logs,
-      imageUrl: matchedItem?.imageUrl,
+      imageUrl: record.imageUrl || matchedItem?.imageUrl,
       resolution: matchedItem?.resolution || 'HD',
     };
   };
@@ -260,103 +296,17 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
     return tasks.filter(task => task.movieTitle.toLowerCase().includes(q));
   };
 
-  // State 1 — No downloads (Empty State Layout)
-  if (downloads.length === 0) {
+  const renderEmptyState = (message: string) => {
     return (
-      <Container style={styles.container}>
-        {/* Header - Sits directly below SafeArea, no back button */}
-        <View
-          style={[
-            styles.header,
-            {paddingTop: safeAreaTop, height: 68 + safeAreaTop},
-          ]}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>Downloads</Text>
-            <Text style={styles.headerSubtitle}>Your offline library</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.headerIconBtn}
-              activeOpacity={0.7}
-              accessibilityLabel="Search downloads"
-              accessibilityRole="button">
-              <Icon
-                name="search-outline"
-                size={22}
-                color={colors.textPrimary}
-              />
-            </TouchableOpacity>
-          </View>
+      <View style={styles.emptyTabContainer}>
+        <View style={styles.emptyIconCircle}>
+          <Icon name="arrow-down-outline" size={32} color={colors.primary} />
         </View>
-
-        <ScrollView
-          contentContainerStyle={styles.emptyScroll}
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.emptyStateContainer}>
-            {/* Visual Hero Art */}
-            <View style={styles.emptyIconCircle}>
-              <Icon name="arrow-down-outline" size={32} color={colors.primary} />
-            </View>
-            <Text style={styles.emptyTitle}>
-              Your downloads are waiting here
-            </Text>
-            <Text style={styles.emptyDesc}>
-              Download movies and shows to watch them anytime, even without an
-              internet connection.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.browseBtn}
-              onPress={onBack}
-              activeOpacity={0.8}
-              accessibilityLabel="Browse Movies"
-              accessibilityRole="button">
-              <Text style={styles.browseBtnText}>Browse Movies</Text>
-            </TouchableOpacity>
-
-            {/* Why download info section */}
-            <View style={styles.infoSection}>
-              <Text style={styles.infoSectionTitle}>Why download?</Text>
-
-              <View style={styles.infoRow}>
-                <Icon
-                  name="play-circle-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-                <View style={styles.infoTextCol}>
-                  <Text style={styles.infoRowTitle}>Watch offline</Text>
-                  <Text style={styles.infoRowDesc}>
-                    Enjoy your favorite movies anywhere.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Icon name="wifi-outline" size={20} color={colors.primary} />
-                <View style={styles.infoTextCol}>
-                  <Text style={styles.infoRowTitle}>Save data</Text>
-                  <Text style={styles.infoRowDesc}>
-                    Download over Wi-Fi and save mobile data.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Icon name="heart-outline" size={20} color={colors.primary} />
-                <View style={styles.infoTextCol}>
-                  <Text style={styles.infoRowTitle}>Keep favorites</Text>
-                  <Text style={styles.infoRowDesc}>
-                    Keep downloaded movies available offline.
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </Container>
+        <Text style={styles.emptyTitle}>No downloads</Text>
+        <Text style={styles.emptyDesc}>{message}</Text>
+      </View>
     );
-  }
+  };
 
   // Render components for list header (Downloading tasks & headers)
   const renderListHeader = () => {
@@ -511,6 +461,7 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmptyState('You do not have any active downloads right now.')}
           renderItem={({item}) => (
             <DownloadCard
               task={item}
@@ -533,6 +484,7 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmptyState('No failed or cancelled downloads found.')}
           renderItem={({item}) => (
             <DownloadCard
               task={item}
@@ -548,15 +500,14 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           )}
         />
       ) : activeTab === 'completed' ? (
-        // Only show completed 2-column grid
+        // Only show completed list
         <FlatList
-          key="completed-grid"
+          key="completed-list"
           data={filterBySearch(completedTasks)}
           keyExtractor={item => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.gridRowWrapper}
-          contentContainerStyle={styles.gridListContent}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmptyState('Download movies and shows to watch them offline.')}
           renderItem={({item}) => (
             <DownloadedMovieCard
               task={item}
@@ -566,16 +517,19 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           )}
         />
       ) : (
-        // "All" tab: Combined Layout (Downloading list + Completed 2-column grid)
+        // "All" tab: Combined Layout (Downloading list + Completed list)
         <FlatList
-          key="all-grid"
+          key="all-list"
           data={filterBySearch(completedTasks)}
           keyExtractor={item => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.gridRowWrapper}
-          contentContainerStyle={styles.gridListContent}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={renderListHeader}
+          ListEmptyComponent={
+            downloadingTasks.length === 0
+              ? renderEmptyState('Download movies and shows to watch them offline.')
+              : null
+          }
           renderItem={({item}) => (
             <DownloadedMovieCard
               task={item}
@@ -748,16 +702,16 @@ const styles = StyleSheet.create({
   },
   listHeaderContainer: {
     paddingHorizontal: spacing.md,
-    paddingTop: 8,
+    paddingTop: 2,
   },
   sectionContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   sectionHeaderTitle: {
     color: '#FFFFFF',
@@ -777,73 +731,95 @@ const styles = StyleSheet.create({
   sectionListGap: {
     gap: 12,
   },
+  emptyTabContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 60,
+  },
   listContent: {
+    flexGrow: 1,
     padding: spacing.md,
     gap: 16,
     paddingBottom: 40,
   },
   gridListContent: {
+    flexGrow: 1,
     paddingVertical: spacing.md,
     paddingBottom: 40,
   },
-  gridCard: {
-    flex: 1,
-    marginHorizontal: 8,
-    marginBottom: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
+  horizontalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#171923',
+    borderRadius: 16,
+    padding: 12,
+    marginVertical: 4,
     borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  gridPosterWrapper: {
-    width: '100%',
-    aspectRatio: 2 / 3,
-    backgroundColor: colors.elevated,
+  cardMainClickable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  thumbnailContainer: {
+    width: 100,
+    height: 60,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    overflow: 'hidden',
     position: 'relative',
   },
-  gridPoster: {
+  thumbnailImage: {
     width: '100%',
     height: '100%',
   },
-  gridPosterPlaceholder: {
+  thumbnailPlaceholder: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkIndicator: {
+  thumbnailCheckBadge: {
     position: 'absolute',
-    bottom: 8,
-    right: 8,
+    bottom: 4,
+    right: 4,
     backgroundColor: 'rgba(9, 9, 11, 0.75)',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 2,
   },
-  gridInfo: {
-    padding: 8,
-    gap: 2,
-  },
-  gridTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  gridMovieTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: typography.weights.semibold,
+  infoContainer: {
     flex: 1,
-    marginRight: 4,
+    marginLeft: 12,
+    justifyContent: 'center',
   },
-  gridMoreBtn: {
-    padding: 2,
+  cardTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: typography.weights.bold,
+    marginBottom: 4,
   },
-  gridMetaText: {
+  cardSubtitle: {
     color: colors.textSecondary,
     fontSize: 12,
+    marginBottom: 4,
   },
-  gridRowWrapper: {
-    paddingHorizontal: 8,
+  cardDetails: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontSize: 11,
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  playButton: {
+    padding: 4,
+  },
+  deleteButton: {
+    padding: 8,
   },
   sectionHeaderDownloaded: {
     color: '#FFFFFF',

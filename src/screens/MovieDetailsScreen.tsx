@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import Icon from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {CacheStorage} from '../services/storage/cache.storage';
 
 import {movieTheme} from '../components/movie/theme';
 import {MovieHero} from '../components/movie/MovieHero';
@@ -135,9 +135,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   useEffect(() => {
     const loadCatalog = async () => {
       try {
-        const storedCatalog = await AsyncStorage.getItem('@catalog_cache');
-        if (storedCatalog) {
-          setAllCatalogItems(JSON.parse(storedCatalog));
+        const cache = await CacheStorage.getCatalogCache();
+        if (cache && cache.data) {
+          setAllCatalogItems(cache.data);
         }
       } catch (err) {
         console.log('Failed loading catalog cache', err);
