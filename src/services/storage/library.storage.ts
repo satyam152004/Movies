@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CatalogItem} from '../../data/models';
 import {PreferencesStorage} from './preferences.storage';
+import {NativeModules} from 'react-native';
 
 export interface UserProfile {
   id: string;
@@ -160,6 +161,20 @@ export class LibraryStorage {
       const downloadQuality = await PreferencesStorage.getDownloadQuality();
       const wifiOnly = await PreferencesStorage.getWifiOnly();
 
+      // Fetch native downloads
+      let downloads = [];
+      try {
+        const {DownloadModule} = NativeModules;
+        if (DownloadModule) {
+          const rawDownloads = await DownloadModule.loadDownloadsData();
+          if (rawDownloads) {
+            downloads = JSON.parse(rawDownloads);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to export downloads backup', err);
+      }
+
       const backup = {
         version: 1,
         profile,
@@ -167,6 +182,7 @@ export class LibraryStorage {
         favorites,
         history,
         continueWatching,
+        downloads,
         preferences: {
           videoQuality,
           downloadQuality,
@@ -204,6 +220,19 @@ export class LibraryStorage {
         if (backup.continueWatching) {
           await this.saveContinueWatching(backup.continueWatching);
         }
+        
+        // Restore downloads
+        if (backup.downloads) {
+          try {
+            const {DownloadModule} = NativeModules;
+            if (DownloadModule) {
+              await DownloadModule.saveDownloadsData(JSON.stringify(backup.downloads));
+            }
+          } catch (err) {
+            console.error('Failed to import downloads backup', err);
+          }
+        }
+
         if (backup.preferences) {
           if (backup.preferences.videoQuality) {
             await PreferencesStorage.saveVideoQuality(backup.preferences.videoQuality);

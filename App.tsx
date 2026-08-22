@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -38,6 +38,16 @@ import {typography} from './src/theme';
 
 type ActiveTab = 'home' | 'search' | 'downloads' | 'watchlist' | 'profile';
 type ActiveScreen = 'main' | 'detail' | 'collection';
+interface NavigationEntry {
+  activeTab: ActiveTab;
+  screen: ActiveScreen;
+  selectedMovie: MovieDetail | null;
+  collectionParams: {
+    title: string;
+    items: CatalogItem[];
+    type: string;
+  } | null;
+}
 
 function App(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
@@ -48,6 +58,110 @@ function App(): React.JSX.Element {
     items: CatalogItem[];
     type: string;
   } | null>(null);
+
+  // Navigation History Stack
+  const [history, setHistory] = useState<NavigationEntry[]>([]);
+  const historyRef = useRef<NavigationEntry[]>([]);
+  historyRef.current = history;
+
+  // Ref to allow child screens (like MovieDetailsScreen) to intercept Back press
+  const childBackHandlerRef = useRef<(() => boolean) | null>(null);
+
+  const navigateTo = (nextState: Partial<NavigationEntry>) => {
+    // Current state to be pushed to history
+    const currentState: NavigationEntry = {
+      activeTab,
+      screen,
+      selectedMovie: selectedMovie ? { ...selectedMovie } : null,
+      collectionParams: collectionParams ? { ...collectionParams } : null,
+    };
+
+    // Determine if this is tab switching or tab tapping
+    if (nextState.activeTab !== undefined) {
+      if (nextState.activeTab !== activeTab) {
+        // Tab changed: clear history
+        setHistory([]);
+        historyRef.current = [];
+      } else if (nextState.screen === 'main') {
+        // Active tab tapped again: pop to root
+        setHistory([]);
+        historyRef.current = [];
+      }
+    } else {
+      // Push current state to history before changing screens
+      const lastEntry = historyRef.current[historyRef.current.length - 1];
+      const targetTab = nextState.activeTab ?? activeTab;
+      const targetScreen = nextState.screen ?? screen;
+      const targetMovieUrl = nextState.selectedMovie !== undefined ? nextState.selectedMovie?.url : selectedMovie?.url;
+      const targetCollectionTitle = nextState.collectionParams !== undefined ? nextState.collectionParams?.title : collectionParams?.title;
+
+      const isDuplicate = lastEntry &&
+        lastEntry.activeTab === targetTab &&
+        lastEntry.screen === targetScreen &&
+        lastEntry.selectedMovie?.url === targetMovieUrl &&
+        lastEntry.collectionParams?.title === targetCollectionTitle;
+
+      if (!isDuplicate) {
+        setHistory(prev => {
+          const updated = [...prev, currentState];
+          historyRef.current = updated;
+          return updated;
+        });
+      }
+    }
+
+    // Apply the navigation target states
+    if (nextState.activeTab !== undefined) {
+      setActiveTab(nextState.activeTab);
+    }
+    if (nextState.screen !== undefined) {
+      setScreen(nextState.screen);
+    }
+    if (nextState.selectedMovie !== undefined) {
+      setSelectedMovie(nextState.selectedMovie);
+    }
+    if (nextState.collectionParams !== undefined) {
+      setCollectionParams(nextState.collectionParams);
+    }
+  };
+
+  const goBack = useCallback(() => {
+    // 1. Check if child screen intercepts back press (modals, sheet, etc.)
+    if (childBackHandlerRef.current && childBackHandlerRef.current()) {
+      return true;
+    }
+
+    // 2. Check if history stack has entries
+    if (historyRef.current.length > 0) {
+      setHistory(prev => {
+        const updated = [...prev];
+        const prevState = updated.pop();
+        historyRef.current = updated;
+
+        if (prevState) {
+          setActiveTab(prevState.activeTab);
+          setScreen(prevState.screen);
+          setSelectedMovie(prevState.selectedMovie);
+          setCollectionParams(prevState.collectionParams);
+        }
+        return updated;
+      });
+      return true;
+    }
+
+    // 3. Fallback: if not on root home screen, go back to home tab root
+    if (activeTab !== 'home' || screen !== 'main') {
+      setActiveTab('home');
+      setScreen('main');
+      setHistory([]);
+      historyRef.current = [];
+      return true;
+    }
+
+    // 4. Let app exit
+    return false;
+  }, [activeTab, screen]);
+
   const [isConsoleVisible, setIsConsoleVisible] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [watchlist, setWatchlist] = useState<CatalogItem[]>([]);
@@ -137,26 +251,17 @@ function App(): React.JSX.Element {
   };
 
   useEffect(() => {
-    const handleBackPress = () => {
-      if (screen === 'detail') {
-        setScreen('main');
-        return true;
-      }
-      if (screen === 'collection') {
-        setScreen('main');
-        setCollectionParams(null);
-        return true;
-      }
-      return false;
+    const handleHardwareBack = () => {
+      return goBack();
     };
 
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
-      handleBackPress,
+      handleHardwareBack,
     );
 
     return () => backHandler.remove();
-  }, [screen]);
+  }, [goBack]);
 
   const handleSelectItem = async (item: CatalogItem) => {
     scraper.log(
@@ -180,14 +285,17 @@ function App(): React.JSX.Element {
       categories: [],
       downloadLinks: [],
     };
-    setSelectedMovie(partialMovie);
-    setScreen('detail');
+    navigateTo({
+      screen: 'detail',
+      selectedMovie: partialMovie,
+    });
     setIsDetailLoading(true);
     try {
       const detail = await scraper.scrapeMovieDetail(item.url);
       if (!detail.imageUrl && item.imageUrl) {
         detail.imageUrl = item.imageUrl;
       }
+      detail.enrichmentPending = true;
       // Keep watchlist/active state representation valid but update details
       setSelectedMovie(detail);
 
@@ -201,6 +309,7 @@ function App(): React.JSX.Element {
             castCount: enrichedDetail.enrichedCast?.length,
             crewCount: enrichedDetail.enrichedCrew?.length,
           });
+          enrichedDetail.enrichmentPending = false;
           console.info('[App Debug] Before setMovie() state update');
           setSelectedMovie(prev => {
             if (prev && prev.url === item.url) {
@@ -215,6 +324,15 @@ function App(): React.JSX.Element {
         })
         .catch(e => {
           console.warn('TMDb enrichment background error', e);
+          setSelectedMovie(prev => {
+            if (prev && prev.url === item.url) {
+              return {
+                ...prev,
+                enrichmentPending: false,
+              };
+            }
+            return prev;
+          });
         });
     } catch (err: any) {
       scraper.log(
@@ -269,8 +387,10 @@ function App(): React.JSX.Element {
             watchlist={watchlist}
             onToggleWatchlist={handleToggleWatchlist}
             onViewAllPress={(title, items, type) => {
-              setCollectionParams({title, items, type});
-              setScreen('collection');
+              navigateTo({
+                screen: 'collection',
+                collectionParams: {title, items, type},
+              });
             }}
             isRefreshing={isCatalogRefreshing}
             onRefresh={refreshCatalog}
@@ -284,9 +404,12 @@ function App(): React.JSX.Element {
           <SearchScreen
             items={catalogItems}
             onSelectItem={handleSelectItem}
+            onProfilePress={() => setActiveTab('profile')}
             onViewAllPress={(title, items, type) => {
-              setCollectionParams({title, items, type});
-              setScreen('collection');
+              navigateTo({
+                screen: 'collection',
+                collectionParams: {title, items, type},
+              });
             }}
           />
         );
@@ -338,10 +461,15 @@ function App(): React.JSX.Element {
             keyExtractor={item => item.url}
             renderItem={({item}) => (
               <View style={styles.gridCardWrapper}>
-                <MovieCard item={item} onPress={() => handleSelectItem(item)} />
+                <MovieCard
+                  item={item}
+                  onPress={() => handleSelectItem(item)}
+                  isWatchlisted={true}
+                  onWatchlistPress={() => handleToggleWatchlist(item)}
+                />
               </View>
             )}
-            numColumns={2}
+            numColumns={3}
             columnWrapperStyle={styles.gridRowWrapper}
             contentContainerStyle={styles.gridListContent}
             showsVerticalScrollIndicator={false}
@@ -369,9 +497,9 @@ function App(): React.JSX.Element {
       return (
         <MovieDetailScreen
           movie={selectedMovie}
-          onBack={() => {
-            setScreen('main');
-          }}
+          onBack={goBack}
+          onSelectItem={handleSelectItem}
+          childBackHandlerRef={childBackHandlerRef}
           onStartDownload={async (title, size, url) => {
             try {
               await DownloadService.getInstance().startDownload(
@@ -380,6 +508,9 @@ function App(): React.JSX.Element {
                 url,
                 selectedMovie.imageUrl,
               );
+              // Downloads screen is tab-level, so reset/clear history when moving to it
+              setHistory([]);
+              historyRef.current = [];
               setActiveTab('downloads');
               setScreen('main');
             } catch (err: any) {
@@ -415,10 +546,7 @@ function App(): React.JSX.Element {
           title={collectionParams.title}
           items={collectionItems}
           onSelectItem={handleSelectItem}
-          onBack={() => {
-            setScreen('main');
-            setCollectionParams(null);
-          }}
+          onBack={goBack}
           onLoadMore={handleLoadMoreCollection}
           isLoadingMore={catalogStatus === 'loading' && catalogPage > 1}
         />
@@ -470,8 +598,10 @@ function App(): React.JSX.Element {
               key={tab}
               style={styles.tabItem}
               onPress={() => {
-                setScreen('main');
-                setActiveTab(tab);
+                navigateTo({
+                  screen: 'main',
+                  activeTab: tab,
+                });
               }}
               activeOpacity={0.85}>
               <View
@@ -495,8 +625,8 @@ function App(): React.JSX.Element {
                         : 'arrow-down-outline'
                       : tab === 'watchlist'
                       ? isActive
-                        ? 'heart'
-                        : 'heart-outline'
+                        ? 'bookmark'
+                        : 'bookmark-outline'
                       : isActive
                       ? 'person'
                       : 'person-outline'
@@ -617,7 +747,7 @@ const styles = StyleSheet.create({
   },
   screenHeader: {
     height: 56,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     flexDirection: 'row',
@@ -627,10 +757,9 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     ...typography.tokens.body,
-
+    fontSize: 20,
     color: colors.textPrimary,
-    
-    fontWeight: '900',
+    fontWeight: '800',
   },
   countBadge: {
     backgroundColor: 'rgba(144, 97, 249, 0.15)',
@@ -649,11 +778,12 @@ const styles = StyleSheet.create({
   },
   gridRowWrapper: {
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   gridCardWrapper: {
     flex: 1,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
+    maxWidth: '33.33%',
   },
   profileScroll: {
     padding: spacing.md,

@@ -305,6 +305,14 @@ class DownloadModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                         task.temporaryFile.delete()
                     }
                     Log.d(TAG, "File finalized successfully: ${task.destinationFile.absolutePath}")
+                    // Notify media scanner to index the file so it shows in the user's Gallery app
+                    android.media.MediaScannerConnection.scanFile(
+                        reactApplicationContext,
+                        arrayOf(task.destinationFile.absolutePath),
+                        null
+                    ) { path, uri ->
+                        Log.d(TAG, "MediaScanner scanned completed download file: $path -> URI: $uri")
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error renaming completed .part file: ${e.message}", e)

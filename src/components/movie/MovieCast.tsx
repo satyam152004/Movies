@@ -1,11 +1,12 @@
-import React from 'react';
-import {View, Text, StyleSheet, ScrollView, Image} from 'react-native';
+import React, {useRef, useEffect} from 'react';
+import {View, Text, StyleSheet, ScrollView, Image, Animated} from 'react-native';
 import {movieTheme} from './theme';
 import {typography} from '../../theme';
 
 interface MovieCastProps {
   stars: string[];
   enrichedCast?: {name: string; character: string; profileUrl: string}[];
+  enrichmentPending?: boolean;
 }
 
 const getInitials = (name: string) => {
@@ -17,9 +18,69 @@ const getInitials = (name: string) => {
   return parts[0] ? parts[0].slice(0, 2).toUpperCase() : '';
 };
 
-export const MovieCast: React.FC<MovieCastProps> = ({stars, enrichedCast}) => {
+export const MovieCast: React.FC<MovieCastProps> = ({
+  stars,
+  enrichedCast,
+  enrichmentPending = false,
+}) => {
+  const shimmerAnim = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    if (enrichmentPending) {
+      const anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(shimmerAnim, {
+            toValue: 0.7,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shimmerAnim, {
+            toValue: 0.3,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      anim.start();
+      return () => anim.stop();
+    }
+  }, [enrichmentPending, shimmerAnim]);
+
   const hasEnriched = enrichedCast && enrichedCast.length > 0;
   const castList = hasEnriched ? enrichedCast : stars;
+
+  if (enrichmentPending) {
+    const style = {opacity: shimmerAnim};
+    return (
+      <View style={styles.container}>
+        <Text style={styles.sectionTitle}>Cast</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <View key={i} style={styles.castCard}>
+              <Animated.View style={[styles.avatarWrapper, style, {backgroundColor: 'rgba(255, 255, 255, 0.08)', borderColor: 'rgba(255, 255, 255, 0.05)'}]} />
+              <Animated.View
+                style={[
+                  styles.skeletonLine,
+                  {width: 55, height: 10, marginTop: 8},
+                  style,
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.skeletonLine,
+                  {width: 40, height: 8, marginTop: 4},
+                  style,
+                ]}
+              />
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
 
   if (!castList || castList.length === 0) {
     return null;
@@ -140,5 +201,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
     textAlign: 'center',
     width: '100%',
+  },
+  skeletonLine: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 4,
   },
 });

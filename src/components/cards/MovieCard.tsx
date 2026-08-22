@@ -17,9 +17,17 @@ interface MovieCardProps {
   item: CatalogItem;
   onPress: () => void;
   width?: number;
+  onWatchlistPress?: () => void;
+  isWatchlisted?: boolean;
 }
 
-export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
+export const MovieCard: React.FC<MovieCardProps> = ({
+  item,
+  onPress,
+  width,
+  onWatchlistPress,
+  isWatchlisted,
+}) => {
   const displayTitle = formatDisplayTitle(item.title);
 
   return (
@@ -40,7 +48,26 @@ export const MovieCard: React.FC<MovieCardProps> = ({item, onPress, width}) => {
           </View>
         )}
 
+        {onWatchlistPress && (
+          <TouchableOpacity
+            style={styles.watchlistCardBtn}
+            onPress={onWatchlistPress}
+            activeOpacity={0.7}>
+            <Icon
+              name={isWatchlisted ? 'bookmark' : 'bookmark-outline'}
+              size={15}
+              color={isWatchlisted ? colors.primary : '#FFFFFF'}
+            />
+          </TouchableOpacity>
+        )}
+
         <View style={styles.badgeRow}>
+          {item.rating !== undefined && item.rating > 0 && (
+            <View style={[styles.badgeItem, styles.badgeRating]}>
+              <Icon name="star" size={8} color="#FBBF24" style={{marginRight: 2}} />
+              <Text style={[styles.badgeText, {color: '#FBBF24', fontSize: 7.5}]}>{item.rating.toFixed(1)}</Text>
+            </View>
+          )}
           {item.resolution === '2160p' && (
             <View style={[styles.badgeItem, styles.badge4K]}>
               <Text style={styles.badgeText}>4K</Text>
@@ -151,6 +178,13 @@ const styles = StyleSheet.create({
   badgeDual: {
     backgroundColor: '#10B981',
   },
+  badgeRating: {
+    backgroundColor: 'rgba(9, 9, 11, 0.85)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+  },
   gradientOverlay: {
     position: 'absolute',
     left: 0,
@@ -183,5 +217,19 @@ const styles = StyleSheet.create({
     
     color: colors.textSecondary,
     fontWeight: typography.weights.semibold,
+  },
+  watchlistCardBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(9, 9, 11, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
 });

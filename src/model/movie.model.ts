@@ -18,6 +18,7 @@ export const CatalogItemSchema = z.object({
   resolution: z.string().optional(),
   isDualAudio: z.boolean().optional(),
   isHEVC: z.boolean().optional(),
+  rating: z.number().optional(),
 });
 
 // Zod schema for the complete parsed movie detail info
@@ -63,6 +64,8 @@ export const MovieDetailSchema = z.object({
       }),
     )
     .optional(),
+  enrichmentPending: z.boolean().optional(),
+  rating: z.number().optional(),
 });
 
 export type DownloadLink = z.infer<typeof DownloadLinkSchema>;

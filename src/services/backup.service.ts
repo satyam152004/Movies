@@ -1,5 +1,6 @@
 import {NativeModules, Platform} from 'react-native';
 import {LibraryStorage} from './storage/library.storage';
+import {DownloadService} from './download.service';
 
 const {BackupModule} = NativeModules;
 
@@ -54,5 +55,10 @@ export class BackupService {
    */
   public static async applyImport(backupStr: string): Promise<void> {
     await LibraryStorage.importBackup(backupStr);
+    try {
+      await DownloadService.getInstance().reloadDownloads();
+    } catch (err) {
+      console.error('Failed to reload downloads service after backup import', err);
+    }
   }
 }

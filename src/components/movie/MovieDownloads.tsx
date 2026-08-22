@@ -10,6 +10,9 @@ import {
   Dimensions,
   Animated,
   SafeAreaView,
+  ScrollView,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {movieTheme} from './theme';
@@ -307,7 +310,7 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
             </View>
           ) : (
             /* QUALITY SELECTION VIEW */
-            <View style={styles.contentContainer}>
+            <View style={[styles.contentContainer, {flexShrink: 1}]}>
               <View style={styles.header}>
                 <Text style={styles.title}>Download Options</Text>
                 <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -315,154 +318,156 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.movieHeader}>
-                <Text style={styles.movieName} numberOfLines={1}>
-                  {formatDisplayTitle(movie.title)}
-                </Text>
-                <Text style={styles.movieMeta}>
-                  {movie.date || '2026'} • {movie.language || 'Multi-Audio'}
-                </Text>
-              </View>
+              <ScrollView style={{flexGrow: 0, flexShrink: 1}} showsVerticalScrollIndicator={false}>
+                <View style={styles.movieHeader}>
+                  <Text style={styles.movieName} numberOfLines={1}>
+                    {formatDisplayTitle(movie.title)}
+                  </Text>
+                  <Text style={styles.movieMeta}>
+                    {movie.date || '2026'} • {movie.language || 'Multi-Audio'}
+                  </Text>
+                </View>
 
-              {/* Error Banner section if resolution fails */}
-              {error && (
-                <View style={styles.errorContainer}>
-                  <View style={styles.errorHeader}>
-                    <View style={styles.errorTitleRow}>
-                      <Icon
-                        name="alert-circle"
-                        size={18}
-                        color={movieTheme.colors.danger}
-                      />
-                      <Text style={styles.errorTitle}>
-                        Download unavailable
-                      </Text>
-                    </View>
-                    {onClearError && (
-                      <TouchableOpacity
-                        onPress={onClearError}
-                        style={styles.errorCloseBtn}>
+                {/* Error Banner section if resolution fails */}
+                {error && (
+                  <View style={styles.errorContainer}>
+                    <View style={styles.errorHeader}>
+                      <View style={styles.errorTitleRow}>
                         <Icon
-                          name="close"
+                          name="alert-circle"
                           size={18}
-                          color={movieTheme.colors.secondary}
+                          color={movieTheme.colors.danger}
                         />
+                        <Text style={styles.errorTitle}>
+                          Download unavailable
+                        </Text>
+                      </View>
+                      {onClearError && (
+                        <TouchableOpacity
+                          onPress={onClearError}
+                          style={styles.errorCloseBtn}>
+                          <Icon
+                            name="close"
+                            size={18}
+                            color={movieTheme.colors.secondary}
+                          />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <Text style={styles.errorMessage}>{error}</Text>
+                    {onRetry && (
+                      <TouchableOpacity onPress={onRetry} style={styles.retryBtn}>
+                        <Text style={styles.retryText}>Retry</Text>
                       </TouchableOpacity>
                     )}
                   </View>
-                  <Text style={styles.errorMessage}>{error}</Text>
-                  {onRetry && (
-                    <TouchableOpacity onPress={onRetry} style={styles.retryBtn}>
-                      <Text style={styles.retryText}>Retry</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
+                )}
 
-              {/* Sample / Preview section */}
-              {sampleLinks.length > 0 && (
-                <View style={styles.sampleSection}>
-                  <Text style={styles.labelTitle}>Preview / Sample</Text>
-                  {sampleLinks.map((link, idx) => {
-                    const isSelected = selectedLink?.url === link.url;
-                    return (
-                      <TouchableOpacity
-                        key={`sample-${idx}`}
-                        style={[
-                          styles.optionCard,
-                          styles.sampleCard,
-                          isSelected && styles.optionCardSelected,
-                        ]}
-                        onPress={() => setSelectedLink(link)}
-                        activeOpacity={0.8}>
-                        <View style={styles.radioWrapper}>
-                          <Icon
-                            name={
-                              isSelected
-                                ? 'radio-button-on'
-                                : 'radio-button-off'
-                            }
-                            size={20}
-                            color={
-                              isSelected
-                                ? movieTheme.colors.primary
-                                : 'rgba(255, 255, 255, 0.2)'
-                            }
-                          />
-                        </View>
-                        <View style={styles.optionDetails}>
-                          <Text style={styles.optionResolution}>
-                            ↓ Download Sample Video
-                          </Text>
-                          <Text style={styles.optionSubText}>
-                            {link.size
-                              ? `${link.size} • Test download quality`
-                              : 'Test download quality'}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-
-              {/* Quality options section */}
-              <Text style={styles.labelTitle}>Video Quality</Text>
-              {qualityLinks.length === 0 ? (
-                <Text style={styles.noLinksText}>
-                  No video qualities available for this title.
-                </Text>
-              ) : (
-                <View style={styles.optionsList}>
-                  {qualityLinks.map((link, idx) => {
-                    const isSelected = selectedLink?.url === link.url;
-
-                    // Parse real label metadata without inventing any new details
-                    const tags = parseLinkLabel(link.label);
-                    const extraInfo =
-                      tags.length > 0 ? ` • ${tags.join(' • ')}` : '';
-
-                    return (
-                      <TouchableOpacity
-                        key={idx}
-                        style={[
-                          styles.optionCard,
-                          isSelected && styles.optionCardSelected,
-                        ]}
-                        onPress={() => setSelectedLink(link)}
-                        activeOpacity={0.8}>
-                        <View style={styles.radioWrapper}>
-                          <Icon
-                            name={
-                              isSelected
-                                ? 'radio-button-on'
-                                : 'radio-button-off'
-                            }
-                            size={20}
-                            color={
-                              isSelected
-                                ? movieTheme.colors.primary
-                                : 'rgba(255, 255, 255, 0.2)'
-                            }
-                          />
-                        </View>
-                        <View style={styles.optionDetails}>
-                          <View style={styles.optionTitleRow}>
+                {/* Sample / Preview section */}
+                {sampleLinks.length > 0 && (
+                  <View style={styles.sampleSection}>
+                    <Text style={styles.labelTitle}>Preview / Sample</Text>
+                    {sampleLinks.map((link, idx) => {
+                      const isSelected = selectedLink?.url === link.url;
+                      return (
+                        <TouchableOpacity
+                          key={`sample-${idx}`}
+                          style={[
+                            styles.optionCard,
+                            styles.sampleCard,
+                            isSelected && styles.optionCardSelected,
+                          ]}
+                          onPress={() => setSelectedLink(link)}
+                          activeOpacity={0.8}>
+                          <View style={styles.radioWrapper}>
+                            <Icon
+                              name={
+                                isSelected
+                                  ? 'radio-button-on'
+                                  : 'radio-button-off'
+                              }
+                              size={20}
+                              color={
+                                isSelected
+                                  ? movieTheme.colors.primary
+                                  : 'rgba(255, 255, 255, 0.2)'
+                              }
+                            />
+                          </View>
+                          <View style={styles.optionDetails}>
                             <Text style={styles.optionResolution}>
-                              {link.resolution || 'Standard Resolution'}
+                              ↓ Download Sample Video
+                            </Text>
+                            <Text style={styles.optionSubText}>
+                              {link.size
+                                ? `${link.size} • Test download quality`
+                                : 'Test download quality'}
                             </Text>
                           </View>
-                          <Text style={styles.optionSubText}>
-                            {link.size
-                              ? `${link.size}${extraInfo}`
-                              : `High Speed Download${extraInfo}`}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {/* Quality options section */}
+                <Text style={styles.labelTitle}>Video Quality</Text>
+                {qualityLinks.length === 0 ? (
+                  <Text style={styles.noLinksText}>
+                    No video qualities available for this title.
+                  </Text>
+                ) : (
+                  <View style={styles.optionsList}>
+                    {qualityLinks.map((link, idx) => {
+                      const isSelected = selectedLink?.url === link.url;
+
+                      // Parse real label metadata without inventing any new details
+                      const tags = parseLinkLabel(link.label);
+                      const extraInfo =
+                        tags.length > 0 ? ` • ${tags.join(' • ')}` : '';
+
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={[
+                            styles.optionCard,
+                            isSelected && styles.optionCardSelected,
+                          ]}
+                          onPress={() => setSelectedLink(link)}
+                          activeOpacity={0.8}>
+                          <View style={styles.radioWrapper}>
+                            <Icon
+                              name={
+                                isSelected
+                                  ? 'radio-button-on'
+                                  : 'radio-button-off'
+                              }
+                              size={20}
+                              color={
+                                isSelected
+                                  ? movieTheme.colors.primary
+                                  : 'rgba(255, 255, 255, 0.2)'
+                              }
+                            />
+                          </View>
+                          <View style={styles.optionDetails}>
+                            <View style={styles.optionTitleRow}>
+                              <Text style={styles.optionResolution}>
+                                {link.resolution || 'Standard Resolution'}
+                              </Text>
+                            </View>
+                            <Text style={styles.optionSubText}>
+                              {link.size
+                                ? `${link.size}${extraInfo}`
+                                : `High Speed Download${extraInfo}`}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </ScrollView>
 
               {selectedLink && (
                 <View style={styles.summaryRow}>
@@ -518,8 +523,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     borderWidth: 1,
     borderColor: '#272C38',
-    paddingBottom: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
     paddingHorizontal: 20,
+    maxHeight: SCREEN_HEIGHT - (Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 44) - 20,
   },
   dragIndicator: {
     width: 36,

@@ -7,6 +7,7 @@ export interface CatalogItem {
   resolution?: string;
   isDualAudio?: boolean;
   isHEVC?: boolean;
+  rating?: number;
 }
 
 export interface DownloadLink {
@@ -44,6 +45,8 @@ export interface MovieDetail {
   homepage?: string;
   enrichedCast?: {name: string; character: string; profileUrl: string}[];
   enrichedCrew?: {name: string; job: string}[];
+  enrichmentPending?: boolean;
+  rating?: number;
 }
 
 export type DownloadStatus =

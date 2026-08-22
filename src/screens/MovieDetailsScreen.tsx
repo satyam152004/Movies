@@ -42,6 +42,8 @@ interface MovieDetailsScreenProps {
   isWatchlisted?: boolean;
   onToggleWatchlist?: () => void;
   isLoading?: boolean;
+  onSelectItem?: (item: CatalogItem) => void;
+  childBackHandlerRef?: React.MutableRefObject<(() => boolean) | null>;
 }
 
 export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
@@ -51,12 +53,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   isWatchlisted = false,
   onToggleWatchlist,
   isLoading = false,
+  onSelectItem,
+  childBackHandlerRef,
 }) => {
-  console.info(`[UI Debug] During render() for: "${movie.title}"`, {
-    backdropUrl: movie.backdropUrl,
-    castCount: movie.enrichedCast?.length,
-    crewCount: movie.enrichedCrew?.length,
-  });
   // Scraper State Preservation & Downloads Visibility
   const [isDownloadsVisible, setIsDownloadsVisible] = useState<boolean>(false);
   const [resolvingUrl, setResolvingUrl] = useState<string | null>(null);
@@ -95,6 +94,15 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     }, 500);
     return () => clearTimeout(timer);
   }, []);
+
+
+
+  console.info(`[UI Debug] During render() for: "${movie.title}"`, {
+    backdropUrl: movie.backdropUrl,
+    castCount: movie.enrichedCast?.length,
+    crewCount: movie.enrichedCrew?.length,
+  });
+
 
   const interactiveWebViewRef = useRef<any>(null);
 
@@ -171,6 +179,45 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
     interactiveBrowserTriggered.current = false;
     interactiveDownloadTriggeredRef.current = false;
   }, []);
+
+  // Register child back handler on mount, unregister on unmount or updates
+  useEffect(() => {
+    if (childBackHandlerRef) {
+      childBackHandlerRef.current = () => {
+        // A. Active WebView/resolver modal
+        if (interactiveUrl !== null) {
+          handleClose();
+          return true;
+        }
+
+        // B. Image zoom modal
+        if (fullImageUrl !== null) {
+          setFullImageUrl(null);
+          return true;
+        }
+
+        // C. Downloads bottom sheet
+        if (isDownloadsVisible) {
+          setIsDownloadsVisible(false);
+          return true;
+        }
+
+        return false;
+      };
+    }
+
+    return () => {
+      if (childBackHandlerRef) {
+        childBackHandlerRef.current = null;
+      }
+    };
+  }, [
+    childBackHandlerRef,
+    interactiveUrl,
+    fullImageUrl,
+    isDownloadsVisible,
+    handleClose,
+  ]);
 
   const openInteractiveBrowser = useCallback(
     (url: string, size?: string, _label?: string) => {
@@ -461,11 +508,15 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   }
 
   const handleSelectItemRepresentation = (item: CatalogItem) => {
-    // Trigger catalog navigation or movie change
-    movie.title = item.title;
-    movie.url = item.url;
-    movie.imageUrl = item.imageUrl;
-    onBack();
+    if (onSelectItem) {
+      onSelectItem(item);
+    } else {
+      // Trigger catalog navigation or movie change
+      movie.title = item.title;
+      movie.url = item.url;
+      movie.imageUrl = item.imageUrl;
+      onBack();
+    }
   };
 
   return (
@@ -502,7 +553,11 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
         />
 
         {/* Cast listing (Horizontal Scroll) */}
-        <MovieCast stars={movie.stars} enrichedCast={movie.enrichedCast} />
+        <MovieCast
+          stars={movie.stars}
+          enrichedCast={movie.enrichedCast}
+          enrichmentPending={movie.enrichmentPending}
+        />
 
         {/* Production Crew chips */}
         <MovieCrew
@@ -759,11 +814,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerTitle: {
-    ...typography.tokens.bodyMedium,
-    fontWeight: '700',
-
     color: movieTheme.colors.text,
-    
+    fontSize: 20,
+    fontWeight: '800',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 12,

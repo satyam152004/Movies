@@ -29,6 +29,15 @@ export interface DownloadRecord {
 
 type DownloadListener = (records: DownloadRecord[]) => void;
 
+const formatSize = (bytes: number): string => {
+  if (bytes <= 0) return '0.0 MB';
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1000) {
+    return `${(mb / 1024).toFixed(2)} GB`;
+  }
+  return `${mb.toFixed(1)} MB`;
+};
+
 export class DownloadService {
   private static instance: DownloadService;
   private downloads: DownloadRecord[] = [];
@@ -70,6 +79,20 @@ export class DownloadService {
         'error',
       );
       this.downloads = [];
+    }
+  }
+
+  public async reloadDownloads() {
+    try {
+      const data = await DownloadModule.loadDownloadsData();
+      if (data) {
+        this.downloads = JSON.parse(data);
+      } else {
+        this.downloads = [];
+      }
+      this.notifyListeners();
+    } catch (e: any) {
+      this.scraper.log(`Failed to reload downloads: ${e.message}`, 'error');
     }
   }
 
@@ -319,8 +342,7 @@ export class DownloadService {
       if (
         record.status === 'completed' ||
         record.status === 'failed' ||
-        record.status === 'cancelled' ||
-        record.status === 'paused'
+        record.status === 'cancelled'
       ) {
         continue;
       }
@@ -335,8 +357,7 @@ export class DownloadService {
           !currentRecord ||
           currentRecord.status === 'completed' ||
           currentRecord.status === 'failed' ||
-          currentRecord.status === 'cancelled' ||
-          currentRecord.status === 'paused'
+          currentRecord.status === 'cancelled'
         ) {
           continue;
         }
@@ -396,9 +417,7 @@ export class DownloadService {
             record.lastUpdated = now;
           }
 
-          record.downloadedSize = `${(currentBytes / (1024 * 1024)).toFixed(
-            1,
-          )} MB`;
+           record.downloadedSize = formatSize(currentBytes);
           changed = true;
         } else if (nativeStatus.status === 'SUCCESSFUL') {
           record.status = 'completed';
@@ -406,11 +425,10 @@ export class DownloadService {
           record.downloadSpeed = '0.0 MB/s';
           record.eta = 'Finished';
 
-          const totalSizeMb =
+          record.downloadedSize =
             nativeStatus.bytesTotal > 0
-              ? (nativeStatus.bytesTotal / (1024 * 1024)).toFixed(1)
+              ? formatSize(nativeStatus.bytesTotal)
               : 'Unknown';
-          record.downloadedSize = `${totalSizeMb} MB`;
           record.logs.unshift(
             `[${new Date().toLocaleTimeString()}] Download completed successfully!`,
           );

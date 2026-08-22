@@ -199,7 +199,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
           styles.screenHeader,
           {paddingTop: safeAreaTop, height: 56 + safeAreaTop},
         ]}>
-        <Text style={styles.screenTitle}>Profile & Settings</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.screenTitle}>Profile</Text>
+          <TouchableOpacity onPress={openEditModal} activeOpacity={0.7}>
+            <Icon name="settings-outline" size={22} color={colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -210,186 +215,145 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({onSwitchTab}) => {
         ]}
         showsVerticalScrollIndicator={false}>
         {/* Profile Card Header */}
-        <View style={styles.profileHeaderCard}>
-          <View style={styles.avatarCircle}>
-            {profile?.avatarId ? (
-              <Text style={styles.avatarEmoji}>
-                {BUILTIN_AVATARS.find(a => a.id === profile.avatarId)?.emoji ||
-                  '🍿'}
-              </Text>
-            ) : (
-              <Text style={styles.avatarText}>{getInitials()}</Text>
-            )}
+        <View style={styles.profileSection}>
+          <View style={styles.avatarWrapper}>
+            <View style={styles.avatarCircle}>
+              {profile?.avatarId ? (
+                <Text style={styles.avatarEmoji}>
+                  {BUILTIN_AVATARS.find(a => a.id === profile.avatarId)?.emoji ||
+                    '🍿'}
+                </Text>
+              ) : (
+                <Text style={styles.avatarText}>{getInitials()}</Text>
+              )}
+            </View>
+            <TouchableOpacity style={styles.avatarEditBadge} onPress={openEditModal}>
+              <Icon name="pencil" size={10} color={colors.white} />
+            </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>{profile?.name || 'Movie Fan'}</Text>
-          <Text style={styles.profileSubtitle}>Local Profile</Text>
-          <TouchableOpacity
-            style={styles.editProfileBtn}
-            onPress={openEditModal}
-            activeOpacity={0.8}>
-            <Text style={styles.editProfileBtnText}>Edit Profile</Text>
-          </TouchableOpacity>
+          <Text style={styles.profileName}>{profile?.name || 'Satyam Patel'}</Text>
+          <Text style={styles.profileEmail}>
+            {profile?.name
+              ? profile.name.toLowerCase().replace(/\s+/g, '.') + '@email.com'
+              : 'satyam@email.com'}
+          </Text>
         </View>
 
-        {/* My Library Vertical List */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>MY LIBRARY</Text>
-
-          <TouchableOpacity
-            style={styles.settingItemBorder}
-            onPress={() => onSwitchTab('watchlist')}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>❤️ Favorites</Text>
-            </View>
-            <Text
-              style={styles.settingValueStatic}>{`${counts.favorites} >`}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingItemBorder}
-            onPress={() => onSwitchTab('watchlist')}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>🔖 Watchlist</Text>
-            </View>
-            <Text
-              style={styles.settingValueStatic}>{`${counts.watchlist} >`}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingItemBorder}
-            onPress={() =>
-              Alert.alert('History', 'History tracking is active.')
-            }>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>🕘 Watch History</Text>
-            </View>
-            <Text
-              style={styles.settingValueStatic}>{`${counts.history} >`}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingItemBorder}
-            onPress={() =>
-              Alert.alert('Continue Watching', 'Continue watching items.')
-            }>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>▶ Continue Watching</Text>
-            </View>
-            <Text
-              style={
-                styles.settingValueStatic
-              }>{`${counts.continueWatching} >`}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.settingItemBorderLast}
-            onPress={() => onSwitchTab('downloads')}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>⬇ Downloads</Text>
-            </View>
-            <Text
-              style={styles.settingValueStatic}>{`${counts.downloads} >`}</Text>
-          </TouchableOpacity>
-        </View>
-
-
-        {/* Appearance */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>APPEARANCE</Text>
-          <View style={styles.settingItemBorderLast}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Theme Mode</Text>
-            </View>
-            <Text style={styles.settingValueStatic}>Dark</Text>
+        {/* Stats Card */}
+        <View style={styles.statsCard}>
+          <View style={styles.statColumn}>
+            <Text style={styles.statValue}>{counts.history}</Text>
+            <Text style={styles.statLabel}>Movies</Text>
+          </View>
+          <View style={styles.statsDivider} />
+          <View style={styles.statColumn}>
+            <Text style={styles.statValue}>{counts.downloads}</Text>
+            <Text style={styles.statLabel}>Downloads</Text>
+          </View>
+          <View style={styles.statsDivider} />
+          <View style={styles.statColumn}>
+            <Text style={styles.statValue}>{counts.watchlist}</Text>
+            <Text style={styles.statLabel}>Watchlist</Text>
           </View>
         </View>
 
-        {/* Data & Storage */}
-        <View style={styles.settingsCard}>
-          <Text style={styles.settingsSectionTitle}>DATA & STORAGE</Text>
-
+        {/* Menu Options */}
+        <View style={styles.menuContainer}>
           <TouchableOpacity
-            style={styles.settingItemBorder}
-            onPress={handleBackup}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Backup & Restore</Text>
-              <Text style={styles.settingDesc}>
-                Last backup: {lastBackupStr}
-              </Text>
+            style={styles.menuItem}
+            activeOpacity={0.8}
+            onPress={openEditModal}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconWrapper, {backgroundColor: colors.primary}]}>
+                <Icon name="settings" size={18} color={colors.white} />
+              </View>
+              <Text style={styles.menuLabel}>Settings</Text>
             </View>
-            <Text style={styles.settingValueActive}>BACKUP</Text>
+            <Icon name="chevron-forward" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.settingItemBorder}
-            onPress={handleRestore}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Restore Library Backup</Text>
-              <Text style={styles.settingDesc}>
-                Restore watchlist and settings from storage
-              </Text>
+            style={styles.menuItem}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Theme', 'App theme is locked to premium dark mode.')}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconWrapper, {backgroundColor: colors.success}]}>
+                <Icon name="color-palette" size={18} color={colors.white} />
+              </View>
+              <Text style={styles.menuLabel}>Theme</Text>
             </View>
-            <Text style={styles.settingValueActive}>RESTORE</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+              <Text style={styles.menuValue}>Auto</Text>
+              <Icon name="chevron-forward" size={16} color={colors.textSecondary} />
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.settingItemBorderLast}
-            onPress={handleClearCache}>
-            <View style={styles.settingTextGroup}>
-              <Text style={styles.settingLabel}>Storage Manager</Text>
-              <Text style={styles.settingDesc}>
-                Clear temporary scraping caches
-              </Text>
-            </View>
-            <Text style={styles.settingValueDestructive}>CLEAR</Text>
-          </TouchableOpacity>
         </View>
 
       </ScrollView>
 
-      <Text style={styles.bottomVersionText}>v1.1.0</Text>
-
-      {/* Edit Profile Modal */}
-      <Modal visible={isEditModalVisible} transparent animationType="slide">
+      {/* Settings Modal */}
+      <Modal visible={isEditModalVisible} transparent animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContentCard}>
-            <Text style={styles.modalTitle}>Edit Profile</Text>
+            <Text style={styles.modalTitle}>Profile Settings</Text>
 
-            <Text style={styles.modalSubTitle}>Name</Text>
-            <TextInput
-              style={styles.nameInput}
-              value={editName}
-              onChangeText={setEditName}
-              placeholder="Enter name"
-              placeholderTextColor="#999"
-              maxLength={25}
-            />
+            <ScrollView showsVerticalScrollIndicator={false} style={{maxHeight: 400}}>
+              <Text style={styles.modalSubTitle}>Profile Name</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Enter name"
+                placeholderTextColor={colors.textMuted}
+                maxLength={25}
+              />
 
-            <Text style={styles.modalSubTitle}>Choose Avatar</Text>
-            <View style={styles.avatarRow}>
-              {BUILTIN_AVATARS.map(avatar => {
-                const isSelected = selectedAvatarId === avatar.id;
-                return (
-                  <TouchableOpacity
-                    key={avatar.id}
-                    style={[
-                      styles.avatarPickCircle,
-                      isSelected && styles.avatarPickCircleActive,
-                    ]}
-                    onPress={() => setSelectedAvatarId(avatar.id)}>
-                    <Text style={styles.avatarPickEmoji}>{avatar.emoji}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-              <TouchableOpacity
-                style={[
-                  styles.avatarPickCircle,
-                  !selectedAvatarId && styles.avatarPickCircleActive,
-                ]}
-                onPress={() => setSelectedAvatarId(undefined)}>
-                <Text style={styles.avatarPickInitialsText}>Abc</Text>
+              <Text style={styles.modalSubTitle}>Choose Avatar</Text>
+              <View style={styles.avatarRow}>
+                {BUILTIN_AVATARS.map(avatar => {
+                  const isSelected = selectedAvatarId === avatar.id;
+                  return (
+                    <TouchableOpacity
+                      key={avatar.id}
+                      style={[
+                        styles.avatarPickCircle,
+                        isSelected && styles.avatarPickCircleActive,
+                      ]}
+                      onPress={() => setSelectedAvatarId(avatar.id)}>
+                      <Text style={styles.avatarPickEmoji}>{avatar.emoji}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity
+                  style={[
+                    styles.avatarPickCircle,
+                    !selectedAvatarId && styles.avatarPickCircleActive,
+                  ]}
+                  onPress={() => setSelectedAvatarId(undefined)}>
+                  <Text style={styles.avatarPickInitialsText}>Abc</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalSubTitle}>Data & Backup</Text>
+              
+              <TouchableOpacity style={styles.modalActionButton} onPress={handleBackup}>
+                <Icon name="cloud-upload" size={16} color={colors.white} />
+                <Text style={styles.modalActionButtonText}>Backup Library</Text>
               </TouchableOpacity>
-            </View>
+
+              <TouchableOpacity style={styles.modalActionButton} onPress={handleRestore}>
+                <Icon name="cloud-download" size={16} color={colors.white} />
+                <Text style={styles.modalActionButtonText}>Restore Backup</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.modalActionButton, {backgroundColor: colors.elevated}]} onPress={handleClearCache}>
+                <Icon name="trash-bin" size={16} color={colors.white} />
+                <Text style={styles.modalActionButtonText}>Clear Scraper Cache</Text>
+              </TouchableOpacity>
+              
+              <Text style={styles.modalBackupDesc}>Last backup: {lastBackupStr}</Text>
+            </ScrollView>
 
             <View style={styles.modalBtnRow}>
               <TouchableOpacity
@@ -416,137 +380,168 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   screenHeader: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    justifyContent: 'center',
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
+    width: '100%',
   },
   screenTitle: {
     color: colors.textPrimary,
     ...typography.tokens.bodyMedium,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.md,
-    gap: 16,
+    paddingVertical: spacing.lg,
+    gap: 20,
   },
-  profileHeaderCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
+  profileSection: {
     alignItems: 'center',
+    marginTop: 10,
+    gap: 8,
+  },
+  avatarWrapper: {
+    position: 'relative',
   },
   avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primary,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: colors.elevated,
+    borderWidth: 2,
+    borderColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
   },
   avatarText: {
     color: colors.white,
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 32,
+    fontWeight: '800',
+  },
+  avatarEmoji: {
+    fontSize: 42,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileName: {
     color: colors.textPrimary,
-    ...typography.tokens.h3,
-    marginBottom: 2,
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 4,
   },
-  profileSubtitle: {
+  profileEmail: {
     color: colors.textSecondary,
-    fontSize: 12,
-    marginBottom: spacing.md,
+    fontSize: 13,
+    fontWeight: '500',
   },
-  editProfileBtn: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: radius.sm,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  editProfileBtnText: {
-    color: colors.textPrimary,
-    ...typography.tokens.secondary,
-    fontWeight: '700',
-  },
-  settingsCard: {
+  statsCard: {
+    flexDirection: 'row',
     backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingVertical: 18,
+    marginHorizontal: 20,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.card,
-    padding: spacing.md,
-  },
-  settingsSectionTitle: {
-    color: colors.textSecondary,
-    ...typography.tokens.label,
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  settingItemBorder: {
-    flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  settingItemBorderLast: {
-    flexDirection: 'row',
+  statColumn: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  settingTextGroup: {
     flex: 1,
-    gap: 2,
   },
-  settingLabel: {
-    color: colors.textPrimary,
-    ...typography.tokens.body,
-    fontWeight: '700',
+  statValue: {
+    color: colors.white,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 4,
   },
-  settingDesc: {
+  statLabel: {
     color: colors.textSecondary,
     fontSize: 11,
+    fontWeight: '600',
   },
-  settingValueActive: {
-    ...typography.tokens.secondary,
-
-    color: colors.primary,
-    
-    fontWeight: '900',
+  statsDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+    height: '60%',
   },
-  settingValueStatic: {
-    color: colors.textSecondary,
-    ...typography.tokens.secondary,
-    fontWeight: '700',
+  menuContainer: {
+    gap: 12,
   },
-  settingValueDestructive: {
-    ...typography.tokens.secondary,
-
-    color: '#EF4444',
-    
-    fontWeight: '900',
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'space-between',
   },
-  settingLabelStatic: {
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuLabel: {
     color: colors.textPrimary,
-    ...typography.tokens.body,
+    fontSize: 14,
     fontWeight: '700',
+  },
+  menuValue: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.danger,
+    borderRadius: 16,
+    paddingVertical: 14,
+    marginHorizontal: 20,
+    marginTop: 10,
+    gap: 8,
+  },
+  logoutBtnText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '800',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
@@ -562,22 +557,85 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: colors.textPrimary,
-    ...typography.tokens.h3,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
   },
   nameInput: {
-    ...typography.tokens.body,
-
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.sm,
     padding: spacing.sm,
     color: colors.textPrimary,
-    
+    backgroundColor: colors.elevated,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalSubTitle: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 12,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  avatarPickCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.elevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  avatarPickCircleActive: {
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}26`,
+  },
+  avatarPickEmoji: {
+    fontSize: 20,
+  },
+  avatarPickInitialsText: {
+    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    gap: 10,
+  },
+  modalActionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modalBackupDesc: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 4,
   },
   modalBtnRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 12,
+    marginTop: 12,
   },
   modalCancelBtn: {
     paddingVertical: 8,
@@ -585,7 +643,7 @@ const styles = StyleSheet.create({
   },
   modalCancelBtnText: {
     color: colors.textSecondary,
-    ...typography.tokens.body,
+    fontSize: 14,
     fontWeight: '700',
   },
   modalSaveBtn: {
@@ -596,55 +654,7 @@ const styles = StyleSheet.create({
   },
   modalSaveBtnText: {
     color: colors.white,
-    ...typography.tokens.body,
+    fontSize: 14,
     fontWeight: '700',
-  },
-  avatarEmoji: {
-    fontSize: 38,
-  },
-  modalSubTitle: {
-    ...typography.tokens.caption,
-
-    color: colors.textSecondary,
-    
-    fontWeight: '700',
-    marginTop: 8,
-  },
-  avatarRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  avatarPickCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  avatarPickCircleActive: {
-    borderColor: colors.primary,
-    backgroundColor: 'rgba(144, 97, 249, 0.1)',
-  },
-  avatarPickEmoji: {
-    fontSize: 22,
-  },
-  avatarPickInitialsText: {
-    color: colors.textPrimary,
-    ...typography.tokens.secondary,
-    fontWeight: '700',
-  },
-  bottomVersionText: {
-    ...typography.tokens.caption,
-
-    color: colors.textSecondary,
-    
-    textAlign: 'center',
-    paddingVertical: spacing.md,
   },
 });

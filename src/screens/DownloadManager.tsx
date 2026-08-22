@@ -377,7 +377,7 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
       <View
         style={[
           styles.header,
-          {paddingTop: safeAreaTop, height: 68 + safeAreaTop},
+          {paddingTop: safeAreaTop, height: 56 + safeAreaTop},
         ]}>
         {isSearching ? (
           <>
@@ -413,7 +413,6 @@ export const DownloadManagerScreen: React.FC<DownloadManagerProps> = ({
           <>
             <View style={styles.headerLeft}>
               <Text style={styles.headerTitle}>Downloads</Text>
-              <Text style={styles.headerSubtitle}>Your offline library</Text>
             </View>
             <View style={styles.headerRight}>
               <TouchableOpacity
@@ -586,7 +585,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: '#FFFFFF',
-    ...typography.tokens.h3,
+    fontSize: 20,
+    fontWeight: '800',
   },
   headerSubtitle: {
     ...typography.tokens.secondary,
@@ -733,7 +733,6 @@ const styles = StyleSheet.create({
     
   },
   listHeaderContainer: {
-    paddingHorizontal: spacing.md,
     paddingTop: 2,
   },
   sectionContainer: {
@@ -862,10 +861,10 @@ const styles = StyleSheet.create({
   },
   sectionHeaderDownloaded: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: typography.weights.semibold,
-    marginBottom: 12,
-    marginTop: 8,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: -4,
+    marginTop: 6,
   },
 });
 

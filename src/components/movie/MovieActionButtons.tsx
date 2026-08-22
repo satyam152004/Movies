@@ -78,7 +78,7 @@ export const MovieActionButtons: React.FC<MovieActionButtonsProps> = ({
           onPress={onToggleWatchlist}
           style={[styles.largeButton, styles.outlineButton]}>
           <Icon
-            name={isWatchlisted ? 'checkmark' : 'add'}
+            name={isWatchlisted ? 'bookmark' : 'bookmark-outline'}
             size={20}
             color={
               isWatchlisted ? movieTheme.colors.primary : movieTheme.colors.text

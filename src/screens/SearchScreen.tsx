@@ -26,10 +26,22 @@ import {ScraperService} from '../services/scraper.service';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 
+import {useProfile} from '../hooks/useProfile';
+
+const BUILTIN_AVATARS = [
+  {id: 'avatar_popcorn', emoji: '🍿'},
+  {id: 'avatar_director', emoji: '🎬'},
+  {id: 'avatar_camera', emoji: '🎥'},
+  {id: 'avatar_theater', emoji: '🎭'},
+  {id: 'avatar_superhero', emoji: '🦸'},
+  {id: 'avatar_cool', emoji: '🕶️'},
+];
+
 interface SearchScreenProps {
   items: CatalogItem[];
   onSelectItem: (item: CatalogItem) => void;
   onExplorePress?: () => void;
+  onProfilePress?: () => void;
   onViewAllPress?: (title: string, items: CatalogItem[], type: string) => void;
 }
 
@@ -193,8 +205,10 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   items,
   onSelectItem,
   onExplorePress,
+  onProfilePress,
   onViewAllPress,
 }) => {
+  const {profile, getInitials} = useProfile();
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<CatalogItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -766,7 +780,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   const safeAreaTop =
     Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
 
-  const HEADER_HEIGHT = safeAreaTop + 48 + 48 + 16;
+  const HEADER_HEIGHT = safeAreaTop + 56 + 48 + 16;
 
   return (
     <View style={styles.container}>
@@ -783,9 +797,20 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Search</Text>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>C</Text>
-          </View>
+          <TouchableOpacity
+            onPress={onProfilePress}
+            activeOpacity={0.7}
+            style={styles.avatarButton}>
+            <View style={styles.avatarCircle}>
+              {profile?.avatarId ? (
+                <Text style={styles.avatarEmoji}>
+                  {BUILTIN_AVATARS.find(a => a.id === profile.avatarId)?.emoji || '🍿'}
+                </Text>
+              ) : (
+                <Text style={styles.avatarText}>{getInitials()}</Text>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Search Bar Container */}
@@ -839,6 +864,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             paddingBottom: 100,
           },
         ]}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
         {/* Search Screen States Switch */}
         {search.length === 0
@@ -854,7 +880,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: themeColors.background,
   },
   scrollContainer: {
     paddingBottom: 100, // Bottom navigation padding
@@ -864,14 +890,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#050506',
+    backgroundColor: themeColors.background,
     zIndex: 999,
     elevation: 20,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
   },
   header: {
-    height: 48,
+    height: 56,
     paddingHorizontal: 20,
     marginTop: 0,
     flexDirection: 'row',
@@ -879,23 +905,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTitle: {
-    color: colors.text,
-    fontSize: 15, // Match other screens (15px)
-    fontWeight: '900',
+    color: themeColors.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
   },
   avatarCircle: {
     width: 32, // Match App.tsx avatar size
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.primary,
+    backgroundColor: themeColors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     ...typography.tokens.button,
 
-    color: colors.text,
+    color: themeColors.textPrimary,
     
+  },
+  avatarButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarEmoji: {
+    fontSize: 18,
   },
   searchBarWrapper: {
     paddingHorizontal: 20,
@@ -1363,6 +1399,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 9, // 18px horizontal gap (9px on each side)
     alignItems: 'center',
+    maxWidth: '50%',
   },
   skeletonGrid: {
     flexDirection: 'row',

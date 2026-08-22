@@ -408,6 +408,8 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: colors.headerBg,
     zIndex: 999,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   headerTopRow: {
     height: 56,
@@ -422,8 +424,9 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   headerTitle: {
-    ...typography.tokens.h3,
     color: colors.text,
+    fontSize: 20,
+    fontWeight: '800',
   },
   headerSubtitle: {
     color: colors.secondaryText,
@@ -439,6 +442,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
+    marginLeft: 12,
     marginRight: 10,
   },
   searchBarIcon: {
@@ -551,6 +555,7 @@ const styles = StyleSheet.create({
   gridCardWrapper: {
     flex: 1,
     paddingHorizontal: 6,
+    maxWidth: '50%',
   },
   footerSpacing: {
     height: 40,

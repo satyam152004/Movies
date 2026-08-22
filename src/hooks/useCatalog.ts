@@ -2,6 +2,7 @@ import {useState, useEffect, useCallback, useRef} from 'react';
 import {AppState, AppStateStatus} from 'react-native';
 import {CatalogService} from '../services/catalog/catalog.service';
 import {CatalogItem} from '../data/models';
+import {CacheStorage} from '../services/storage/cache.storage';
 
 export type DataState =
   | 'idle'
@@ -81,7 +82,8 @@ export function useCatalog(categoryPath: string | null) {
         if (page === 1 && !categoryPathRef.current) {
           const cache = await catalogService.getCachedCatalog();
           if (cache && cache.data && cache.data.length > 0) {
-            setMovies(cache.data);
+            const hydratedCache = await hydrateMoviesWithRatings(cache.data);
+            setMovies(hydratedCache);
             setCachedAt(cache.cachedAt);
             setStatus('success');
 
@@ -114,10 +116,11 @@ export function useCatalog(categoryPath: string | null) {
 
         if (!isMountedRef.current) return;
 
+        const hydratedFresh = await hydrateMoviesWithRatings(freshMovies);
         if (append) {
-          setMovies(prev => [...prev, ...freshMovies]);
+          setMovies(prev => [...prev, ...hydratedFresh]);
         } else {
-          setMovies(freshMovies);
+          setMovies(hydratedFresh);
           if (!categoryPathRef.current) {
             setCachedAt(Date.now());
           }
@@ -207,4 +210,25 @@ export function useCatalog(categoryPath: string | null) {
     refresh: handleRefresh,
     loadMore: handleLoadMore,
   };
+}
+
+async function hydrateMoviesWithRatings(items: CatalogItem[]): Promise<CatalogItem[]> {
+  try {
+    const hydrated = await Promise.all(
+      items.map(async item => {
+        const cache = await CacheStorage.getTmdbCache(item.url);
+        if (cache && cache.rating) {
+          return {
+            ...item,
+            rating: cache.rating,
+          };
+        }
+        return item;
+      })
+    );
+    return hydrated;
+  } catch (e) {
+    console.warn('[useCatalog] Failed to hydrate ratings', e);
+    return items;
+  }
 }

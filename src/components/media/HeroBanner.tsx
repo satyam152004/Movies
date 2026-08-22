@@ -13,7 +13,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {colors, radius, spacing, typography} from '../../theme';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
-const HERO_HEIGHT = Math.min(Math.max(SCREEN_HEIGHT * 0.46, 360), 460);
+const HERO_HEIGHT = Math.min(Math.max(SCREEN_HEIGHT * 0.58, 450), 550);
 
 interface HeroBannerProps {
   title: string;
