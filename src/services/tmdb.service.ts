@@ -4,6 +4,8 @@ import {Image} from 'react-native';
 import {MovieDetail} from '../data/models';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 import {isValidStoryline, sanitizeStoryline} from './detail.parser';
+// @ts-ignore
+import {TMDB_API_KEY} from '@env';
 
 function mergeStoryline(
   scraperStoryline: string | undefined,
@@ -37,7 +39,7 @@ export class TmdbService {
   /**
    * Retrieves TMDB API Key based on configuration priority
    */
-  private async getApiKey(): Promise<string | null> {
+  public async getApiKey(): Promise<string | null> {
     try {
       // 1. Check AsyncStorage override
       const overrideKey = await AsyncStorage.getItem('@tmdb_api_key_override');
@@ -46,17 +48,15 @@ export class TmdbService {
       }
 
       // 2. Check process.env (react-native env configurations)
-      const envKey =
-        (process.env as any).TMDB_API_KEY ||
-        (process.env as any).REACT_APP_TMDB_API_KEY;
+      const processEnv = process.env as any;
+      const envKey = processEnv.TMDB_API_KEY || processEnv.REACT_APP_TMDB_API_KEY || TMDB_API_KEY;
       if (envKey && envKey.trim().length > 0) {
         return envKey.trim();
       }
 
-      // 3. Fallback to default TMDB API key
-      return '8b26c0df890cf2af74d385bb4ae55778';
+      console.info('TMDB API Key override or process env key not found.');
     } catch (e) {
-      console.warn('Failed to resolve TMDB API key', e);
+      console.info('Failed to resolve TMDB API key', e);
     }
     return null;
   }
@@ -227,8 +227,8 @@ export class TmdbService {
   /**
    * Helper to perform matching and score confidence
    */
-  private async findTmdbMovie(
-    movie: MovieDetail,
+  public async findTmdbMovie(
+    movie: { title: string; language?: string },
     apiKey: string,
   ): Promise<{id: number; type: 'movie' | 'tv'; confidence: number} | null> {
     const rawClean = formatDisplayTitle(movie.title);
@@ -319,7 +319,7 @@ export class TmdbService {
   /**
    * Queries full movie/TV show details including credits, videos, and images
    */
-  private async getTmdbDetails(
+  public async getTmdbDetails(
     tmdbId: number,
     type: 'movie' | 'tv',
     apiKey: string,
@@ -392,33 +392,12 @@ export class TmdbService {
     }
   }
 
-  /**
-   * Custom fetch wrapper supporting detailed debug logging
-   */
   private async testFetch(url: string): Promise<any> {
     let targetUrl = url;
     try {
-      console.info(`[TMDB Debug] Fetch Request URL: "${targetUrl}"`);
+      const isConfigured = !!(await this.getApiKey());
+      console.info(`[TMDB Log] Fetch Request. TMDb configuration available: ${isConfigured}`);
 
-      // Diagnostic check to see if general networking works
-      try {
-        console.info('[TMDB Debug] DIAGNOSTIC: Fetching jsonplaceholder...');
-        const diagRes = await fetch(
-          'https://jsonplaceholder.typicode.com/todos/1',
-        );
-        const diagText = await diagRes.text();
-        console.info(
-          '[TMDB Debug] DIAGNOSTIC: jsonplaceholder SUCCESS:',
-          diagText,
-        );
-      } catch (de: any) {
-        console.warn(
-          '[TMDB Debug] DIAGNOSTIC: jsonplaceholder FAILED:',
-          de.message,
-        );
-      }
-
-      console.info(`[TMDB Debug] Before fetch() for URL: "${targetUrl}"`);
       let response;
       try {
         const controller = new AbortController();
@@ -433,9 +412,8 @@ export class TmdbService {
         clearTimeout(timeoutId);
       } catch (fetchErr: any) {
         if (targetUrl.includes('api.themoviedb.org')) {
-          console.warn('[TMDB Debug] Primary TMDB domain failed or timed out. Retrying with fallback domain api.tmdb.org...');
+          console.warn('[TMDB Log] Primary TMDB domain failed. Retrying with fallback domain api.tmdb.org...');
           targetUrl = targetUrl.replace('api.themoviedb.org', 'api.tmdb.org');
-          console.info(`[TMDB Debug] Fetch Request URL (Fallback): "${targetUrl}"`);
           
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-second timeout for fallback
@@ -452,29 +430,65 @@ export class TmdbService {
         }
       }
 
-      console.info(`[TMDB Debug] After fetch() for URL: "${targetUrl}"`);
-
-      console.info(
-        `[TMDB Debug] Fetch Response Status: ${response.status} for URL: "${targetUrl}"`,
-      );
+      console.info(`[TMDB Log] Fetch Response Status: ${response.status}`);
       if (!response.ok) {
         throw new Error(`HTTP Error Status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.info(`[TMDB Debug] After response.json() for URL: "${targetUrl}"`);
       return data;
     } catch (e: any) {
-      console.warn(
-        `[TMDB Debug] Fetch Network Request Failed for URL: "${targetUrl}"`,
-        {
-          message: e.message,
-          stack: e.stack,
-          cause: e.cause,
-          name: e.name,
-        },
-      );
+      console.warn(`[TMDB Log] Fetch Network Request Failed`, {
+        message: e.message,
+        name: e.name,
+      });
       throw e;
+    }
+  }
+
+  /**
+   * Fetches trending movies (weekly) from TMDB
+   */
+  public async getTrendingMovies(): Promise<number[]> {
+    const apiKey = await this.getApiKey();
+    if (!apiKey) return [];
+
+    const cacheKey = 'tmdb_trending_list';
+    const cached = await this.getCachedData(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const url = `${TMDB_BASE_URL}/trending/movie/week?api_key=${apiKey}`;
+      const data = await this.testFetch(url);
+      const ids = (data.results || []).map((m: any) => m.id);
+      await this.setCachedData(cacheKey, ids);
+      return ids;
+    } catch (e) {
+      console.warn('Failed to fetch trending movie list', e);
+      return [];
+    }
+  }
+
+  /**
+   * Fetches top rated movies from TMDB
+   */
+  public async getTopRatedMovies(): Promise<number[]> {
+    const apiKey = await this.getApiKey();
+    if (!apiKey) return [];
+
+    const cacheKey = 'tmdb_top_rated_list';
+    const cached = await this.getCachedData(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const url = `${TMDB_BASE_URL}/movie/top_rated?api_key=${apiKey}`;
+      const data = await this.testFetch(url);
+      const ids = (data.results || []).map((m: any) => m.id);
+      await this.setCachedData(cacheKey, ids);
+      return ids;
+    } catch (e) {
+      console.warn('Failed to fetch top rated movie list', e);
+      return [];
     }
   }
 }

@@ -11,6 +11,7 @@ import {
   StatusBar,
   Dimensions,
   RefreshControl,
+  Image,
 } from 'react-native';
 import {CatalogItem} from '../data/models';
 import {colors, radius, spacing, typography} from '../theme';
@@ -21,6 +22,11 @@ import {EmptyState} from '../components/feedback/EmptyState';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 import {useProfile} from '../hooks/useProfile';
+import {MovieGroup, MovieSection, SectionConfig, WatchProgress} from '../models/movie.types';
+import {groupCatalogItems} from '../utils/movieGrouping';
+import {buildHomeSections} from '../utils/movieSections';
+import {TmdbService} from '../services/tmdb.service';
+import {MovieMetadataResolver} from '../services/movieMetadataResolver';
 
 const BUILTIN_AVATARS = [
   {id: 'avatar_popcorn', emoji: '🍿'},
@@ -53,6 +59,17 @@ const CATEGORIES: CategoryFilter[] = [
   {label: 'Thriller', path: 'category/thriller/'},
 ];
 
+const HOME_SECTION_CONFIG: SectionConfig[] = [
+  { id: 'continue-watching', title: 'Continue Watching', layout: 'landscape' },
+  { id: 'trending', title: 'Trending Now', layout: 'poster' },
+  { id: 'top10', title: 'Top 10', layout: 'numbered' },
+  { id: 'latest', title: 'Latest Releases', layout: 'poster' },
+  { id: 'action', title: 'Action Movies', layout: 'poster', genreFilter: 'Action' },
+  { id: 'comedy', title: 'Comedy Hits', layout: 'poster', genreFilter: 'Comedy' },
+  { id: 'recommended', title: 'Recommended For You', layout: 'poster' },
+  { id: 'collections', title: 'Movie Collections', layout: 'featured' },
+];
+
 interface HomeScreenProps {
   items: CatalogItem[];
   onSelectItem: (item: CatalogItem) => void;
@@ -73,96 +90,6 @@ interface HomeScreenProps {
   lastUpdatedMessage?: string;
   isOffline?: boolean;
   error?: string | null;
-}
-
-export interface MovieRelease {
-  url: string;
-  resolution?: string;
-  isDualAudio?: boolean;
-}
-
-export interface MovieGroup {
-  movieId: string;
-  title: string;
-  year?: string;
-  imageUrl?: string;
-  rating?: number;
-  releases: MovieRelease[];
-  representativeItem: CatalogItem;
-}
-
-function extractYear(title: string): string | undefined {
-  const match = title.match(/\b(19\d{2}|20\d{2})\b/);
-  return match ? match[1] : undefined;
-}
-
-function createCanonicalMovieId(item: CatalogItem): string {
-  const year = item.year || extractYear(item.title) || '';
-  const normalizedTitle = item.title
-    .toLowerCase()
-    .replace(/\.(?=\w)/g, ' ')
-    .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\b(1080p|720p|480p|2160p|4k|hevc|x264|x265|bluray|web-dl|webrip|hdr|10bit)\b/gi, ' ')
-    .replace(/\b(dual audio|multi audio|hindi|english|tamil|telugu|dubbed)\b/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return `${normalizedTitle}|${year}`;
-}
-
-function groupCatalogItems(items: CatalogItem[]): MovieGroup[] {
-  const groupsMap = new Map<string, MovieGroup>();
-
-  for (const item of items) {
-    const movieId = createCanonicalMovieId(item);
-    let group = groupsMap.get(movieId);
-
-    if (!group) {
-      group = {
-        movieId,
-        title: formatDisplayTitle(item.title).split(' (')[0].trim(),
-        year: item.year || extractYear(item.title),
-        imageUrl: item.imageUrl,
-        rating: item.rating,
-        releases: [],
-        representativeItem: { ...item },
-      };
-      groupsMap.set(movieId, group);
-    } else {
-      if (!group.imageUrl && item.imageUrl) {
-        group.imageUrl = item.imageUrl;
-        group.representativeItem.imageUrl = item.imageUrl;
-      }
-      if (!group.year && item.year) {
-        group.year = item.year;
-        group.representativeItem.year = item.year;
-      }
-      if ((group.rating === undefined || group.rating === 0) && item.rating) {
-        group.rating = item.rating;
-        group.representativeItem.rating = item.rating;
-      }
-      const resOrder = ['2160p', '1080p', '720p', '480p'];
-      const currentResIdx = resOrder.indexOf(group.representativeItem.resolution?.toLowerCase() || '');
-      const newResIdx = resOrder.indexOf(item.resolution?.toLowerCase() || '');
-      if (newResIdx !== -1 && (currentResIdx === -1 || newResIdx < currentResIdx)) {
-        group.representativeItem.resolution = item.resolution;
-      }
-      if (item.isDualAudio) {
-        group.representativeItem.isDualAudio = true;
-      }
-    }
-
-    if (!group.releases.some(r => r.url === item.url)) {
-      group.releases.push({
-        url: item.url,
-        resolution: item.resolution,
-        isDualAudio: item.isDualAudio,
-      });
-    }
-  }
-
-  return Array.from(groupsMap.values());
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -188,6 +115,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const {profile, getInitials} = useProfile();
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  // Mock watch progress for demo curation logic
+  const [watchProgress] = useState<WatchProgress[]>([
+    { movieId: '7-dogs-2026', position: 1200, duration: 7200, updatedAt: Date.now() },
+  ]);
+
   const featuredMovie = useMemo(
     () => (items.length > 0 ? items[0] : null),
     [items],
@@ -200,89 +132,55 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     return watchlist.some(w => w.url === featuredMovie.url);
   }, [featuredMovie, watchlist]);
 
+  const [trendingTmdbIds, setTrendingTmdbIds] = useState<number[]>([]);
+  const [topRatedTmdbIds, setTopRatedTmdbIds] = useState<number[]>([]);
+
+  React.useEffect(() => {
+    const fetchTmdbLists = async () => {
+      try {
+        const tmdb = TmdbService.getInstance();
+        const trending = await tmdb.getTrendingMovies();
+        const topRated = await tmdb.getTopRatedMovies();
+        setTrendingTmdbIds(trending);
+        setTopRatedTmdbIds(topRated);
+      } catch (err) {
+        console.warn('Failed to load TMDB lists on home screen', err);
+      }
+    };
+    fetchTmdbLists();
+  }, []);
+
+  const [resolvedGroups, setResolvedGroups] = useState<MovieGroup[]>([]);
+
+  React.useEffect(() => {
+    if (items && items.length > 0) {
+      MovieMetadataResolver.resolveGroups(items)
+        .then(groups => {
+          setResolvedGroups(groups);
+        })
+        .catch(err => {
+          console.warn('Failed to batch resolve TMDB groups on HomeScreen', err);
+          // Fallback to normal grouping if resolution fails
+          setResolvedGroups(groupCatalogItems(items));
+        });
+    } else {
+      setResolvedGroups([]);
+    }
+  }, [items]);
+
   const sections = useMemo(() => {
-    if (!items || items.length === 0) {
+    if (resolvedGroups.length === 0) {
       return [];
     }
 
-    // 1. Group raw items into canonical movie groups
-    const movieGroups = groupCatalogItems(items);
-
-    const TARGET_SIZE = 8;
-    const usedMovieIds = new Set<string>();
-
-    // 2. Latest Releases (All items are candidates, pick first 8)
-    const latest: CatalogItem[] = [];
-    for (const movie of movieGroups) {
-      if (latest.length >= TARGET_SIZE) break;
-      latest.push(movie.representativeItem);
-      usedMovieIds.add(movie.movieId);
-    }
-
-    // Filter definitions
-    const isHD = (m: MovieGroup) =>
-      m.releases.some(
-        r =>
-          r.resolution?.toLowerCase().includes('1080p') ||
-          r.resolution?.toLowerCase().includes('2160p') ||
-          r.resolution?.toLowerCase().includes('4k')
-      );
-
-    const isDual = (m: MovieGroup) =>
-      m.releases.some(r => r.isDualAudio === true);
-
-    const totalUniqueMovies = movieGroups.length;
-    const hdMatchingCount = movieGroups.filter(isHD).length;
-    const dualMatchingCount = movieGroups.filter(isDual).length;
-
-    // Helper to build a curated section list dynamically
-    const buildSection = (filterFn: (m: MovieGroup) => boolean): CatalogItem[] => {
-      const result: CatalogItem[] = [];
-      
-      // Phase 1: Unseen movies matching the criteria
-      const unseenMatches = movieGroups.filter(m => !usedMovieIds.has(m.movieId) && filterFn(m));
-      for (const movie of unseenMatches) {
-        if (result.length >= TARGET_SIZE) break;
-        result.push(movie.representativeItem);
-        usedMovieIds.add(movie.movieId);
-      }
-
-      // Phase 2: Unseen candidate fallback if short
-      if (result.length < TARGET_SIZE) {
-        const unseenOthers = movieGroups.filter(m => !usedMovieIds.has(m.movieId) && !filterFn(m));
-        for (const movie of unseenOthers) {
-          if (result.length >= TARGET_SIZE) break;
-          result.push(movie.representativeItem);
-          usedMovieIds.add(movie.movieId);
-        }
-      }
-
-      // Phase 3: DO NOT reuse already displayed movies (return fewer items if insufficient)
-      return result;
-    };
-
-    const hd = buildSection(isHD);
-    const dual = buildSection(isDual);
-
-    const resultSections = [
-      { id: 'latest', title: 'Latest Releases', data: latest },
-    ];
-
-    // Determine section visibility and titles based on metadata support
-    const allAreHD = hdMatchingCount === totalUniqueMovies;
-    const allAreDual = dualMatchingCount === totalUniqueMovies;
-
-    if (hdMatchingCount > 0 && hd.length > 0) {
-      const title = allAreHD ? 'HD Movies' : 'Premium UHD / FHD';
-      resultSections.push({ id: 'hd', title, data: hd });
-    }
-
-    if (!allAreDual && dualMatchingCount > 0 && dual.length > 0) {
-      resultSections.push({ id: 'dual', title: 'Dual Audio Releases', data: dual });
-    }
-
-    return resultSections.filter(s => s.data.length > 0 && s.data.length >= 2);
-  }, [items]);
+    return buildHomeSections({
+      movieGroups: resolvedGroups,
+      watchProgress,
+      configs: HOME_SECTION_CONFIG,
+      trendingTmdbIds,
+      topRatedTmdbIds,
+    });
+  }, [resolvedGroups, watchProgress, trendingTmdbIds, topRatedTmdbIds]);
 
   // Render Skeleton Loading UI when fetching page 1 and no cached content exists
   if (isLoading && items.length === 0) {
@@ -427,24 +325,88 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               <SectionHeader
                 title={section.title}
                 seeAllText="View All"
-                onPressSeeAll={() =>
-                  onViewAllPress?.(section.title, section.data, section.id)
-                }
+                onPressSeeAll={() => {
+                  const rawList = section.movies.map(m => m.representativeItem);
+                  onViewAllPress?.(section.title, rawList, section.id);
+                }}
               />
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.horizontalScroll}>
-                {section.data.map(item => (
-                  <MovieCard
-                    key={item.url}
-                    item={item}
-                    onPress={() => onSelectItem(item)}
-                    width={130}
-                    isWatchlisted={watchlist.some(w => w.url === item.url)}
-                    onWatchlistPress={onToggleWatchlist ? () => onToggleWatchlist(item) : undefined}
-                  />
-                ))}
+                {section.movies.map((movie, index) => {
+                  if (section.layout === 'numbered') {
+                    // Render Top 10 Numbered Cards (01, 02, 03...)
+                    const numberStr = String(index + 1).padStart(2, '0');
+                    return (
+                      <TouchableOpacity
+                        key={movie.movieId}
+                        style={styles.numberedCardContainer}
+                        onPress={() => onSelectItem(movie.representativeItem)}
+                        activeOpacity={0.8}>
+                        <Text style={styles.numberedText}>{numberStr}</Text>
+                        <MovieCard
+                          item={movie.representativeItem}
+                          onPress={() => onSelectItem(movie.representativeItem)}
+                          width={110}
+                          isWatchlisted={watchlist.some(w => w.url === movie.representativeItem.url)}
+                          onWatchlistPress={onToggleWatchlist ? () => onToggleWatchlist(movie.representativeItem) : undefined}
+                        />
+                      </TouchableOpacity>
+                    );
+                  }
+
+                  if (section.layout === 'landscape') {
+                    // Render Continue Watching Landscape Layout
+                    const progress = watchProgress.find(p => p.movieId === movie.movieId);
+                    const percent = progress ? (progress.position / progress.duration) * 100 : 0;
+                    return (
+                      <TouchableOpacity
+                        key={movie.movieId}
+                        style={styles.landscapeCard}
+                        onPress={() => onSelectItem(movie.representativeItem)}
+                        activeOpacity={0.8}>
+                        <Image source={{ uri: movie.imageUrl }} style={styles.landscapeImage} />
+                        <View style={styles.landscapeTitleContainer}>
+                          <Text numberOfLines={1} style={styles.landscapeTitle}>
+                            {movie.title}
+                          </Text>
+                          {movie.year && <Text style={styles.landscapeYear}>{movie.year}</Text>}
+                        </View>
+                        {/* Progress Bar */}
+                        <View style={styles.progressContainer}>
+                          <View style={[styles.progressBar, { width: `${percent}%` }]} />
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }
+
+                  if (section.layout === 'featured') {
+                    // Larger card layouts for Collection Carousels
+                    return (
+                      <MovieCard
+                        key={movie.movieId}
+                        item={movie.representativeItem}
+                        onPress={() => onSelectItem(movie.representativeItem)}
+                        width={180}
+                        isWatchlisted={watchlist.some(w => w.url === movie.representativeItem.url)}
+                        onWatchlistPress={onToggleWatchlist ? () => onToggleWatchlist(movie.representativeItem) : undefined}
+                      />
+                    );
+                  }
+
+                  // Default Poster layouts (e.g. Trending, Genres, etc)
+                  return (
+                    <MovieCard
+                      key={movie.movieId}
+                      item={movie.representativeItem}
+                      onPress={() => onSelectItem(movie.representativeItem)}
+                      width={130}
+                      isWatchlisted={watchlist.some(w => w.url === movie.representativeItem.url)}
+                      onWatchlistPress={onToggleWatchlist ? () => onToggleWatchlist(movie.representativeItem) : undefined}
+                    />
+                  );
+                })}
               </ScrollView>
             </View>
           ))}
@@ -455,7 +417,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               selectedCategory
                 ? CATEGORIES.find(c => c.path === selectedCategory)?.label +
                   ' Catalog'
-                : 'Latest Releases'
+                : 'Browse All'
             }
           />
         </View>
@@ -824,7 +786,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   skeletonCardGrid: {
-    width: '100%',
+     width: '100%',
     height: 190,
     backgroundColor: '#1E1E24',
     borderRadius: 12,
@@ -852,9 +814,57 @@ const styles = StyleSheet.create({
   },
   statusText: {
     ...typography.tokens.caption,
-
     color: colors.textSecondary,
-    
     fontWeight: '500',
+  },
+  numberedCardContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginRight: spacing.sm,
+  },
+  numberedText: {
+    fontSize: 90,
+    fontWeight: '900',
+    color: 'rgba(255, 255, 255, 0.15)',
+    marginRight: -20,
+    lineHeight: 100,
+    zIndex: 1,
+    bottom: -10,
+  },
+  landscapeCard: {
+    width: 180,
+    backgroundColor: '#17171C',
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  landscapeImage: {
+    width: '100%',
+    height: 100,
+    resizeMode: 'cover',
+  },
+  landscapeTitleContainer: {
+    padding: spacing.xs,
+  },
+  landscapeTitle: {
+    ...typography.tokens.button,
+    color: colors.white,
+    fontSize: 12,
+  },
+  landscapeYear: {
+    ...typography.tokens.caption,
+    color: colors.textSecondary,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  progressContainer: {
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: '100%',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: colors.primary,
   },
 });

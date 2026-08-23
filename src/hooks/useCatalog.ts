@@ -3,6 +3,7 @@ import {AppState, AppStateStatus} from 'react-native';
 import {CatalogService} from '../services/catalog/catalog.service';
 import {CatalogItem} from '../data/models';
 import {CacheStorage} from '../services/storage/cache.storage';
+import {MovieMetadataResolver} from '../services/movieMetadataResolver';
 
 export type DataState =
   | 'idle'
@@ -12,7 +13,7 @@ export type DataState =
   | 'error'
   | 'offline';
 
-export function useCatalog(categoryPath: string | null) {
+export function useCatalog(categoryPath: string | null, enabled: boolean = true) {
   const [movies, setMovies] = useState<CatalogItem[]>([]);
   const [status, setStatus] = useState<DataState>('idle');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -75,7 +76,7 @@ export function useCatalog(categoryPath: string | null) {
       page: number = 1,
       append: boolean = false,
     ) => {
-      if (!isMountedRef.current) {return;}
+      if (!isMountedRef.current || !enabled) {return;}
 
       try {
         // 1. If page 1, try reading local cache first (SWR implementation)
@@ -128,6 +129,31 @@ export function useCatalog(categoryPath: string | null) {
         setError(null);
         setIsOffline(false);
         setStatus('success');
+
+        // Trigger background TMDb identity resolution/enrichment after updating catalog state
+        // (Do not block layout/UI rendering)
+        MovieMetadataResolver.resolveGroups(hydratedFresh)
+          .then(async enrichedGroups => {
+            // Write enriched rating directly back to items in state if ratings changed
+            if (isMountedRef.current && enrichedGroups.length > 0) {
+              setMovies(prev => {
+                return prev.map(item => {
+                  const resolved = enrichedGroups.find(g => g.movieId === item.id || g.title.toLowerCase() === item.title.toLowerCase());
+                  if (resolved && resolved.rating) {
+                    return {
+                      ...item,
+                      rating: resolved.rating,
+                    };
+                  }
+                  return item;
+                });
+              });
+            }
+          })
+          .catch(e => {
+            console.warn('[useCatalog] Metadata resolution background failed', e);
+          });
+
       } catch (err: any) {
         if (!isMountedRef.current) {return;}
 
@@ -141,7 +167,7 @@ export function useCatalog(categoryPath: string | null) {
           errMsg.toLowerCase().includes('connection') ||
           errMsg.toLowerCase().includes('unreachable');
 
-      if (isNetErr) {
+        if (isNetErr) {
           setIsOffline(true);
         }
 
@@ -157,7 +183,7 @@ export function useCatalog(categoryPath: string | null) {
         }
       }
     },
-    [catalogService, movies.length],
+    [catalogService, movies.length, enabled],
   );
 
   // Pull to refresh trigger
@@ -177,7 +203,7 @@ export function useCatalog(categoryPath: string | null) {
   // Background refresh when app returns to foreground
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
+      if (nextAppState === 'active' && enabled) {
         const cache = await catalogService.getCachedCatalog();
         if (cache && catalogService.isCacheStale(cache.cachedAt)) {
           console.info(
@@ -193,12 +219,14 @@ export function useCatalog(categoryPath: string | null) {
       handleAppStateChange,
     );
     return () => subscription.remove();
-  }, [catalogService, handleRefresh]);
+  }, [catalogService, handleRefresh, enabled]);
 
-  // Initial trigger when category changes
+  // Initial trigger when category changes or enabled toggles
   useEffect(() => {
-    loadData(false, 1, false);
-  }, [categoryPath]);
+    if (enabled) {
+      loadData(false, 1, false);
+    }
+  }, [categoryPath, enabled]);
 
   return {
     movies,

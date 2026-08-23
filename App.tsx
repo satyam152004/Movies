@@ -15,6 +15,7 @@ import {
   BackHandler,
   Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {PreferencesStorage} from './src/services/storage/preferences.storage';
 import {LibraryStorage} from './src/services/storage/library.storage';
@@ -22,6 +23,8 @@ import {useCatalog} from './src/hooks/useCatalog';
 import {HomeScreen} from './src/screens/HomeScreen';
 import {SearchScreen} from './src/screens/SearchScreen';
 import {MovieDetailScreen} from './src/screens/MovieDetail';
+// @ts-ignore
+import {TMDB_API_KEY} from '@env';
 import {CollectionScreen} from './src/screens/CollectionScreen';
 import {DownloadManagerScreen} from './src/screens/DownloadManager';
 import {ProfileScreen} from './src/screens/ProfileScreen';
@@ -173,6 +176,7 @@ function App(): React.JSX.Element {
   >('1080p');
   const [wifiOnly, setWifiOnly] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isConfigLoaded, setIsConfigLoaded] = useState(false);
 
   // useCatalog SWR hook
   const {
@@ -184,7 +188,7 @@ function App(): React.JSX.Element {
     lastUpdatedMessage,
     refresh: refreshCatalog,
     loadMore: loadMoreCatalog,
-  } = useCatalog(selectedCategory);
+  } = useCatalog(selectedCategory, isConfigLoaded);
 
   const [isDomainResolving, setIsDomainResolving] = useState(true);
   useEffect(() => {
@@ -215,6 +219,19 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const loadSettings = async () => {
       try {
+        console.info('[Config] Resolving runtime environment variables...');
+        // Safe check to seed environment TMDB API key override at runtime
+        const processEnv = process.env as any;
+        const envKey = processEnv.TMDB_API_KEY || processEnv.REACT_APP_TMDB_API_KEY || TMDB_API_KEY;
+        console.info(`[Config Debug] process.env.TMDB_API_KEY: "${processEnv.TMDB_API_KEY || 'undefined'}"`);
+        console.info(`[Config Debug] Imported TMDB_API_KEY from @env: "${TMDB_API_KEY || 'undefined'}"`);
+        if (envKey && envKey.trim().length > 0) {
+          await AsyncStorage.setItem('@tmdb_api_key_override', envKey.trim());
+          console.info('[Config] TMDb configuration override key written.');
+        } else {
+          console.info('[Config Debug] No envKey found to write to AsyncStorage override.');
+        }
+
         const storedWatchlist = await LibraryStorage.getWatchlist();
         setWatchlist(storedWatchlist);
 
@@ -226,8 +243,12 @@ function App(): React.JSX.Element {
 
         const storedWifi = await PreferencesStorage.getWifiOnly();
         setWifiOnly(storedWifi);
+
+        console.info('[Config] Runtime configuration initialized.');
       } catch (e) {
         console.error('Failed to load initial settings', e);
+      } finally {
+        setIsConfigLoaded(true);
       }
     };
     loadSettings();
