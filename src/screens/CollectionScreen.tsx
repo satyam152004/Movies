@@ -18,7 +18,7 @@ import {CatalogItem} from '../data/models';
 import {MovieCard} from '../components/cards/MovieCard';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 import {BackButton} from '../components/navigation/BackButton';
-import {radius, typography} from '../theme';
+import {colors as themeColors, spacing, radius, typography} from '../theme';
 
 interface CollectionScreenProps {
   title: string;
@@ -376,7 +376,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
           data={filteredItems}
           keyExtractor={(item, index) => `${item.url}-${index}`}
           renderItem={renderCard}
-          numColumns={2}
+          numColumns={3}
           columnWrapperStyle={styles.gridRowWrapper}
           contentContainerStyle={[
             styles.scrollContent,
@@ -545,17 +545,18 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   scrollContent: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingBottom: 100,
   },
   gridRowWrapper: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
+    justifyContent: 'flex-start',
+    marginBottom: spacing.sm,
+    paddingHorizontal: 8,
   },
   gridCardWrapper: {
     flex: 1,
-    paddingHorizontal: 6,
-    maxWidth: '50%',
+    paddingHorizontal: 4,
+    maxWidth: '33.33%',
   },
   footerSpacing: {
     height: 40,

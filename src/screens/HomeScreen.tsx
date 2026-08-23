@@ -75,6 +75,96 @@ interface HomeScreenProps {
   error?: string | null;
 }
 
+export interface MovieRelease {
+  url: string;
+  resolution?: string;
+  isDualAudio?: boolean;
+}
+
+export interface MovieGroup {
+  movieId: string;
+  title: string;
+  year?: string;
+  imageUrl?: string;
+  rating?: number;
+  releases: MovieRelease[];
+  representativeItem: CatalogItem;
+}
+
+function extractYear(title: string): string | undefined {
+  const match = title.match(/\b(19\d{2}|20\d{2})\b/);
+  return match ? match[1] : undefined;
+}
+
+function createCanonicalMovieId(item: CatalogItem): string {
+  const year = item.year || extractYear(item.title) || '';
+  const normalizedTitle = item.title
+    .toLowerCase()
+    .replace(/\.(?=\w)/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\b(1080p|720p|480p|2160p|4k|hevc|x264|x265|bluray|web-dl|webrip|hdr|10bit)\b/gi, ' ')
+    .replace(/\b(dual audio|multi audio|hindi|english|tamil|telugu|dubbed)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return `${normalizedTitle}|${year}`;
+}
+
+function groupCatalogItems(items: CatalogItem[]): MovieGroup[] {
+  const groupsMap = new Map<string, MovieGroup>();
+
+  for (const item of items) {
+    const movieId = createCanonicalMovieId(item);
+    let group = groupsMap.get(movieId);
+
+    if (!group) {
+      group = {
+        movieId,
+        title: formatDisplayTitle(item.title).split(' (')[0].trim(),
+        year: item.year || extractYear(item.title),
+        imageUrl: item.imageUrl,
+        rating: item.rating,
+        releases: [],
+        representativeItem: { ...item },
+      };
+      groupsMap.set(movieId, group);
+    } else {
+      if (!group.imageUrl && item.imageUrl) {
+        group.imageUrl = item.imageUrl;
+        group.representativeItem.imageUrl = item.imageUrl;
+      }
+      if (!group.year && item.year) {
+        group.year = item.year;
+        group.representativeItem.year = item.year;
+      }
+      if ((group.rating === undefined || group.rating === 0) && item.rating) {
+        group.rating = item.rating;
+        group.representativeItem.rating = item.rating;
+      }
+      const resOrder = ['2160p', '1080p', '720p', '480p'];
+      const currentResIdx = resOrder.indexOf(group.representativeItem.resolution?.toLowerCase() || '');
+      const newResIdx = resOrder.indexOf(item.resolution?.toLowerCase() || '');
+      if (newResIdx !== -1 && (currentResIdx === -1 || newResIdx < currentResIdx)) {
+        group.representativeItem.resolution = item.resolution;
+      }
+      if (item.isDualAudio) {
+        group.representativeItem.isDualAudio = true;
+      }
+    }
+
+    if (!group.releases.some(r => r.url === item.url)) {
+      group.releases.push({
+        url: item.url,
+        resolution: item.resolution,
+        isDualAudio: item.isDualAudio,
+      });
+    }
+  }
+
+  return Array.from(groupsMap.values());
+}
+
 export const HomeScreen: React.FC<HomeScreenProps> = ({
   items,
   onSelectItem,
@@ -110,39 +200,89 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     return watchlist.some(w => w.url === featuredMovie.url);
   }, [featuredMovie, watchlist]);
 
-  // curating list feeds
-  const trendingList = useMemo(() => items.slice(0, 8), [items]);
-  const hdList = useMemo(
-    () =>
-      items
-        .filter(
-          i =>
-            i.title.toLowerCase().includes('1080p') ||
-            i.title.toLowerCase().includes('2160p') ||
-            i.title.toLowerCase().includes('4k'),
-        )
-        .slice(0, 8),
-    [items],
-  );
-  const dualAudioList = useMemo(
-    () =>
-      items
-        .filter(
-          i =>
-            i.title.toLowerCase().includes('dual') ||
-            i.title.toLowerCase().includes('hindi'),
-        )
-        .slice(0, 8),
-    [items],
-  );
-
   const sections = useMemo(() => {
-    return [
-      {id: 'trending', title: 'Trending Today', data: trendingList},
-      {id: 'hd', title: 'Premium UHD / FHD', data: hdList},
-      {id: 'dual', title: 'Dual Audio Releases', data: dualAudioList},
-    ].filter(s => s.data.length > 0);
-  }, [trendingList, hdList, dualAudioList]);
+    if (!items || items.length === 0) {
+      return [];
+    }
+
+    // 1. Group raw items into canonical movie groups
+    const movieGroups = groupCatalogItems(items);
+
+    const TARGET_SIZE = 8;
+    const usedMovieIds = new Set<string>();
+
+    // 2. Latest Releases (All items are candidates, pick first 8)
+    const latest: CatalogItem[] = [];
+    for (const movie of movieGroups) {
+      if (latest.length >= TARGET_SIZE) break;
+      latest.push(movie.representativeItem);
+      usedMovieIds.add(movie.movieId);
+    }
+
+    // Filter definitions
+    const isHD = (m: MovieGroup) =>
+      m.releases.some(
+        r =>
+          r.resolution?.toLowerCase().includes('1080p') ||
+          r.resolution?.toLowerCase().includes('2160p') ||
+          r.resolution?.toLowerCase().includes('4k')
+      );
+
+    const isDual = (m: MovieGroup) =>
+      m.releases.some(r => r.isDualAudio === true);
+
+    const totalUniqueMovies = movieGroups.length;
+    const hdMatchingCount = movieGroups.filter(isHD).length;
+    const dualMatchingCount = movieGroups.filter(isDual).length;
+
+    // Helper to build a curated section list dynamically
+    const buildSection = (filterFn: (m: MovieGroup) => boolean): CatalogItem[] => {
+      const result: CatalogItem[] = [];
+      
+      // Phase 1: Unseen movies matching the criteria
+      const unseenMatches = movieGroups.filter(m => !usedMovieIds.has(m.movieId) && filterFn(m));
+      for (const movie of unseenMatches) {
+        if (result.length >= TARGET_SIZE) break;
+        result.push(movie.representativeItem);
+        usedMovieIds.add(movie.movieId);
+      }
+
+      // Phase 2: Unseen candidate fallback if short
+      if (result.length < TARGET_SIZE) {
+        const unseenOthers = movieGroups.filter(m => !usedMovieIds.has(m.movieId) && !filterFn(m));
+        for (const movie of unseenOthers) {
+          if (result.length >= TARGET_SIZE) break;
+          result.push(movie.representativeItem);
+          usedMovieIds.add(movie.movieId);
+        }
+      }
+
+      // Phase 3: DO NOT reuse already displayed movies (return fewer items if insufficient)
+      return result;
+    };
+
+    const hd = buildSection(isHD);
+    const dual = buildSection(isDual);
+
+    const resultSections = [
+      { id: 'latest', title: 'Latest Releases', data: latest },
+    ];
+
+    // Determine section visibility and titles based on metadata support
+    const allAreHD = hdMatchingCount === totalUniqueMovies;
+    const allAreDual = dualMatchingCount === totalUniqueMovies;
+
+    if (hdMatchingCount > 0 && hd.length > 0) {
+      const title = allAreHD ? 'HD Movies' : 'Premium UHD / FHD';
+      resultSections.push({ id: 'hd', title, data: hd });
+    }
+
+    if (!allAreDual && dualMatchingCount > 0 && dual.length > 0) {
+      resultSections.push({ id: 'dual', title: 'Dual Audio Releases', data: dual });
+    }
+
+    return resultSections.filter(s => s.data.length > 0 && s.data.length >= 2);
+  }, [items]);
 
   // Render Skeleton Loading UI when fetching page 1 and no cached content exists
   if (isLoading && items.length === 0) {
@@ -634,7 +774,7 @@ const styles = StyleSheet.create({
     maxWidth: '33.33%',
   },
   gridRowWrapper: {
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     marginBottom: spacing.sm,
     paddingHorizontal: 8,
   },

@@ -12,6 +12,7 @@ import {
   Platform,
   StatusBar,
   ImageStyle,
+  Modal,
 } from 'react-native';
 import {CacheStorage} from '../services/storage/cache.storage';
 import {CatalogItem} from '../data/models';
@@ -25,6 +26,7 @@ import {MovieCard} from '../components/cards/MovieCard';
 import {ScraperService} from '../services/scraper.service';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {formatDisplayTitle} from '../utils/formatDisplayTitle';
+import {VoiceSearchService} from '../services/voiceSearch.service';
 
 import {useProfile} from '../hooks/useProfile';
 
@@ -217,6 +219,122 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   const [isSearchingMore, setIsSearchingMore] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isVoiceModalVisible, setIsVoiceModalVisible] = useState(false);
+  const [voiceText, setVoiceText] = useState('Listening...');
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseOpacity = useRef(new Animated.Value(0.4)).current;
+  const voiceService = useRef(VoiceSearchService.getInstance()).current;
+
+  useEffect(() => {
+    let pulseSequence: Animated.CompositeAnimation | null = null;
+    if (isVoiceModalVisible) {
+      pulseSequence = Animated.loop(
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.25,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1.0,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(pulseOpacity, {
+              toValue: 1.0,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseOpacity, {
+              toValue: 0.4,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      );
+      pulseSequence.start();
+    } else {
+      pulseAnim.setValue(1);
+      pulseOpacity.setValue(0.4);
+    }
+
+    return () => {
+      if (pulseSequence) {
+        pulseSequence.stop();
+      }
+    };
+  }, [isVoiceModalVisible]);
+
+  useEffect(() => {
+    voiceService.setCallbacks({
+      onStart: () => {
+        setVoiceText('Listening...');
+      },
+      onEnd: () => {
+        // Recognition ended
+      },
+      onPartialResult: (text: string) => {
+        if (text) {
+          setVoiceText(text);
+        }
+      },
+      onFinalResult: (text: string) => {
+        const clean = text.trim();
+        if (clean) {
+          setVoiceText(`Recognized: "${clean}"`);
+          setTimeout(() => {
+            setSearch(clean);
+            setIsVoiceModalVisible(false);
+          }, 800);
+        }
+      },
+      onError: (errorMsg: string) => {
+        setVoiceText(errorMsg);
+      },
+    });
+
+    return () => {
+      voiceService.destroy();
+    };
+  }, [voiceService]);
+
+  const voiceSuggestions = useMemo(() => {
+    if (!items || items.length === 0) {
+      return ['Inception', 'Action', 'Batman'];
+    }
+    const cleanTitles = items
+      .map(item => formatDisplayTitle(item.title).split(' (')[0].trim())
+      .filter(t => t.length > 0 && t.length < 25);
+    return [...new Set(cleanTitles)].slice(0, 3);
+  }, [items]);
+
+  const startVoiceSearch = async () => {
+    setIsVoiceModalVisible(true);
+    setVoiceText('Requesting mic access...');
+    const hasPermission = await voiceService.requestPermission();
+    if (!hasPermission) {
+      setVoiceText('Microphone permission denied.');
+      return;
+    }
+
+    const available = await voiceService.checkAvailability();
+    if (!available) {
+      setVoiceText("Voice search isn't available on this device.");
+      return;
+    }
+
+    setVoiceText('Listening...');
+    await voiceService.start();
+  };
+
+  const cancelVoiceSearch = async () => {
+    await voiceService.cancel();
+    setIsVoiceModalVisible(false);
+  };
 
   const focusAnim = useRef(new Animated.Value(0)).current;
 
@@ -357,19 +475,11 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
 
   const filteredItems = displayItems;
 
-  const topMatchItem = useMemo(() => {
-    if (!search.trim() || filteredItems.length === 0) {
-      return null;
-    }
-    return filteredItems[0];
-  }, [search, filteredItems]);
+  const topMatchItem = null as any;
 
   const gridResults = useMemo(() => {
-    if (!search.trim() || filteredItems.length === 0) {
-      return filteredItems;
-    }
-    return filteredItems.slice(1);
-  }, [search, filteredItems]);
+    return filteredItems;
+  }, [filteredItems]);
 
   const trendingItems = useMemo(() => {
     return items.slice(0, 6);
@@ -646,9 +756,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
   };
 
   const renderTopMatch = () => {
-    if (!topMatchItem) {
-      return null;
-    }
+    return null;
     const title = formatDisplayTitle(topMatchItem.title);
     return (
       <View style={styles.topMatchSection}>
@@ -762,7 +870,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
             data={gridResults}
             keyExtractor={(item, index) => `${item.url}-${index}`}
             renderItem={renderGridCard}
-            numColumns={2}
+            numColumns={3}
             columnWrapperStyle={styles.gridRowWrapper}
             contentContainerStyle={styles.gridListContent}
             showsVerticalScrollIndicator={false}
@@ -843,12 +951,17 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
                 <Icon name="close" size={18} color={colors.text} />
               </TouchableOpacity>
             ) : (
-              <Icon
-                name="mic-outline"
-                size={18}
-                color={colors.secondaryText}
-                style={styles.micIcon}
-              />
+              <TouchableOpacity
+                onPress={startVoiceSearch}
+                style={styles.micBtn}
+                activeOpacity={0.7}>
+                <Icon
+                  name="mic-outline"
+                  size={18}
+                  color={colors.secondaryText}
+                  style={styles.micIcon}
+                />
+              </TouchableOpacity>
             )}
           </Animated.View>
         </View>
@@ -873,6 +986,59 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
           ? renderSuggestions()
           : renderResults()}
       </ScrollView>
+
+      {/* Voice Search Simulation Modal */}
+      <Modal
+        visible={isVoiceModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={cancelVoiceSearch}>
+        <View style={styles.voiceModalOverlay}>
+          <View style={styles.voiceModalContent}>
+            <Text style={styles.voiceListeningStatus}>{voiceText}</Text>
+            
+            <View style={styles.voiceMicContainer}>
+              <Animated.View
+                style={[
+                  styles.voicePulseCircle,
+                  {
+                    transform: [{scale: pulseAnim}],
+                    opacity: pulseOpacity,
+                  },
+                ]}
+              />
+              <View style={styles.voiceMicCircle}>
+                <Icon name="mic" size={32} color="#FFFFFF" />
+              </View>
+            </View>
+
+            <Text style={styles.voiceHelpText}>
+              Try saying a movie title, genre, or TV show
+            </Text>
+
+            <View style={styles.voiceSuggestionsRow}>
+              {voiceSuggestions.map(suggestion => (
+                <TouchableOpacity
+                  key={suggestion}
+                  style={styles.voiceSuggestionTag}
+                  onPress={() => {
+                    voiceService.cancel();
+                    setSearch(suggestion);
+                    setIsVoiceModalVisible(false);
+                  }}>
+                  <Text style={styles.voiceSuggestionTagText}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={styles.voiceCloseButton}
+              onPress={cancelVoiceSearch}>
+              <Icon name="close-circle-outline" size={36} color={colors.secondaryText} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1388,25 +1554,25 @@ const styles = StyleSheet.create({
     
   },
   gridListContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 8,
     paddingBottom: 40,
   },
   gridRowWrapper: {
-    justifyContent: 'space-between',
-    marginBottom: 18, // 18px spacing between rows
+    justifyContent: 'flex-start',
+    marginBottom: themeSpacing.sm,
+    paddingHorizontal: 8,
   },
   gridCardWrapper: {
     flex: 1,
-    paddingHorizontal: 9, // 18px horizontal gap (9px on each side)
+    paddingHorizontal: 4,
     alignItems: 'center',
-    maxWidth: '50%',
+    maxWidth: '33.33%',
   },
   skeletonGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    gap: 16,
+    paddingHorizontal: 8,
     marginTop: 12,
   },
   skeletonCardGrid: {
@@ -1464,6 +1630,89 @@ const styles = StyleSheet.create({
 
     color: colors.text,
     
+  },
+  micBtn: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voiceModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 5, 6, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  voiceModalContent: {
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 30,
+  },
+  voiceListeningStatus: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  voiceMicContainer: {
+    width: 140,
+    height: 140,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  voicePulseCircle: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  voiceMicCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: colors.primary,
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+  },
+  voiceHelpText: {
+    color: colors.secondaryText,
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  voiceSuggestionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  voiceSuggestionTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  voiceSuggestionTagText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  voiceCloseButton: {
+    marginTop: 20,
+    padding: 10,
   },
 });
 

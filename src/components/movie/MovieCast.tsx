@@ -49,7 +49,7 @@ export const MovieCast: React.FC<MovieCastProps> = ({
   const hasEnriched = enrichedCast && enrichedCast.length > 0;
   const castList = hasEnriched ? enrichedCast : stars;
 
-  if (enrichmentPending) {
+  if (enrichmentPending && (!castList || castList.length === 0)) {
     const style = {opacity: shimmerAnim};
     return (
       <View style={styles.container}>
