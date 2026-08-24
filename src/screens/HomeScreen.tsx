@@ -24,7 +24,6 @@ import {formatDisplayTitle} from '../utils/formatDisplayTitle';
 import {useProfile} from '../hooks/useProfile';
 import {MovieGroup, MovieSection, SectionConfig, WatchProgress} from '../models/movie.types';
 import {groupCatalogItems} from '../utils/movieGrouping';
-import {buildHomeSections} from '../utils/movieSections';
 import {TmdbService} from '../services/tmdb.service';
 import {MovieMetadataResolver} from '../services/movieMetadataResolver';
 
@@ -132,58 +131,173 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     return watchlist.some(w => w.url === featuredMovie.url);
   }, [featuredMovie, watchlist]);
 
-  const [trendingTmdbIds, setTrendingTmdbIds] = useState<number[]>([]);
-  const [topRatedTmdbIds, setTopRatedTmdbIds] = useState<number[]>([]);
+  const [trendingSectionMovies, setTrendingSectionMovies] = useState<MovieGroup[]>([]);
+  const [top10SectionMovies, setTop10SectionMovies] = useState<MovieGroup[]>([]);
+  const [actionSectionMovies, setActionSectionMovies] = useState<MovieGroup[]>([]);
+  const [comedySectionMovies, setComedySectionMovies] = useState<MovieGroup[]>([]);
+  const [collectionsSectionMovies, setCollectionsSectionMovies] = useState<MovieGroup[]>([]);
+  const [isDiscoveryLoading, setIsDiscoveryLoading] = useState(true);
 
   React.useEffect(() => {
-    const fetchTmdbLists = async () => {
+    let active = true;
+    const loadHomeSections = async () => {
+      setIsDiscoveryLoading(true);
       try {
         const tmdb = TmdbService.getInstance();
-        const trending = await tmdb.getTrendingMovies();
-        const topRated = await tmdb.getTopRatedMovies();
-        setTrendingTmdbIds(trending);
-        setTopRatedTmdbIds(topRated);
+
+        // 1. Fetch TMDB candidates concurrently
+        const [trendingList, topRatedList, actionList, comedyList, collectionsList] = await Promise.all([
+          tmdb.getTrendingMovies(),
+          tmdb.getTopRatedMovies(),
+          tmdb.getDiscoverMovies({ withGenres: [28], sortBy: 'popularity.desc' }),
+          tmdb.getDiscoverMovies({ withGenres: [35], sortBy: 'popularity.desc' }),
+          tmdb.getDiscoverMovies({ sortBy: 'revenue.desc' }),
+        ]);
+
+        if (!active) return;
+
+        // 2. Resolve candidates against targeted catalog searches
+        const [trending, top10, action, comedy, collections] = await Promise.all([
+          MovieMetadataResolver.resolveDiscoverySection(trendingList, 10),
+          MovieMetadataResolver.resolveDiscoverySection(topRatedList, 10),
+          MovieMetadataResolver.resolveDiscoverySection(actionList, 10),
+          MovieMetadataResolver.resolveDiscoverySection(comedyList, 10),
+          MovieMetadataResolver.resolveDiscoverySection(collectionsList, 5),
+        ]);
+
+        if (!active) return;
+
+        setTrendingSectionMovies(trending);
+        setTop10SectionMovies(top10);
+        setActionSectionMovies(action);
+        setComedySectionMovies(comedy);
+        setCollectionsSectionMovies(collections);
       } catch (err) {
-        console.warn('Failed to load TMDB lists on home screen', err);
+        console.warn('[HomeScreen] Failed to prepare targeted discovery sections', err);
+      } finally {
+        if (active) {
+          setIsDiscoveryLoading(false);
+        }
       }
     };
-    fetchTmdbLists();
+
+    loadHomeSections();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const [resolvedGroups, setResolvedGroups] = useState<MovieGroup[]>([]);
-
-  React.useEffect(() => {
-    if (items && items.length > 0) {
-      MovieMetadataResolver.resolveGroups(items)
-        .then(groups => {
-          setResolvedGroups(groups);
-        })
-        .catch(err => {
-          console.warn('Failed to batch resolve TMDB groups on HomeScreen', err);
-          // Fallback to normal grouping if resolution fails
-          setResolvedGroups(groupCatalogItems(items));
-        });
-    } else {
-      setResolvedGroups([]);
-    }
+  const latestMovies = useMemo(() => {
+    return groupCatalogItems(items).slice(0, 10);
   }, [items]);
 
+  const continueWatchingMovies = useMemo(() => {
+    const continueWatchingProgress = watchProgress
+      .filter(p => p.position > 0 && p.duration > 0 && p.position < p.duration * 0.90)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    
+    const catalogGroups = groupCatalogItems(items);
+    const resolved = continueWatchingProgress
+      .map(p => catalogGroups.find(m => m.movieId === p.movieId) || 
+                trendingSectionMovies.find(m => m.movieId === p.movieId) ||
+                top10SectionMovies.find(m => m.movieId === p.movieId))
+      .filter((m): m is MovieGroup => !!m);
+
+    const unique = new Map<string, MovieGroup>();
+    for (const m of resolved) {
+      if (!unique.has(m.movieId)) {
+        unique.set(m.movieId, m);
+      }
+    }
+    return Array.from(unique.values());
+  }, [items, watchProgress, trendingSectionMovies, top10SectionMovies]);
+
+  const recommendedMovies = useMemo(() => {
+    const watchedGenres = new Set<string>();
+    continueWatchingMovies.forEach(m => {
+      m.genres?.forEach(g => watchedGenres.add(g));
+    });
+    if (watchedGenres.size > 0) {
+      const allScraperGroups = [
+        ...groupCatalogItems(items),
+        ...trendingSectionMovies,
+        ...top10SectionMovies,
+        ...actionSectionMovies,
+        ...comedySectionMovies,
+        ...collectionsSectionMovies
+      ];
+      const uniqueGroupsMap = new Map<string, MovieGroup>();
+      allScraperGroups.forEach(g => uniqueGroupsMap.set(g.movieId, g));
+      const uniqueGroups = Array.from(uniqueGroupsMap.values());
+
+      return uniqueGroups
+        .filter(m => !continueWatchingMovies.some(cw => cw.movieId === m.movieId))
+        .filter(m => m.genres?.some(g => watchedGenres.has(g)))
+        .slice(0, 8);
+    }
+    return [];
+  }, [items, continueWatchingMovies, trendingSectionMovies, top10SectionMovies, actionSectionMovies, comedySectionMovies, collectionsSectionMovies]);
+
   const sections = useMemo(() => {
-    if (resolvedGroups.length === 0) {
-      return [];
+    const resultSections: MovieSection[] = [];
+
+    for (const config of HOME_SECTION_CONFIG) {
+      let sectionMovies: MovieGroup[] = [];
+
+      switch (config.id) {
+        case 'continue-watching':
+          sectionMovies = continueWatchingMovies;
+          break;
+        case 'trending':
+          sectionMovies = trendingSectionMovies;
+          break;
+        case 'top10':
+          sectionMovies = top10SectionMovies;
+          break;
+        case 'latest':
+          sectionMovies = latestMovies;
+          break;
+        case 'recommended':
+          sectionMovies = recommendedMovies;
+          break;
+        case 'collections':
+          sectionMovies = collectionsSectionMovies;
+          break;
+        case 'action':
+          sectionMovies = actionSectionMovies;
+          break;
+        case 'comedy':
+          sectionMovies = comedySectionMovies;
+          break;
+        default:
+          break;
+      }
+
+      if (sectionMovies.length > 0) {
+        resultSections.push({
+          id: config.id,
+          title: config.title,
+          layout: config.layout,
+          movies: sectionMovies,
+        });
+      }
     }
 
-    return buildHomeSections({
-      movieGroups: resolvedGroups,
-      watchProgress,
-      configs: HOME_SECTION_CONFIG,
-      trendingTmdbIds,
-      topRatedTmdbIds,
-    });
-  }, [resolvedGroups, watchProgress, trendingTmdbIds, topRatedTmdbIds]);
+    return resultSections;
+  }, [
+    continueWatchingMovies,
+    trendingSectionMovies,
+    top10SectionMovies,
+    latestMovies,
+    recommendedMovies,
+    collectionsSectionMovies,
+    actionSectionMovies,
+    comedySectionMovies,
+  ]);
 
-  // Render Skeleton Loading UI when fetching page 1 and no cached content exists
-  if (isLoading && items.length === 0) {
+  // Show skeleton during initial catalog page load OR while discovery search is resolving
+  const isSkeletonActive = (isLoading && items.length === 0) || isDiscoveryLoading;
+  if (isSkeletonActive) {
     return (
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Banner Skeleton */}
@@ -336,25 +450,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 contentContainerStyle={styles.horizontalScroll}>
                 {section.movies.map((movie, index) => {
                   if (section.layout === 'numbered') {
-                    // Render Top 10 Numbered Cards (01, 02, 03...)
-                    const numberStr = String(index + 1).padStart(2, '0');
-                    return (
-                      <TouchableOpacity
-                        key={movie.movieId}
-                        style={styles.numberedCardContainer}
-                        onPress={() => onSelectItem(movie.representativeItem)}
-                        activeOpacity={0.8}>
-                        <Text style={styles.numberedText}>{numberStr}</Text>
-                        <MovieCard
-                          item={movie.representativeItem}
-                          onPress={() => onSelectItem(movie.representativeItem)}
-                          width={110}
-                          isWatchlisted={watchlist.some(w => w.url === movie.representativeItem.url)}
-                          onWatchlistPress={onToggleWatchlist ? () => onToggleWatchlist(movie.representativeItem) : undefined}
-                        />
-                      </TouchableOpacity>
-                    );
-                  }
+  return (
+    <View key={movie.movieId} style={styles.numberedCardContainer}>
+      <MovieCard
+        item={movie.representativeItem}
+        onPress={() => onSelectItem(movie.representativeItem)}
+        width={130}
+        isWatchlisted={watchlist.some(
+          w => w.url === movie.representativeItem.url,
+        )}
+        onWatchlistPress={
+          onToggleWatchlist
+            ? () => onToggleWatchlist(movie.representativeItem)
+            : undefined
+        }
+      />
+
+      <View style={styles.numberBadge}>
+        <Text style={styles.numberBadgeText}>
+          {index + 1}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
                   if (section.layout === 'landscape') {
                     // Render Continue Watching Landscape Layout
@@ -382,13 +501,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   }
 
                   if (section.layout === 'featured') {
-                    // Larger card layouts for Collection Carousels
+                    // Match card layout width with the standard lists
                     return (
                       <MovieCard
                         key={movie.movieId}
                         item={movie.representativeItem}
                         onPress={() => onSelectItem(movie.representativeItem)}
-                        width={180}
+                        width={130}
                         isWatchlisted={watchlist.some(w => w.url === movie.representativeItem.url)}
                         onWatchlistPress={onToggleWatchlist ? () => onToggleWatchlist(movie.representativeItem) : undefined}
                       />
@@ -721,9 +840,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionHeaderSpacing: {
-    paddingHorizontal: spacing.md,
-    marginTop: 4,
-    marginBottom: 4,
+    paddingHorizontal: 0,
+    marginTop: 0,
+    marginBottom: -8,
   },
   gridListContent: {
     backgroundColor: colors.background,
@@ -817,20 +936,32 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '500',
   },
-  numberedCardContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginRight: spacing.sm,
-  },
-  numberedText: {
-    fontSize: 90,
-    fontWeight: '900',
-    color: 'rgba(255, 255, 255, 0.15)',
-    marginRight: -20,
-    lineHeight: 100,
-    zIndex: 1,
-    bottom: -10,
-  },
+numberedCardContainer: {
+  position: 'relative',
+  width: 130,
+  marginRight: spacing.sm,
+},
+numberBadge: {
+  position: 'absolute',
+  top: 7,
+  left: 7,
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  backgroundColor: 'rgba(0, 0, 0, 0.78)',
+  borderWidth: 1,
+  borderColor: 'rgba(255, 255, 255, 0.25)',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 10,
+},
+
+numberBadgeText: {
+  color: colors.white,
+  fontSize: 12,
+  fontWeight: '800',
+  lineHeight: 14,
+},
   landscapeCard: {
     width: 180,
     backgroundColor: '#17171C',

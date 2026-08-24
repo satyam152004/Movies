@@ -35,7 +35,7 @@ export const MovieCrew: React.FC<MovieCrewProps> = ({
       <View style={styles.content}>
         {displayCrew.map((member, idx) => (
           <View key={idx} style={styles.crewItem}>
-            <Text style={styles.crewJob}>{member.job.toUpperCase()}</Text>
+            <Text style={styles.crewJob}>{member.job.charAt(0).toUpperCase() + member.job.slice(1).toLowerCase()}</Text>
             <Text style={styles.crewName} numberOfLines={1}>
               {member.name}
             </Text>

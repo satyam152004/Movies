@@ -12,7 +12,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color={colors.primary} />
-      {message && <Text style={styles.text}>{message.toUpperCase()}</Text>}
+      {message && <Text style={styles.text}>{message.charAt(0).toUpperCase() + message.slice(1)}</Text>}
     </View>
   );
 };

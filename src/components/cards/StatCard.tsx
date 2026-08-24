@@ -56,7 +56,6 @@ const styles = StyleSheet.create({
     
     fontWeight: typography.weights.heavy,
     letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   value: {
     ...typography.tokens.h2,

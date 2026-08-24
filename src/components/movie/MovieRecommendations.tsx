@@ -101,7 +101,6 @@ const styles = StyleSheet.create({
     color: movieTheme.colors.text,
     paddingHorizontal: 16,
     marginBottom: 12,
-    textTransform: 'uppercase',
     letterSpacing: 1,
   },
   scrollContent: {

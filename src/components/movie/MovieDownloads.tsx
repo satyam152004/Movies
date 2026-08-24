@@ -575,11 +575,8 @@ const styles = StyleSheet.create({
   labelTitle: {
     ...typography.tokens.caption,
     fontSize: 11,
-
-    
     fontWeight: movieTheme.typography.weights.bold,
     color: '#70798A',
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,
   },

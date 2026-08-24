@@ -449,20 +449,20 @@ export class TmdbService {
   /**
    * Fetches trending movies (weekly) from TMDB
    */
-  public async getTrendingMovies(): Promise<number[]> {
+  public async getTrendingMovies(): Promise<any[]> {
     const apiKey = await this.getApiKey();
     if (!apiKey) return [];
 
-    const cacheKey = 'tmdb_trending_list';
+    const cacheKey = 'tmdb_trending_list_v2';
     const cached = await this.getCachedData(cacheKey);
     if (cached) return cached;
 
     try {
       const url = `${TMDB_BASE_URL}/trending/movie/week?api_key=${apiKey}`;
       const data = await this.testFetch(url);
-      const ids = (data.results || []).map((m: any) => m.id);
-      await this.setCachedData(cacheKey, ids);
-      return ids;
+      const results = data.results || [];
+      await this.setCachedData(cacheKey, results);
+      return results;
     } catch (e) {
       console.warn('Failed to fetch trending movie list', e);
       return [];
@@ -472,22 +472,67 @@ export class TmdbService {
   /**
    * Fetches top rated movies from TMDB
    */
-  public async getTopRatedMovies(): Promise<number[]> {
+  public async getTopRatedMovies(): Promise<any[]> {
     const apiKey = await this.getApiKey();
     if (!apiKey) return [];
 
-    const cacheKey = 'tmdb_top_rated_list';
+    const cacheKey = 'tmdb_top_rated_list_v2';
     const cached = await this.getCachedData(cacheKey);
     if (cached) return cached;
 
     try {
       const url = `${TMDB_BASE_URL}/movie/top_rated?api_key=${apiKey}`;
       const data = await this.testFetch(url);
-      const ids = (data.results || []).map((m: any) => m.id);
-      await this.setCachedData(cacheKey, ids);
-      return ids;
+      const results = data.results || [];
+      await this.setCachedData(cacheKey, results);
+      return results;
     } catch (e) {
       console.warn('Failed to fetch top rated movie list', e);
+      return [];
+    }
+  }
+
+  /**
+   * Generic method to discover movies using TMDB Discover API
+   */
+  public async getDiscoverMovies(params: {
+    withGenres?: number[];
+    sortBy?: string;
+    year?: string;
+    language?: string;
+    page?: number;
+  }): Promise<any[]> {
+    const apiKey = await this.getApiKey();
+    if (!apiKey) return [];
+
+    const cacheKey = `tmdb_discover_${JSON.stringify(params)}`;
+    const cached = await this.getCachedData(cacheKey);
+    if (cached) return cached;
+
+    try {
+      let url = `${TMDB_BASE_URL}/discover/movie?api_key=${apiKey}`;
+      if (params.withGenres && params.withGenres.length > 0) {
+        url += `&with_genres=${params.withGenres.join(',')}`;
+      }
+      if (params.sortBy) {
+        url += `&sort_by=${params.sortBy}`;
+      }
+      if (params.year) {
+        url += `&primary_release_year=${params.year}`;
+      }
+      if (params.language) {
+        url += `&with_original_language=${params.language}`;
+      }
+      if (params.page) {
+        url += `&page=${params.page}`;
+      }
+
+      const data = await this.testFetch(url);
+      const results = data.results || [];
+      await this.setCachedData(cacheKey, results);
+      return results;
+    } catch (e) {
+      console.warn('Failed to fetch TMDb discover list', e);
       return [];
     }
   }

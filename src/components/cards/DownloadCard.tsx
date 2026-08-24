@@ -556,7 +556,6 @@ const styles = StyleSheet.create({
     
     fontWeight: typography.weights.bold,
     marginBottom: 6,
-    textTransform: 'uppercase',
   },
   logsScroll: {
     maxHeight: 90,
