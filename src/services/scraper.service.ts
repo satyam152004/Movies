@@ -1,15 +1,15 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {CacheStorage} from './storage/cache.storage';
-import {parseCatalog} from './catalog.parser';
+import { CacheStorage } from './storage/cache.storage';
+import { parseCatalog } from './catalog.parser';
 import {
   parseMovieDetail,
   parseDownloadPage,
   parseDirectDownloadPage,
   parseDirectFileHost,
 } from './detail.parser';
-import {CatalogItem, MovieDetail} from '../model/movie.model';
-import {ScraperSessionRequest, ScraperSessionResult} from './scraper.types';
+import { CatalogItem, MovieDetail } from '../model/movie.model';
+import { ScraperSessionRequest, ScraperSessionResult } from './scraper.types';
 
 export type LogType = 'info' | 'warn' | 'error' | 'success';
 export type LogCallback = (message: string, type: LogType) => void;
@@ -45,29 +45,65 @@ const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0',
 ];
 
+export interface ResolutionProgressEvent {
+  state:
+    | 'PREPARING_SOURCE'
+    | 'RESOLVING_SOURCE'
+    | 'WAITING_FOR_SOURCE'
+    | 'RESOLVING_LINK'
+    | 'SOURCE_READY';
+  statusText: string;
+  countdownSeconds?: number | null;
+  totalCountdownSeconds?: number | null;
+}
+
 export class ScraperService {
   private static instance: ScraperService;
   private logCallbacks: LogCallback[] = [];
+  private resolutionProgressListeners: Array<
+    (event: ResolutionProgressEvent) => void
+  > = [];
 
   // WebView dynamic scraper hooks
   private webViewTrigger:
     | ((
-        request: ScraperSessionRequest,
-        onCompleted: (result: ScraperSessionResult | null, error?: any) => void,
-      ) => void)
+      request: ScraperSessionRequest,
+      onCompleted: (result: ScraperSessionResult | null, error?: any) => void,
+    ) => void)
     | null = null;
 
   private cachedStackDetect: {
-    [key: string]: {stack: string; isStatic: boolean};
+    [key: string]: { stack: string; isStatic: boolean };
   } = {};
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): ScraperService {
     if (!ScraperService.instance) {
       ScraperService.instance = new ScraperService();
     }
     return ScraperService.instance;
+  }
+
+  public onResolutionProgress(
+    listener: (event: ResolutionProgressEvent) => void,
+  ): () => void {
+    this.resolutionProgressListeners.push(listener);
+    return () => {
+      this.resolutionProgressListeners = this.resolutionProgressListeners.filter(
+        l => l !== listener,
+      );
+    };
+  }
+
+  public emitResolutionProgress(event: ResolutionProgressEvent): void {
+    this.resolutionProgressListeners.forEach(listener => {
+      try {
+        listener(event);
+      } catch (e) {
+        console.error('[ScraperService] Error in resolution progress listener:', e);
+      }
+    });
   }
 
   // Register logger hooks
@@ -193,7 +229,7 @@ export class ScraperService {
 
   public async detectStack(
     url: string,
-  ): Promise<{stack: string; isStatic: boolean}> {
+  ): Promise<{ stack: string; isStatic: boolean }> {
     let domain = url;
     try {
       domain = new URL(url).origin;
@@ -209,7 +245,7 @@ export class ScraperService {
     this.log(`Detecting technology stack for: ${url}...`, 'info');
     try {
       const response = await axios.get(url, {
-        headers: {'User-Agent': USER_AGENTS[0]},
+        headers: { 'User-Agent': USER_AGENTS[0] },
         timeout: 8000,
       });
 
@@ -228,7 +264,7 @@ export class ScraperService {
           'Detected tech: WordPress (Static / Server-Rendered HTML)',
           'success',
         );
-        const res = {stack: 'WordPress', isStatic: true};
+        const res = { stack: 'WordPress', isStatic: true };
         this.cachedStackDetect[domain] = res;
         return res;
       }
@@ -239,7 +275,7 @@ export class ScraperService {
           'Detected tech: Next.js (Server-Rendered & Rehydrated)',
           'success',
         );
-        const res = {stack: 'Next.js', isStatic: true};
+        const res = { stack: 'Next.js', isStatic: true };
         this.cachedStackDetect[domain] = res;
         return res;
       }
@@ -247,7 +283,7 @@ export class ScraperService {
       // Check Nuxt / Vue
       if (html.includes('__NUXT__') || html.includes('data-v-')) {
         this.log('Detected tech: Nuxt / Vue (Static/Hydrated)', 'success');
-        const res = {stack: 'Nuxt/Vue', isStatic: true};
+        const res = { stack: 'Nuxt/Vue', isStatic: true };
         this.cachedStackDetect[domain] = res;
         return res;
       }
@@ -266,14 +302,14 @@ export class ScraperService {
           'Detected tech: Single Page Application (React/Angular client-rendered)',
           'warn',
         );
-        const res = {stack: 'React/Angular SPA', isStatic: false};
+        const res = { stack: 'React/Angular SPA', isStatic: false };
         this.cachedStackDetect[domain] = res;
         return res;
       }
 
       // Fallback default
       this.log('Detected tech: Standard Static HTML', 'info');
-      const fallbackRes = {stack: 'Static HTML', isStatic: true};
+      const fallbackRes = { stack: 'Static HTML', isStatic: true };
       this.cachedStackDetect[domain] = fallbackRes;
       return fallbackRes;
     } catch (err: any) {
@@ -423,7 +459,7 @@ export class ScraperService {
     url: string,
     forceDynamic = false,
     page?: number,
-  ): Promise<{items: CatalogItem[]; nextPageUrl: string | null}> {
+  ): Promise<{ items: CatalogItem[]; nextPageUrl: string | null }> {
     let targetUrl = url;
     if (page && page > 1) {
       const cleanBase = url.replace(/\/$/, '');
@@ -495,7 +531,7 @@ export class ScraperService {
   public async scrapeDownloadPage(
     url: string,
     forceDynamic = false,
-  ): Promise<{label: string; url: string}[]> {
+  ): Promise<{ label: string; url: string }[]> {
     if (this.isDirectFileUrl(url)) {
       this.log(
         `Instant Resolution: URL is already a direct file link: ${url.substring(
@@ -504,14 +540,38 @@ export class ScraperService {
         )}...`,
         'success',
       );
-      return [{label: 'Direct Download', url}];
+      this.emitResolutionProgress({
+        state: 'SOURCE_READY',
+        statusText: 'Starting download…',
+      });
+      return [{ label: 'Direct Download', url }];
     }
+
+    const lowerUrl = url.toLowerCase();
+    const isMediator =
+      lowerUrl.includes('inventoryidea') ||
+      lowerUrl.includes('gadgetsweb') ||
+      lowerUrl.includes('homelane') ||
+      lowerUrl.includes('mediator');
+
+    this.emitResolutionProgress({
+      state: 'PREPARING_SOURCE',
+      statusText: isMediator
+        ? 'Checking download source…'
+        : 'Checking download source…',
+    });
 
     let html = '';
     let finalUrl = url;
-    let fallbackMirrors: {label: string; url: string}[] = [];
+    let fallbackMirrors: { label: string; url: string }[] = [];
+    const shouldRunDynamic = forceDynamic || isMediator;
 
-    if (forceDynamic) {
+    if (shouldRunDynamic) {
+      this.emitResolutionProgress({
+        state: 'RESOLVING_SOURCE',
+        statusText: 'Preparing your download link…',
+      });
+
       try {
         const session = await this.runWebViewScrapeSession(url, 'mirrors');
         html = session.html;
@@ -520,19 +580,14 @@ export class ScraperService {
           fallbackMirrors = session.mirrors;
         }
       } catch (webViewErr: any) {
-        if (webViewErr && webViewErr.type === 'PORTAL_ACCESS_DENIED') {
+        if (webViewErr && (webViewErr.type === 'PORTAL_ACCESS_DENIED' || webViewErr.statusCode === 403)) {
           this.log(
-            `[Scraper] Portal rejected automated request: HTTP ${
-              webViewErr.statusCode || 403
-            }`,
+            `[Scraper] Portal rejected automated request: HTTP ${webViewErr.statusCode || 403}`,
             'error',
           );
-          this.log('[Scraper] Automated portal access unavailable', 'warn');
-          this.log('[Scraper] Interactive browser flow required', 'info');
-          this.log('[Scraper] Closing WebView scraper session cleanly', 'info');
           throw new ScraperError(
-            'EXTERNAL_BROWSER_REQUIRED',
-            'This download page requires interactive browser access',
+            'PORTAL_ACCESS_DENIED',
+            'Unable to prepare download.\nThis source requires additional verification.',
             false,
             webViewErr.statusCode,
             url,
@@ -555,6 +610,11 @@ export class ScraperService {
           );
         }
 
+        this.emitResolutionProgress({
+          state: 'RESOLVING_SOURCE',
+          statusText: 'Preparing your download link…',
+        });
+
         try {
           const session = await this.runWebViewScrapeSession(url, 'mirrors');
           html = session.html;
@@ -563,22 +623,14 @@ export class ScraperService {
             fallbackMirrors = session.mirrors;
           }
         } catch (webViewErr: any) {
-          if (webViewErr && webViewErr.type === 'PORTAL_ACCESS_DENIED') {
+          if (webViewErr && (webViewErr.type === 'PORTAL_ACCESS_DENIED' || webViewErr.statusCode === 403)) {
             this.log(
-              `[Scraper] Portal rejected automated request: HTTP ${
-                webViewErr.statusCode || 403
-              }`,
+              `[Scraper] Portal rejected automated request: HTTP ${webViewErr.statusCode || 403}`,
               'error',
             );
-            this.log('[Scraper] Automated portal access unavailable', 'warn');
-            this.log('[Scraper] Interactive browser flow required', 'info');
-            this.log(
-              '[Scraper] Closing WebView scraper session cleanly',
-              'info',
-            );
             throw new ScraperError(
-              'EXTERNAL_BROWSER_REQUIRED',
-              'This download page requires interactive browser access',
+              'PORTAL_ACCESS_DENIED',
+              'Unable to prepare download.\nThis source requires additional verification.',
               false,
               webViewErr.statusCode,
               url,
@@ -590,17 +642,27 @@ export class ScraperService {
     }
 
     this.log('Parsing download mirrors...', 'info');
+    this.emitResolutionProgress({
+      state: 'RESOLVING_LINK',
+      statusText: 'Getting available download source…',
+    });
+
     let mirrors = parseDownloadPage(html, finalUrl);
     if (mirrors.length === 0 && fallbackMirrors.length > 0) {
       mirrors = fallbackMirrors;
     }
 
     // If static parsed zero links, retry dynamic WebView just in case JavaScript rendering is required
-    if (mirrors.length === 0 && !forceDynamic) {
+    if (mirrors.length === 0 && !shouldRunDynamic) {
       this.log(
         'No mirror links found on static HTML. Retrying with full browser WebView engine...',
         'warn',
       );
+      this.emitResolutionProgress({
+        state: 'RESOLVING_SOURCE',
+        statusText: 'Preparing your download link…',
+      });
+
       try {
         const session = await this.runWebViewScrapeSession(url, 'mirrors');
         html = session.html;
@@ -614,19 +676,14 @@ export class ScraperService {
           mirrors = session.mirrors;
         }
       } catch (err: any) {
-        if (err && err.type === 'PORTAL_ACCESS_DENIED') {
+        if (err && (err.type === 'PORTAL_ACCESS_DENIED' || err.statusCode === 403)) {
           this.log(
-            `[Scraper] Portal rejected automated request: HTTP ${
-              err.statusCode || 403
-            }`,
+            `[Scraper] Portal rejected automated request: HTTP ${err.statusCode || 403}`,
             'error',
           );
-          this.log('[Scraper] Automated portal access unavailable', 'warn');
-          this.log('[Scraper] Interactive browser flow required', 'info');
-          this.log('[Scraper] Closing WebView scraper session cleanly', 'info');
           throw new ScraperError(
-            'EXTERNAL_BROWSER_REQUIRED',
-            'This download page requires interactive browser access',
+            'PORTAL_ACCESS_DENIED',
+            'Unable to prepare download.\nThis source requires additional verification.',
             false,
             err.statusCode,
             url,
@@ -646,7 +703,7 @@ export class ScraperService {
   public async scrapeDirectDownloadPage(
     url: string,
     forceDynamic = false,
-  ): Promise<{label: string; url: string}[]> {
+  ): Promise<{ label: string; url: string }[]> {
     if (this.isDirectFileUrl(url)) {
       this.log(
         `Instant Resolution: URL is already a direct file link: ${url.substring(
@@ -655,12 +712,12 @@ export class ScraperService {
         )}...`,
         'success',
       );
-      return [{label: 'Direct Download', url}];
+      return [{ label: 'Direct Download', url }];
     }
 
     let html = '';
     let finalUrl = url;
-    let fallbackLinks: {label: string; url: string}[] = [];
+    let fallbackLinks: { label: string; url: string }[] = [];
 
     if (forceDynamic) {
       try {
@@ -673,8 +730,7 @@ export class ScraperService {
       } catch (webViewErr: any) {
         if (webViewErr && webViewErr.type === 'PORTAL_ACCESS_DENIED') {
           this.log(
-            `[Scraper] Portal rejected automated request: HTTP ${
-              webViewErr.statusCode || 403
+            `[Scraper] Portal rejected automated request: HTTP ${webViewErr.statusCode || 403
             }`,
             'error',
           );
@@ -717,8 +773,7 @@ export class ScraperService {
         } catch (webViewErr: any) {
           if (webViewErr && webViewErr.type === 'PORTAL_ACCESS_DENIED') {
             this.log(
-              `[Scraper] Portal rejected automated request: HTTP ${
-                webViewErr.statusCode || 403
+              `[Scraper] Portal rejected automated request: HTTP ${webViewErr.statusCode || 403
               }`,
               'error',
             );
@@ -767,8 +822,7 @@ export class ScraperService {
       } catch (err: any) {
         if (err && err.type === 'PORTAL_ACCESS_DENIED') {
           this.log(
-            `[Scraper] Portal rejected automated request: HTTP ${
-              err.statusCode || 403
+            `[Scraper] Portal rejected automated request: HTTP ${err.statusCode || 403
             }`,
             'error',
           );
@@ -837,8 +891,7 @@ export class ScraperService {
       } catch (webViewErr: any) {
         if (webViewErr && webViewErr.type === 'PORTAL_ACCESS_DENIED') {
           this.log(
-            `[Scraper] Portal rejected automated request: HTTP ${
-              webViewErr.statusCode || 403
+            `[Scraper] Portal rejected automated request: HTTP ${webViewErr.statusCode || 403
             }`,
             'error',
           );
@@ -881,8 +934,7 @@ export class ScraperService {
         } catch (webViewErr: any) {
           if (webViewErr && webViewErr.type === 'PORTAL_ACCESS_DENIED') {
             this.log(
-              `[Scraper] Portal rejected automated request: HTTP ${
-                webViewErr.statusCode || 403
+              `[Scraper] Portal rejected automated request: HTTP ${webViewErr.statusCode || 403
               }`,
               'error',
             );
@@ -924,8 +976,7 @@ export class ScraperService {
       } catch (err: any) {
         if (err && err.type === 'PORTAL_ACCESS_DENIED') {
           this.log(
-            `[Scraper] Portal rejected automated request: HTTP ${
-              err.statusCode || 403
+            `[Scraper] Portal rejected automated request: HTTP ${err.statusCode || 403
             }`,
             'error',
           );
@@ -969,7 +1020,7 @@ export class ScraperService {
     const proxyUrl =
       'https://search.pingora.fyi/collections/post/documents/search';
 
-    let activeDomain = 'https://new1.hdhub4u.af/';
+    let activeDomain = 'https://new5.hdhub4u.cl/';
     try {
       const cached = await CacheStorage.getDiscoveredUrl();
       if (cached) {
@@ -1022,9 +1073,8 @@ export class ScraperService {
               'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/No-Image-Placeholder.svg/315px-No-Image-Placeholder.svg.png?20200912122019';
             let permalink = doc.permalink || '';
             if (permalink && !permalink.startsWith('http')) {
-              permalink = `${origin}${
-                permalink.startsWith('/') ? '' : '/'
-              }${permalink}`;
+              permalink = `${origin}${permalink.startsWith('/') ? '' : '/'
+                }${permalink}`;
             }
             return {
               title: doc.post_title || 'Unknown Title',

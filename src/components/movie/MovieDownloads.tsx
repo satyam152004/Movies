@@ -35,6 +35,9 @@ interface MovieDownloadsProps {
   error?: string | null;
   onRetry?: () => void;
   onClearError?: () => void;
+  resolutionStatusText?: string | null;
+  countdownSeconds?: number | null;
+  totalCountdownSeconds?: number | null;
 }
 
 export function parseLinkLabel(label: string): string[] {
@@ -98,6 +101,9 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
   error,
   onRetry,
   onClearError,
+  resolutionStatusText,
+  countdownSeconds,
+  totalCountdownSeconds,
 }) => {
   const [selectedLink, setSelectedLink] = useState<DownloadLink | null>(null);
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -209,6 +215,7 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
 
               {/* Steps Loader */}
               <View style={styles.stepperContainer}>
+                {/* Step 0: Preparing source */}
                 <View style={styles.stepRow}>
                   <View style={styles.iconCircle}>
                     {currentStep > 0 ? (
@@ -224,14 +231,21 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
                       />
                     )}
                   </View>
-                  <Text
-                    style={[
-                      styles.stepText,
-                      currentStep === 0 && styles.activeStepText,
-                      currentStep > 0 && styles.completedStepText,
-                    ]}>
-                    Preparing source
-                  </Text>
+                  <View style={styles.stepTextContainer}>
+                    <Text
+                      style={[
+                        styles.stepText,
+                        currentStep === 0 && styles.activeStepText,
+                        currentStep > 0 && styles.completedStepText,
+                      ]}>
+                      Preparing source
+                    </Text>
+                    {currentStep === 0 && (
+                      <Text style={styles.stepSubText}>
+                        {resolutionStatusText || 'Checking download source...'}
+                      </Text>
+                    )}
+                  </View>
                 </View>
 
                 <View
@@ -241,6 +255,7 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
                   ]}
                 />
 
+                {/* Step 1: Resolving source */}
                 <View style={styles.stepRow}>
                   <View style={styles.iconCircle}>
                     {currentStep > 1 ? (
@@ -262,15 +277,52 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
                       />
                     )}
                   </View>
-                  <Text
-                    style={[
-                      styles.stepText,
-                      currentStep === 1 && styles.activeStepText,
-                      currentStep > 1 && styles.completedStepText,
-                    ]}>
-                    Starting download
-                  </Text>
+                  <View style={styles.stepTextContainer}>
+                    <Text
+                      style={[
+                        styles.stepText,
+                        currentStep === 1 && styles.activeStepText,
+                        currentStep > 1 && styles.completedStepText,
+                      ]}>
+                      Resolving source
+                    </Text>
+                    {currentStep === 1 && (
+                      <Text style={styles.stepSubText}>
+                        {resolutionStatusText || 'Preparing your download link...'}
+                      </Text>
+                    )}
+                  </View>
                 </View>
+
+                {/* Countdown progress bar when timer is active */}
+                {countdownSeconds !== undefined &&
+                  countdownSeconds !== null &&
+                  countdownSeconds > 0 && (
+                    <View style={styles.countdownBox}>
+                      <Text style={styles.countdownLabel}>
+                        Link is being generated • {countdownSeconds}s
+                      </Text>
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${Math.min(
+                                100,
+                                Math.max(
+                                  10,
+                                  (((totalCountdownSeconds || 10) -
+                                    countdownSeconds) /
+                                    (totalCountdownSeconds || 10)) *
+                                    100,
+                                ),
+                              )}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  )}
 
                 <View
                   style={[
@@ -279,6 +331,7 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
                   ]}
                 />
 
+                {/* Step 2: Downloading */}
                 <View style={styles.stepRow}>
                   <View style={styles.iconCircle}>
                     {currentStep === 2 ? (
@@ -294,20 +347,24 @@ export const MovieDownloads: React.FC<MovieDownloadsProps> = ({
                       />
                     )}
                   </View>
-                  <Text
-                    style={[
-                      styles.stepText,
-                      currentStep === 2 && styles.activeStepText,
-                    ]}>
-                    Downloading
-                  </Text>
+                  <View style={styles.stepTextContainer}>
+                    <Text
+                      style={[
+                        styles.stepText,
+                        currentStep === 2 && styles.activeStepText,
+                      ]}>
+                      Downloading
+                    </Text>
+                    {currentStep === 2 && (
+                      <Text style={styles.stepSubText}>
+                        Download started successfully
+                      </Text>
+                    )}
+                  </View>
                 </View>
               </View>
-
-              <Text style={styles.pleaseWaitText}>
-                Preparing your download…
-              </Text>
             </View>
+
           ) : (
             /* QUALITY SELECTION VIEW */
             <View style={[styles.contentContainer, {flexShrink: 1}]}>
@@ -749,6 +806,15 @@ const styles = StyleSheet.create({
   completedStepText: {
     color: movieTheme.colors.success,
   },
+  stepTextContainer: {
+    flex: 1,
+  },
+  stepSubText: {
+    ...typography.tokens.caption,
+    fontSize: 11,
+    color: '#8A94A6',
+    marginTop: 2,
+  },
   stepLine: {
     width: 2,
     height: 18,
@@ -758,11 +824,37 @@ const styles = StyleSheet.create({
   stepLineActive: {
     backgroundColor: movieTheme.colors.success,
   },
+  countdownBox: {
+    marginLeft: 36,
+    marginRight: 10,
+    marginVertical: 8,
+    padding: 10,
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  countdownLabel: {
+    ...typography.tokens.caption,
+    fontSize: 12,
+    fontWeight: movieTheme.typography.weights.medium,
+    color: movieTheme.colors.primary,
+    marginBottom: 6,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: movieTheme.colors.primary,
+    borderRadius: 3,
+  },
   pleaseWaitText: {
     ...typography.tokens.caption,
     fontSize: 11,
-
-    
     color: '#70798A',
   },
   /* ERROR STYLES */

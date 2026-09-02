@@ -276,7 +276,36 @@ export class ScraperEngine {
       this.processDecision(nextState, ev);
     });
 
-    // 4. Handle success event
+    // 4. Handle countdown events
+    this.eventBus.subscribe('COUNTDOWN_STARTED', event => {
+      const timerEv = event as any;
+      const secs = timerEv.secondsLeft;
+      const scraper = require('../../scraper.service').ScraperService.getInstance();
+      if (secs !== undefined && secs !== null) {
+        scraper.emitResolutionProgress({
+          state: 'WAITING_FOR_SOURCE',
+          statusText: `Link is being generated • ${secs}s`,
+          countdownSeconds: secs,
+          totalCountdownSeconds: 10,
+        });
+      }
+    });
+
+    this.eventBus.subscribe('COUNTDOWN_UPDATED', event => {
+      const timerEv = event as any;
+      const secs = timerEv.secondsLeft;
+      const scraper = require('../../scraper.service').ScraperService.getInstance();
+      if (secs !== undefined && secs !== null) {
+        scraper.emitResolutionProgress({
+          state: 'WAITING_FOR_SOURCE',
+          statusText: `Link is being generated • ${secs}s`,
+          countdownSeconds: secs,
+          totalCountdownSeconds: 10,
+        });
+      }
+    });
+
+    // 5. Handle success event
     this.eventBus.subscribe('SUCCESS', event => {
       this.stopSession();
     });
@@ -314,7 +343,35 @@ export class ScraperEngine {
     const scraper =
       require('../../scraper.service').ScraperService.getInstance();
 
-    if (state === 'MEDIATOR_READY') {
+    if (state === 'MEDIATOR_WAITING_TIMER') {
+      const details = eventDetails.details || '';
+      const match = details.match(/(\d+)s/);
+      const secs = match ? parseInt(match[1], 10) : null;
+      scraper.emitResolutionProgress({
+        state: 'WAITING_FOR_SOURCE',
+        statusText: secs ? `Link is being generated • ${secs}s` : 'Link is being generated…',
+        countdownSeconds: secs,
+        totalCountdownSeconds: 10,
+      });
+
+      // Periodically rescan timer DOM every 1s while waiting
+      this.commandQueue.enqueue({
+        id: 'timer_scan_' + Math.random().toString(36).substring(7),
+        type: 'GET_FINGERPRINT',
+        delayMs: 1000,
+      });
+    } else if (state === 'MEDIATOR_IDLE') {
+      // Periodically rescan DOM for dynamic updates or button reveals every 1.5s
+      this.commandQueue.enqueue({
+        id: 'idle_scan_' + Math.random().toString(36).substring(7),
+        type: 'GET_FINGERPRINT',
+        delayMs: 1500,
+      });
+    } else if (state === 'MEDIATOR_READY') {
+      scraper.emitResolutionProgress({
+        state: 'RESOLVING_SOURCE',
+        statusText: 'Preparing your download link…',
+      });
       const candidates = eventDetails.candidates || [];
       const cmd = strategy.findPrimaryAction(this.session.data, candidates);
 
@@ -346,6 +403,13 @@ export class ScraperEngine {
             this.session.data.pageFingerprint,
           );
           this.commandQueue.enqueue(cmd);
+
+          // Schedule state rescan after click execution
+          this.commandQueue.enqueue({
+            id: 'post_click_scan_' + Math.random().toString(36).substring(7),
+            type: 'GET_FINGERPRINT',
+            delayMs: (cmd.delayMs || 500) + 1000,
+          });
         } else {
           scraper.log(
             '[ScraperEngine] Click BLOCKED by ClickHistory rules. Changing state to MEDIATOR_IDLE.',

@@ -72,6 +72,15 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
   const [lastSelectedLink, setLastSelectedLink] = useState<DownloadLink | null>(
     null,
   );
+  const [resolutionStatusText, setResolutionStatusText] = useState<
+    string | null
+  >(null);
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(
+    null,
+  );
+  const [totalCountdownSeconds, setTotalCountdownSeconds] = useState<
+    number | null
+  >(null);
 
   const browserFallbackTriggered = useRef<boolean>(false);
   const interactiveBrowserTriggered = useRef<boolean>(false);
@@ -303,6 +312,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
 
       setDownloadError(null);
       setLastSelectedLink(link);
+      setResolutionStatusText('Checking download source…');
+      setCountdownSeconds(null);
+      setTotalCountdownSeconds(null);
       browserFallbackTriggered.current = false;
       interactiveBrowserTriggered.current = false;
       interactiveDownloadTriggeredRef.current = false;
@@ -313,6 +325,18 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
       setResolvingUrl(originalPortalUrl);
       const scraper = ScraperService.getInstance();
       const size = link.size || 'Unknown Size';
+
+      const unsubscribeProgress = scraper.onResolutionProgress(event => {
+        if (sessionId === resolutionSessionIdRef.current) {
+          setResolutionStatusText(event.statusText);
+          if (event.countdownSeconds !== undefined) {
+            setCountdownSeconds(event.countdownSeconds);
+          }
+          if (event.totalCountdownSeconds !== undefined) {
+            setTotalCountdownSeconds(event.totalCountdownSeconds);
+          }
+        }
+      });
 
       try {
         // Step 1: Resolve mirrors page
@@ -328,8 +352,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             onStartDownload(movie.title, size, originalPortalUrl);
             setIsDownloadsVisible(false);
           } else {
-            Linking.openURL(originalPortalUrl);
-            setIsDownloadsVisible(false);
+            setDownloadError(
+              'Unable to prepare download.\nThis source requires additional verification.',
+            );
           }
           setResolvingUrl(null);
           return;
@@ -351,8 +376,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             onStartDownload(movie.title, size, mirror.url);
             setIsDownloadsVisible(false);
           } else {
-            Linking.openURL(mirror.url);
-            setIsDownloadsVisible(false);
+            setDownloadError(
+              'Unable to prepare download.\nThis source requires additional verification.',
+            );
           }
           setResolvingMirrorUrl(null);
           return;
@@ -370,8 +396,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             onStartDownload(movie.title, size, mirror.url);
             setIsDownloadsVisible(false);
           } else {
-            Linking.openURL(mirror.url);
-            setIsDownloadsVisible(false);
+            setDownloadError(
+              'Unable to prepare download.\nThis source requires additional verification.',
+            );
           }
           setResolvingMirrorUrl(null);
           return;
@@ -407,8 +434,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             onStartDownload(movie.title, size, directLink.url);
             setIsDownloadsVisible(false);
           } else {
-            Linking.openURL(directLink.url);
-            setIsDownloadsVisible(false);
+            setDownloadError(
+              'Unable to prepare download.\nThis source requires additional verification.',
+            );
           }
           setResolvingFinalUrl(null);
           return;
@@ -426,21 +454,13 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           if (sessionId !== resolutionSessionIdRef.current) {
             return;
           }
-          if (
-            err &&
-            (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
-              err.type === 'EXTERNAL_BROWSER_REQUIRED')
-          ) {
+          if (scraper.isDirectFileUrl(serverLink.url)) {
+            onStartDownload(movie.title, size, serverLink.url);
             setIsDownloadsVisible(false);
-            openInteractiveBrowser(serverLink.url, size, serverLink.label);
           } else {
-            if (scraper.isDirectFileUrl(serverLink.url)) {
-              onStartDownload(movie.title, size, serverLink.url);
-              setIsDownloadsVisible(false);
-            } else {
-              openExternalBrowserOnce(serverLink.url);
-              setIsDownloadsVisible(false);
-            }
+            setDownloadError(
+              'Unable to prepare download.\nThis source requires additional verification.',
+            );
           }
           setResolvingServerUrl(null);
           return;
@@ -458,8 +478,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
             onStartDownload(movie.title, size, serverLink.url);
             setIsDownloadsVisible(false);
           } else {
-            openExternalBrowserOnce(serverLink.url);
-            setIsDownloadsVisible(false);
+            setDownloadError(
+              'Unable to prepare download.\nThis source requires additional verification.',
+            );
           }
         }
         setResolvingServerUrl(null);
@@ -468,38 +489,31 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           return;
         }
 
-        const failedUrl =
-          resolvingServerUrl ||
-          resolvingFinalUrl ||
-          resolvingMirrorUrl ||
-          originalPortalUrl;
+        let errorMsg = err?.message || 'Unable to prepare download.';
         if (
           err &&
-          (err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
-            err.type === 'EXTERNAL_BROWSER_REQUIRED')
+          (err.type === 'PORTAL_ACCESS_DENIED' ||
+            err.type === 'INTERACTIVE_BROWSER_REQUIRED' ||
+            err.type === 'EXTERNAL_BROWSER_REQUIRED' ||
+            err.statusCode === 403)
         ) {
-          setIsDownloadsVisible(false);
-          openInteractiveBrowser(failedUrl, size, link.label);
-        } else {
-          setDownloadError(
-            err.message || 'Unable to resolve the selected download source.',
-          );
+          errorMsg =
+            'Unable to prepare download.\nThis source requires additional verification.';
         }
+
+        setDownloadError(errorMsg);
         setResolvingUrl(null);
         setResolvingMirrorUrl(null);
         setResolvingFinalUrl(null);
         setResolvingServerUrl(null);
+      } finally {
+        unsubscribeProgress();
       }
     },
     [
       isAnyResolving,
       movie.title,
       onStartDownload,
-      openInteractiveBrowser,
-      openExternalBrowserOnce,
-      resolvingMirrorUrl,
-      resolvingFinalUrl,
-      resolvingServerUrl,
     ],
   );
 
@@ -585,6 +599,9 @@ export const MovieDetailsScreen: React.FC<MovieDetailsScreenProps> = ({
           error={downloadError}
           onRetry={() => lastSelectedLink && handleLinkPress(lastSelectedLink)}
           onClearError={() => setDownloadError(null)}
+          resolutionStatusText={resolutionStatusText}
+          countdownSeconds={countdownSeconds}
+          totalCountdownSeconds={totalCountdownSeconds}
         />
 
         {/* More Like This Carousel */}

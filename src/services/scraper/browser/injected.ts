@@ -290,10 +290,10 @@ export function getAgentCommandAPI(): string {
           const candidates = [];
           const candidateLogs = [];
           const priorities = [
+            { score: 120, regex: /get\s*links?/i },
             { score: 100, regex: /continue|proceed/i },
             { score: 90, regex: /verify|captcha|confirm|human/i },
             { score: 80, regex: /next/i },
-            { score: 70, regex: /get\s*link/i },
             { score: 65, regex: /download/i },
             { score: 50, regex: /watch|stream|play/i },
             { score: 40, regex: /server|mirror|buzz|fsl/i }
@@ -374,6 +374,11 @@ export function getAgentCommandAPI(): string {
                           }
                         }
                         
+                        if (/please wait|generating|wait\s*\d+/i.test(text)) {
+                          score = 0;
+                          candidateLogs.push({ tagName, text, accepted: false, reason: 'Element is in waiting/countdown state' });
+                        }
+
                         // Penalize non-genuine interactive tags if they are large or have huge texts
                         if (score > 0 && !isInteractive) {
                           if (text.length > 50 || rect.width > 250 || rect.height > 80) {

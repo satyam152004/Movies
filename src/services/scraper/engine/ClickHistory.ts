@@ -2,7 +2,7 @@ import {BrowserSession} from './BrowserSession';
 import {ClickRecord} from '../models/Session';
 
 export class ClickHistory {
-  private readonly cooldownMs = 15000; // 15s cooldown
+  private readonly cooldownMs = 3000; // 3s cooldown between identical clicks
 
   public isClickAllowed(
     session: BrowserSession,
@@ -13,12 +13,13 @@ export class ClickHistory {
     const history = session.data.clickHistory;
     const now = Date.now();
 
-    // Check if same selector/text was clicked recently
+    // Check if exact same button was clicked recently on the SAME fingerprint
     const recentClick = history.find(click => {
+      const isSameFingerprint = click.fingerprint === fingerprint;
       const isSameButton =
         click.selector === selector || (click.text === text && text.length > 0);
       const isWithinCooldown = now - click.timestamp < this.cooldownMs;
-      return isSameButton && isWithinCooldown;
+      return isSameFingerprint && isSameButton && isWithinCooldown;
     });
 
     if (recentClick) {
@@ -30,7 +31,7 @@ export class ClickHistory {
 
     // Loop protection: Check if we have clicked the exact same fingerprint too many times
     const fingerprintClicks = history.filter(
-      click => click.fingerprint === fingerprint,
+      click => click.fingerprint === fingerprint && click.selector === selector,
     );
     if (fingerprintClicks.length >= 3) {
       session.addWarning(

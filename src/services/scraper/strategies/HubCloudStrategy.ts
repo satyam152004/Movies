@@ -2,6 +2,7 @@ import {BaseStrategy} from './BaseStrategy';
 import {BrowserSession} from '../models/Session';
 import {ScraperCommand} from '../models/Commands';
 import {ScraperState} from '../models/States';
+import {parseDownloadPage, parseDirectDownloadPage} from '../../detail.parser';
 
 export class HubCloudStrategy implements BaseStrategy {
   public readonly name = 'HubCloud';
@@ -58,11 +59,28 @@ export class HubCloudStrategy implements BaseStrategy {
     session: BrowserSession,
     candidates: any[],
   ): ScraperCommand | null {
-    // If we've got click candidates, sort them by priority.
-    // HubCloud usually has a 'download' or 'proceed' button.
-    const sorted = [...candidates].sort((a, b) => b.score - a.score);
-    const best = sorted[0];
-    if (best && best.score >= 50) {
+    const priorities = [
+      {regex: /download|direct|proceed/i, score: 100},
+      {regex: /generate/i, score: 90},
+      {regex: /server|mirror/i, score: 80},
+    ];
+
+    const scoredCandidates = candidates
+      .filter(c => !/please wait|generating|wait\s*\d+/i.test(c.text))
+      .map(c => {
+        let score = c.score || 0;
+        for (const p of priorities) {
+          if (p.regex.test(c.text)) {
+            score += p.score;
+          }
+        }
+        return {...c, finalScore: score};
+      });
+
+    scoredCandidates.sort((a, b) => b.finalScore - a.finalScore);
+    const best = scoredCandidates[0];
+
+    if (best && best.finalScore >= 40) {
       return {
         id: Math.random().toString(36).substring(7),
         type: 'CLICK',
@@ -78,9 +96,11 @@ export class HubCloudStrategy implements BaseStrategy {
     html: string,
     finalUrl: string,
   ): {label: string; url: string}[] | null {
-    // Standard extraction can be performed by a fallback Direct/Mirror extractor,
-    // but strategy can supply details if needed. Let's return null to let the main engine use the generic DOM crawler,
-    // or return extracted ones.
-    return null;
+    let mirrors = parseDownloadPage(html, finalUrl);
+    if (!mirrors || mirrors.length === 0) {
+      mirrors = parseDirectDownloadPage(html, finalUrl);
+    }
+    return mirrors && mirrors.length > 0 ? mirrors : null;
   }
 }
+

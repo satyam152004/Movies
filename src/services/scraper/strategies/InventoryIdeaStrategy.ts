@@ -2,13 +2,20 @@ import {BaseStrategy} from './BaseStrategy';
 import {BrowserSession} from '../models/Session';
 import {ScraperCommand} from '../models/Commands';
 import {ScraperState} from '../models/States';
+import {parseDownloadPage} from '../../detail.parser';
 
 export class InventoryIdeaStrategy implements BaseStrategy {
   public readonly name = 'InventoryIdea';
 
   public supports(url: string): boolean {
     const lower = url.toLowerCase();
-    return lower.includes('inventoryidea.com');
+    return (
+      lower.includes('inventoryidea.com') ||
+      lower.includes('inventoryidea') ||
+      lower.includes('gadgetsweb') ||
+      lower.includes('homelane') ||
+      lower.includes('mediator')
+    );
   }
 
   public classify(
@@ -19,22 +26,40 @@ export class InventoryIdeaStrategy implements BaseStrategy {
   ): {type: ScraperState; confidence: number; details?: string} | null {
     const lowerBody = bodyText.toLowerCase();
 
+    // Check if target mirrors are present on current page
+    const mirrors = parseDownloadPage(html, session.currentUrl);
+    if (mirrors.length > 0) {
+      return {
+        type: 'DOWNLOAD_SELECTION',
+        confidence: 0.95,
+        details: `Discovered ${mirrors.length} target mirrors on mediator page`,
+      };
+    }
+
     // InventoryIdea is a multi-step mediator page with countdowns
     if (
       lowerBody.includes('inventoryidea.com') ||
       lowerBody.includes('mediator page') ||
       lowerBody.includes('click on continue') ||
-      lowerBody.includes('click to continue')
+      lowerBody.includes('click to continue') ||
+      lowerBody.includes('gadgetsweb') ||
+      lowerBody.includes('homelane')
     ) {
-      // Check countdown. Stricter timer detection that doesn't get confused by static headers
-      const hasReadyButton = /click to continue|get links/i.test(bodyText);
-      const isCountdown =
-        /wait\s*\d+|\b\d+\s*(?:s|sec|second|seconds)\b|generating/i.test(
-          bodyText,
-        ) ||
-        (/please wait|timer/i.test(bodyText) && !hasReadyButton);
+      const timerMatch =
+        bodyText.match(/\b(\d+)\s*(?:s|sec|second|seconds)\b/i) ||
+        bodyText.match(/wait\s*(\d+)/i) ||
+        bodyText.match(/timer:\s*(\d+)/i);
 
-      if (isCountdown) {
+      const seconds = timerMatch ? parseInt(timerMatch[1], 10) : null;
+      if (seconds !== null && seconds > 0) {
+        return {
+          type: 'MEDIATOR_WAITING_TIMER',
+          confidence: 0.95,
+          details: `InventoryIdea countdown timer: ${seconds}s remaining`,
+        };
+      }
+
+      if (/please wait|generating|timer/i.test(bodyText) && !/get links|click to continue/i.test(bodyText)) {
         return {
           type: 'MEDIATOR_WAITING_TIMER',
           confidence: 0.95,
@@ -93,6 +118,8 @@ export class InventoryIdeaStrategy implements BaseStrategy {
     html: string,
     finalUrl: string,
   ): {label: string; url: string}[] | null {
-    return null;
+    const mirrors = parseDownloadPage(html, finalUrl);
+    return mirrors.length > 0 ? mirrors : null;
   }
 }
+

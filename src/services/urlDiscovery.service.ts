@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import {ScraperService} from './scraper.service';
+import { ScraperService } from './scraper.service';
 
 const STORAGE_KEY = '@hdhub4u_discovered_url';
-const DEFAULT_URL = 'https://new1.hdhub4u.af/';
+const DEFAULT_URL = 'https://new5.hdhub4u.cl/';
 const MAX_SEARCH_RANGE = 15;
 
 const ALTERNATIVE_TLDS = [
@@ -19,7 +19,7 @@ const ALTERNATIVE_TLDS = [
 export class UrlDiscoveryService {
   private static instance: UrlDiscoveryService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): UrlDiscoveryService {
     if (!UrlDiscoveryService.instance) {
